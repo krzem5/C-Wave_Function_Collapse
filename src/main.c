@@ -44,6 +44,10 @@ int main(int argc,const char** argv){
 	wfc_print_table(&table,&input_image);
 	wfc_state_t state;
 	wfc_init_state(&table,&output_image,&state);
+	do{
+		wfc_clear_state(&state);
+	} while (!wfc_solve(&table,&state));
+	wfc_generate_image(&state,&output_image);
 	wfc_free_state(&state);
 	wfc_free_table(&table);
 	putchar('\n');

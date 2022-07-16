@@ -76,11 +76,15 @@ void wfc_clear_state(wfc_state_t* state);
 
 
 
+void wfc_free_state(wfc_state_t* state);
+
+
+
 void wfc_free_table(wfc_table_t* table);
 
 
 
-void wfc_free_state(wfc_state_t* state);
+void wfc_generate_image(const wfc_state_t* state,wfc_image_t* out);
 
 
 
@@ -93,6 +97,10 @@ void wfc_print_image(const wfc_image_t* image);
 
 
 void wfc_print_table(const wfc_table_t* table,const wfc_image_t* image);
+
+
+
+_Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state);
 
 
 

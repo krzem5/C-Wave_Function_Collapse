@@ -150,6 +150,11 @@ void wfc_free_table(wfc_table_t* table){
 
 
 
+void wfc_generate_image(const wfc_state_t* state,wfc_image_t* out){
+}
+
+
+
 void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_t* out){
 	out->length=(image->width*image->height*((table->tile_count+7)>>3)+31)>>5;
 	out->data=malloc(out->length<<5);
@@ -199,4 +204,10 @@ void wfc_print_table(const wfc_table_t* table,const wfc_image_t* image){
 			printf("\x1b[0m\n");
 		}
 	}
+}
+
+
+
+_Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
+	return 1;
 }
