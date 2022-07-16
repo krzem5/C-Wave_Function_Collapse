@@ -109,6 +109,20 @@ void wfc_free_table(wfc_table_t* table){
 
 
 
+void wfc_print_image(const wfc_image_t* image){
+	const wfc_color_t* ptr=image->data;
+	for (wfc_size_t x=0;x<image->width;x++){
+		for (wfc_size_t y=0;y<image->height;y++){
+			wfc_color_t c=*ptr;
+			ptr++;
+			printf("\x1b[48;2;%u;%u;%um  ",c>>24,(c>>16)&0xff,(c>>8)&0xff);
+		}
+		printf("\x1b[0m\n");
+	}
+}
+
+
+
 void wfc_print_table(const wfc_table_t* table,const wfc_image_t* image){
 	wfc_flags_t flags=table->flags;
 	wfc_box_size_t half=(table->box_size-1)>>1;

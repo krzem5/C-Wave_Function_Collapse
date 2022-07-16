@@ -69,6 +69,10 @@ void wfc_free_table(wfc_table_t* table);
 
 
 
+void wfc_print_image(const wfc_image_t* image);
+
+
+
 void wfc_print_table(const wfc_table_t* table,const wfc_image_t* image);
 
 
