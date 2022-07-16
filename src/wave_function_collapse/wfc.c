@@ -120,24 +120,22 @@ void wfc_print_table(const wfc_table_t* table,const wfc_image_t* image){
 		width++;
 	}
 	for (wfc_tile_index_t i=0;i<table->tile_count;i++){
-		printf("  [%*u]:\n",width,i);
+		printf("  [%*u]: (%.16lx)\n",width,i,(table->tiles+i)->hash);
 		int32_t x=(table->tiles+i)->x-half;
 		int32_t y=(table->tiles+i)->y-half;
 		for (wfc_box_size_t j=0;j<table->box_size;j++){
 			printf("    ");
 			for (wfc_box_size_t k=0;k<table->box_size;k++){
-				if (k){
-					putchar(',');
-				}
 				int32_t px=x;
 				int32_t py=y;
 				RESOLVE_FLAGS(px,py);
-				printf("%.8x",image->data[px+py*image->width]);
+				wfc_color_t c=image->data[px+py*image->width];
+				printf("\x1b[48;2;%u;%u;%um  ",c>>24,(c>>16)&0xff,(c>>8)&0xff);
 				x++;
 			}
 			x-=table->box_size;
 			y++;
-			putchar('\n');
+			printf("\x1b[0m\n");
 		}
 	}
 }

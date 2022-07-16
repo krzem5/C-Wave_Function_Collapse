@@ -1,3 +1,7 @@
+#ifdef _MSC_VER
+#define WIN32_LEAN_AND_MEAN 1
+#include <windows.h>
+#endif
 #include <stdio.h>
 #include <wfc.h>
 
@@ -9,6 +13,10 @@
 
 
 int main(int argc,const char** argv){
+#ifdef _MSC_VER
+	SetConsoleOutputCP(CP_UTF8);
+	SetConsoleMode(GetStdHandle(-11),7);
+#endif
 	const wfc_color_t image_data[WIDTH*HEIGHT]={
 		0xffffffff,0xffffffff,0xffffffff,0xffffffff,0xffffffff,
 		0xffffffff,0x5a5a5aff,0x5a5a5aff,0x5a5a5aff,0xffffffff,
