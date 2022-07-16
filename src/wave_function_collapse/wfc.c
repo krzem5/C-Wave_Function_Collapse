@@ -69,11 +69,11 @@ static wfc_tile_hash_t _hash_tile(const wfc_image_t* image,wfc_box_size_t box_si
 
 
 
-static wfc_queue_size_t _get_random(wfc_queue_size_t length){
-	if (length==1){
+static uint32_t _get_random(uint32_t n){
+	if (n==1){
 		return 0;
 	}
-	return rand()%length;
+	return rand()%n;
 }
 
 
@@ -263,10 +263,11 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 	__m256i inv_mask=_mm256_xor_si256(_mm256_set1_epi32(-1),mask);
 	while (1){
 		wfc_queue_t* queue=state->queues;
-		for (wfc_tile_index_t i=0;!queue->length&&i<state->tile_count-1;i++){
+		wfc_tile_index_t i=0;
+		for (;!queue->length&&i<state->tile_count;i++){
 			queue++;
 		}
-		if (!queue->length){
+		if (i==state->tile_count){
 			return 1;
 		}
 		wfc_queue_size_t index=_get_random(queue->length);
@@ -276,8 +277,21 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 		__m256i data=_mm256_lddqu_si256((const __m256i*)(state->data+offset));
 		uint64_t bits[4];
 		_mm256_storeu_si256((__m256i*)bits,_mm256_and_si256(data,mask));
-		uint64_t popcount=POPULATION_COUNT(bits[0])+POPULATION_COUNT(bits[1])+POPULATION_COUNT(bits[2])+POPULATION_COUNT(bits[3]);
-		bits[0]=rand()%popcount;
+		wfc_tile_index_t bit_index;
+		if (!i){
+			//
+		}
+		else{
+			bit_index=_get_random(i);
+			for (unsigned int j=0;j<4;j++){
+				uint32_t k=POPULATION_COUNT(bits[j]);
+				if (k>bit_index){
+					//
+					break;
+				}
+				bit_index-=k;
+			}
+		}
 		_mm256_storeu_si256((__m256i*)(state->data+offset),_mm256_or_si256(_mm256_lddqu_si256((const __m256i*)bits),_mm256_and_si256(data,inv_mask)));
 	}
 }
