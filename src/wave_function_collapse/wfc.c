@@ -143,7 +143,13 @@ _not_correct_tile:;
 	out->data_elem_size=(out->tile_count+63)>>6;
 	for (wfc_tile_index_t i=0;i<out->tile_count;i++){
 		wfc_tile_t* tile=out->tiles+i;
-		tile->connections=malloc(4*out->data_elem_size*sizeof(uint64_t));
+		tile->connections=calloc(4*out->data_elem_size,sizeof(uint64_t));
+		for (wfc_tile_index_t j=0;j<out->tile_count;j++){
+			const wfc_tile_t* tile2=out->tiles+j;
+			if (tile2->x==tile->x&&tile2->y+1==tile->y){
+				tile->connections[j>>6]|=1ull<<(j&63);
+			}
+		}
 	}
 }
 
@@ -183,7 +189,10 @@ void wfc_free_state(wfc_state_t* state){
 
 
 void wfc_free_table(wfc_table_t* table){
-	table->tile_count=0;
+	while (table->tile_count){
+		table->tile_count--;
+		free((table->tiles+table->tile_count)->connections);
+	}
 	free(table->tiles);
 	table->tiles=NULL;
 	table->box_size=0;
