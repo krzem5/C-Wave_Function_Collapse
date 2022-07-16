@@ -28,7 +28,7 @@ int main(int argc,const char** argv){
 		0xffffffff,0xffffffff,0xffffffff,0xffffffff,0xffffffff,
 	};
 	wfc_color_t output_image_data[OUTPUT_WIDTH*OUTPUT_HEIGHT];
-	memset(output_image_data,0xff,OUTPUT_WIDTH*OUTPUT_HEIGHT*sizeof(wfc_color_t));
+	memset(output_image_data,0x10,OUTPUT_WIDTH*OUTPUT_HEIGHT*sizeof(wfc_color_t));
 	wfc_image_t input_image={
 		INPUT_WIDTH,
 		INPUT_HEIGHT,
@@ -42,6 +42,9 @@ int main(int argc,const char** argv){
 	wfc_table_t table;
 	wfc_build_table(&input_image,BOX_SIZE,WFC_FLAG_EXTEND_X|WFC_FLAG_EXTEND_Y,&table);
 	wfc_print_table(&table,&input_image);
+	wfc_state_t state;
+	wfc_init_state(&table,&output_image,&state);
+	wfc_free_state(&state);
 	wfc_free_table(&table);
 	putchar('\n');
 	wfc_print_image(&output_image);

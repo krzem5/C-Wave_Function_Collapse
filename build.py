@@ -42,9 +42,9 @@ else:
 			for f in cfl:
 				if (f[-2:]==".c"):
 					fl.append(f"build/{(r+f).replace('/','$')}.o")
-					if (subprocess.run(["gcc","-Wall","-lm","-Werror","-O3","-c",r+f,"-o",f"build/{(r+f).replace('/','$')}.o","-Isrc/include"]).returncode!=0):
+					if (subprocess.run(["gcc","-Wall","-lm","-Werror","-mavx","-mavx2","-O3","-c",r+f,"-o",f"build/{(r+f).replace('/','$')}.o","-Isrc/include"]).returncode!=0):
 						sys.exit(1)
-		if (subprocess.run(["gcc","-o","build/wave_function_collapse"]+fl).returncode!=0):
+		if (subprocess.run(["gcc","-mavx","-mavx2","-o","build/wave_function_collapse"]+fl).returncode!=0):
 			sys.exit(1)
 	else:
 		fl=[]
@@ -53,9 +53,9 @@ else:
 			for f in cfl:
 				if (f[-2:]==".c"):
 					fl.append(f"build/{(r+f).replace('/','$')}.o")
-					if (subprocess.run(["gcc","-Wall","-lm","-Werror","-O0","-c",r+f,"-o",f"build/{(r+f).replace('/','$')}.o","-Isrc/include"]).returncode!=0):
+					if (subprocess.run(["gcc","-Wall","-lm","-Werror","-mavx","-mavx2","-O0","-c",r+f,"-o",f"build/{(r+f).replace('/','$')}.o","-Isrc/include"]).returncode!=0):
 						sys.exit(1)
-		if (subprocess.run(["gcc","-o","build/wave_function_collapse"]+fl).returncode!=0):
+		if (subprocess.run(["gcc","-mavx","-mavx2","-o","build/wave_function_collapse"]+fl).returncode!=0):
 			sys.exit(1)
 	if ("--run" in sys.argv):
 		subprocess.run(["build/wave_function_collapse"]+DEFAULT_ARGS)

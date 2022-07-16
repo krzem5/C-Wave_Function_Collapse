@@ -61,11 +61,30 @@ typedef struct _WFC_TABLE{
 
 
 
+typedef struct _WFC_STATE{
+	uint8_t* data;
+	wfc_size_t length;
+} wfc_state_t;
+
+
+
 void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_t flags,wfc_table_t* out);
 
 
 
+void wfc_clear_state(wfc_state_t* state);
+
+
+
 void wfc_free_table(wfc_table_t* table);
+
+
+
+void wfc_free_state(wfc_state_t* state);
+
+
+
+void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_t* out);
 
 
 
