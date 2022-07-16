@@ -28,7 +28,7 @@ typedef uint64_t wfc_tile_hash_t;
 
 
 
-typedef uint16_t wfc_tile_index_t;
+typedef uint8_t wfc_tile_index_t;
 
 
 
