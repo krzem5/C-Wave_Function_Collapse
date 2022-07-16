@@ -149,6 +149,15 @@ _not_correct_tile:;
 			if (tile2->x==tile->x&&tile2->y+1==tile->y){
 				tile->connections[j>>6]|=1ull<<(j&63);
 			}
+			else if (tile2->x-1==tile->x&&tile2->y==tile->y){
+				tile->connections[(j>>6)+out->data_elem_size]|=1ull<<(j&63);
+			}
+			else if (tile2->x==tile->x&&tile2->y-1==tile->y){
+				tile->connections[(j>>6)+out->data_elem_size*2]|=1ull<<(j&63);
+			}
+			else if (tile2->x+1==tile->x&&tile2->y==tile->y){
+				tile->connections[(j>>6)+out->data_elem_size*3]|=1ull<<(j&63);
+			}
 		}
 	}
 }
@@ -278,6 +287,7 @@ void wfc_print_table(const wfc_table_t* table,const wfc_image_t* image){
 
 
 _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
+	wfc_size_t direction_offsets[4]={-state->width*state->data_elem_size,state->data_elem_size,state->width*state->data_elem_size,-state->data_elem_size};
 	while (1){
 		wfc_queue_t* queue=state->queues;
 		wfc_tile_index_t qi=0;
@@ -298,8 +308,10 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 		else{
 			wfc_tile_index_t bit_index=_get_random(qi+1);
 			const uint64_t* tmp=data;
-			while (1){
+			wfc_tile_index_t sum=0;
+			for (wfc_tile_index_t i=0;i<table->data_elem_size;i++){
 				wfc_tile_index_t bit_cnt=POPULATION_COUNT(*tmp);
+				sum+=bit_cnt;
 				if (bit_cnt>bit_index){
 					uint64_t value=*tmp;
 					while (bit_index){
@@ -315,10 +327,21 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 				tile_index+=64;
 				tmp++;
 			}
+			if (sum==1){
+				continue;
+			}
 			memset(data,0,state->data_elem_size*sizeof(uint64_t));
 			data[tile_index>>6]=1ull<<(tile_index&63);
 		}
 		const wfc_tile_t* tile=table->tiles+tile_index;
-		(void)tile;
+		for (unsigned int i=0;i<4;i++){
+			const uint64_t* mask=tile->connections+i*table->data_elem_size;
+			uint64_t* target=data+direction_offsets[i];
+			for (wfc_tile_index_t j=0;j<table->data_elem_size;j++){
+				// (*target)&=*mask;
+				mask++;
+				target++;
+			}
+		}
 	}
 }

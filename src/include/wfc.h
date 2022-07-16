@@ -81,6 +81,7 @@ typedef struct _WFC_STATE{
 	wfc_tile_index_t tile_count;
 	wfc_tile_index_t data_elem_size;
 	wfc_size_t pixel_count;
+	wfc_size_t width;
 } wfc_state_t;
 
 
