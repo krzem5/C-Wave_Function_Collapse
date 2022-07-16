@@ -151,6 +151,10 @@ void wfc_free_table(wfc_table_t* table){
 
 
 void wfc_generate_image(const wfc_state_t* state,wfc_image_t* out){
+	for (wfc_size_t x=0;x<out->width;x++){
+		for (wfc_size_t y=0;y<out->height;y++){
+		}
+	}
 }
 
 
