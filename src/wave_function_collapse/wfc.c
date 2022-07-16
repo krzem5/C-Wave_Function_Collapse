@@ -287,7 +287,7 @@ void wfc_print_table(const wfc_table_t* table,const wfc_image_t* image){
 
 
 _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
-	wfc_size_t direction_offsets[4]={-state->width*state->data_elem_size,state->data_elem_size,state->width*state->data_elem_size,-state->data_elem_size};
+	wfc_size_t direction_offsets[4]={-state->width,1,state->width,-1};
 	while (1){
 		wfc_queue_t* queue=state->queues;
 		wfc_tile_index_t qi=0;
@@ -298,9 +298,10 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 			return 1;
 		}
 		wfc_queue_size_t index=_get_random(queue->length);
-		uint64_t* data=state->data+queue->data[index]*state->data_elem_size;
+		wfc_size_t offset=queue->data[index]*state->data_elem_size;
 		queue->length--;
 		queue->data[index]=queue->data[queue->length];
+		uint64_t* data=state->data+offset;
 		wfc_tile_index_t tile_index=0;
 		if (!qi){
 			tile_index=_find_first_bit(data);
@@ -336,11 +337,23 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 		const wfc_tile_t* tile=table->tiles+tile_index;
 		for (unsigned int i=0;i<4;i++){
 			const uint64_t* mask=tile->connections+i*table->data_elem_size;
-			uint64_t* target=data+direction_offsets[i];
+			uint64_t* target=data+direction_offsets[i]*state->data_elem_size;
+			wfc_tile_index_t old_sum=0;
+			wfc_tile_index_t new_sum=0;
 			for (wfc_tile_index_t j=0;j<table->data_elem_size;j++){
+				// old_sum+=POPULATION_COUNT(*target);
 				// (*target)&=*mask;
+				// new_sum+=POPULATION_COUNT(*target);
 				mask++;
 				target++;
+			}
+			if (!new_sum){
+				return 0;
+			}
+			if (old_sum!=1){
+				new_sum--;
+				(state->queues+new_sum)->data[(state->queues+new_sum)->length]=offset+direction_offsets[i];
+				(state->queues+new_sum)->length++;
 			}
 		}
 	}
