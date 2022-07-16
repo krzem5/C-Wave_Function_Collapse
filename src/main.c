@@ -49,7 +49,7 @@ int main(int argc,const char** argv){
 	do{
 		wfc_clear_state(&state);
 	} while (!wfc_solve(&table,&state));
-	wfc_generate_image(&state,&input_image,&output_image);
+	wfc_generate_image(&table,&state,&input_image,&output_image);
 	wfc_free_state(&state);
 	wfc_free_table(&table);
 	putchar('\n');

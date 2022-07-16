@@ -34,14 +34,15 @@
 
 
 #ifdef _MSC_VER
-static __inline __forceinline unsigned long FIND_LAST_SET_BIT(unsigned __int64 m){
+#pragma intrinsic(_BitScanForward64)
+static __SLL_FORCE_INLINE __SLL_U32 FIND_FIRST_SET_BIT(__SLL_U64 m){
 	unsigned long o;
-	_BitScanReverse64(&o,m);
+	_BitScanForward64(&o,m);
 	return o;
 }
 #define POPULATION_COUNT(m) __popcnt64((m))
 #else
-#define FIND_LAST_SET_BIT(m) (63-__builtin_clzll((m)))
+#define FIND_FIRST_SET_BIT(m) (__builtin_ffsll((m))-1)
 #define POPULATION_COUNT(m) __builtin_popcountll((m))
 #endif
 
@@ -78,10 +79,13 @@ static uint32_t _get_random(uint32_t n){
 
 
 
-static wfc_tile_index_t _pop_count(__m256i vec){
-	__m256i popcount_16=_mm256_setr_epi8(0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4);
-	__m256i low_16_bits=_mm256_set1_epi8(0x0f);
-	return _mm256_extract_epi32(_mm256_madd_epi16(_mm256_maddubs_epi16(_mm256_add_epi8(_mm256_shuffle_epi8(popcount_16,_mm256_and_si256(vec,low_16_bits)),_mm256_shuffle_epi8(popcount_16,_mm256_and_si256(_mm256_srli_epi16(vec,4),low_16_bits))),_mm256_set1_epi8(1)),_mm256_set1_epi16(1)),0);
+static wfc_tile_index_t _find_first_bit(const uint64_t* data){
+	wfc_tile_index_t out=0;
+	while (!(*data)){
+		data++;
+		out+=64;
+	}
+	return out+FIND_FIRST_SET_BIT(*data);
 }
 
 
@@ -180,15 +184,14 @@ void wfc_free_table(wfc_table_t* table){
 
 
 
-void wfc_generate_image(const wfc_state_t* state,const wfc_image_t* image,wfc_image_t* out){
+void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,const wfc_image_t* image,wfc_image_t* out){
 	wfc_color_t* ptr=out->data;
-	const uint8_t* data=state->data;
-	__m256i mask=_mm256_lddqu_si256((const __m256i*)(state->mask));
+	const uint64_t* data=state->data;
 	for (wfc_size_t y=0;y<out->height;y++){
 		for (wfc_size_t x=0;x<out->width;x++){
-			__m256i pixel=_mm256_and_si256(_mm256_lddqu_si256((const __m256i*)data),mask);
+			const wfc_tile_t* tile=table->tiles+_find_first_bit(data);
 			data+=state->data_elem_size;
-			*ptr=(_pop_count(pixel)*7+67)*256+255;
+			*ptr=image->data[tile->x+tile->y*image->width];
 			ptr++;
 		}
 	}
@@ -198,8 +201,8 @@ void wfc_generate_image(const wfc_state_t* state,const wfc_image_t* image,wfc_im
 
 void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_t* out){
 	wfc_size_t pixel_count=image->width*image->height;
-	out->data_elem_size=(table->tile_count+7)>>3;
-	out->length=((pixel_count-1)*out->data_elem_size+63)>>5;
+	out->data_elem_size=(table->tile_count+63)>>6;
+	out->length=(pixel_count*out->data_elem_size+3)>>2;
 	out->data=malloc(out->length<<5);
 	out->queues=malloc(table->tile_count*sizeof(wfc_queue_t));
 	for (wfc_tile_index_t i=0;i<table->tile_count;i++){
@@ -207,7 +210,6 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_
 	}
 	out->tile_count=table->tile_count;
 	out->pixel_count=pixel_count;
-	_mm256_storeu_si256((__m256i*)(out->mask),_mm256_srlv_epi32(_mm256_set1_epi32(-1),_mm256_subs_epu16(_mm256_set_epi32(256,224,192,160,128,96,64,32),_mm256_set1_epi32(table->tile_count))));
 }
 
 
@@ -259,39 +261,45 @@ void wfc_print_table(const wfc_table_t* table,const wfc_image_t* image){
 
 
 _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
-	__m256i mask=_mm256_lddqu_si256((const __m256i*)(state->mask));
-	__m256i inv_mask=_mm256_xor_si256(_mm256_set1_epi32(-1),mask);
 	while (1){
 		wfc_queue_t* queue=state->queues;
-		wfc_tile_index_t i=0;
-		for (;!queue->length&&i<state->tile_count;i++){
+		wfc_tile_index_t qi=0;
+		for (;!queue->length&&qi<state->tile_count;qi++){
 			queue++;
 		}
-		if (i==state->tile_count){
+		if (qi==state->tile_count){
 			return 1;
 		}
 		wfc_queue_size_t index=_get_random(queue->length);
-		wfc_size_t offset=queue->data[index]*state->data_elem_size;
+		uint64_t* data=state->data+queue->data[index]*state->data_elem_size;
 		queue->length--;
 		queue->data[index]=queue->data[queue->length];
-		__m256i data=_mm256_lddqu_si256((const __m256i*)(state->data+offset));
-		uint64_t bits[4];
-		_mm256_storeu_si256((__m256i*)bits,_mm256_and_si256(data,mask));
-		wfc_tile_index_t bit_index;
-		if (!i){
-			//
+		wfc_tile_index_t tile_index=0;
+		if (!qi){
+			tile_index=_find_first_bit(data);
 		}
 		else{
-			bit_index=_get_random(i);
-			for (unsigned int j=0;j<4;j++){
-				uint32_t k=POPULATION_COUNT(bits[j]);
-				if (k>bit_index){
-					//
+			wfc_tile_index_t bit_index=_get_random(qi+1);
+			const uint64_t* tmp=data;
+			while (1){
+				wfc_tile_index_t bit_cnt=POPULATION_COUNT(*tmp);
+				if (bit_cnt>bit_index){
+					uint64_t value=*tmp;
+					while (bit_index){
+						tile_index++;
+						if (value&1){
+							bit_index--;
+						}
+						value>>=1;
+					}
 					break;
 				}
-				bit_index-=k;
+				bit_index-=bit_cnt;
+				tile_index+=64;
+				tmp++;
 			}
+			memset(data,0,state->data_elem_size*sizeof(uint64_t));
+			data[tile_index>>6]=1ull<<(tile_index&63);
 		}
-		_mm256_storeu_si256((__m256i*)(state->data+offset),_mm256_or_si256(_mm256_lddqu_si256((const __m256i*)bits),_mm256_and_si256(data,inv_mask)));
 	}
 }

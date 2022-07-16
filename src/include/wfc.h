@@ -32,7 +32,7 @@ typedef uint64_t wfc_tile_hash_t;
 
 
 
-typedef uint8_t wfc_tile_index_t;
+typedef uint16_t wfc_tile_index_t;
 
 
 
@@ -73,13 +73,12 @@ typedef struct _WFC_QUEUE{
 
 
 typedef struct _WFC_STATE{
-	uint8_t* data;
+	uint64_t* data;
 	wfc_size_t length;
 	wfc_queue_t* queues;
 	wfc_tile_index_t tile_count;
 	wfc_tile_index_t data_elem_size;
 	wfc_size_t pixel_count;
-	uint64_t mask[4];
 } wfc_state_t;
 
 
@@ -100,7 +99,7 @@ void wfc_free_table(wfc_table_t* table);
 
 
 
-void wfc_generate_image(const wfc_state_t* state,const wfc_image_t* image,wfc_image_t* out);
+void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,const wfc_image_t* image,wfc_image_t* out);
 
 
 
