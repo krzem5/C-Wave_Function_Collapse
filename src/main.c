@@ -3,6 +3,7 @@
 #include <windows.h>
 #endif
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wfc.h>
 
@@ -20,7 +21,8 @@ int main(int argc,const char** argv){
 	SetConsoleOutputCP(CP_UTF8);
 	SetConsoleMode(GetStdHandle(-11),7);
 #endif
-	const wfc_color_t input_image_data[INPUT_WIDTH*INPUT_HEIGHT]={
+	srand(12345);
+	wfc_color_t input_image_data[INPUT_WIDTH*INPUT_HEIGHT]={
 		0xffffffff,0xffffffff,0xffffffff,0xffffffff,0xffffffff,
 		0xffffffff,0x5a5a5aff,0x5a5a5aff,0x5a5a5aff,0xffffffff,
 		0xffffffff,0x5a5a5aff,0xe55a5aff,0x5a5a5aff,0xffffffff,
@@ -47,7 +49,7 @@ int main(int argc,const char** argv){
 	do{
 		wfc_clear_state(&state);
 	} while (!wfc_solve(&table,&state));
-	wfc_generate_image(&state,&output_image);
+	wfc_generate_image(&state,&input_image,&output_image);
 	wfc_free_state(&state);
 	wfc_free_table(&table);
 	putchar('\n');
