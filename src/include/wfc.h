@@ -52,6 +52,7 @@ typedef struct _WFC_TILE{
 	wfc_size_t x;
 	wfc_size_t y;
 	wfc_tile_hash_t hash;
+	uint64_t* connections;
 } wfc_tile_t;
 
 
@@ -61,6 +62,7 @@ typedef struct _WFC_TABLE{
 	wfc_tile_t* tiles;
 	wfc_box_size_t box_size;
 	wfc_flags_t flags;
+	wfc_tile_index_t data_elem_size;
 } wfc_table_t;
 
 

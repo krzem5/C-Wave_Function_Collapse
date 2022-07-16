@@ -140,6 +140,11 @@ _not_correct_tile:;
 	free(tiles);
 	out->box_size=box_size;
 	out->flags=flags;
+	out->data_elem_size=(out->tile_count+63)>>6;
+	for (wfc_tile_index_t i=0;i<out->tile_count;i++){
+		wfc_tile_t* tile=out->tiles+i;
+		tile->connections=malloc(4*out->data_elem_size*sizeof(uint64_t));
+	}
 }
 
 
@@ -166,6 +171,9 @@ void wfc_free_state(wfc_state_t* state){
 	free(state->data);
 	state->data=NULL;
 	state->length=0;
+	for (wfc_tile_index_t i=0;i<state->tile_count;i++){
+		free((state->queues+i)->data);
+	}
 	state->queues=NULL;
 	state->tile_count=0;
 	state->data_elem_size=0;
@@ -201,14 +209,14 @@ void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,const 
 
 void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_t* out){
 	wfc_size_t pixel_count=image->width*image->height;
-	out->data_elem_size=(table->tile_count+63)>>6;
-	out->length=(pixel_count*out->data_elem_size+3)>>2;
+	out->length=(pixel_count*table->data_elem_size+3)>>2;
 	out->data=malloc(out->length<<5);
 	out->queues=malloc(table->tile_count*sizeof(wfc_queue_t));
 	for (wfc_tile_index_t i=0;i<table->tile_count;i++){
 		(out->queues+i)->data=malloc(pixel_count*sizeof(wfc_size_t));
 	}
 	out->tile_count=table->tile_count;
+	out->data_elem_size=table->data_elem_size;
 	out->pixel_count=pixel_count;
 }
 
@@ -301,5 +309,7 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 			memset(data,0,state->data_elem_size*sizeof(uint64_t));
 			data[tile_index>>6]=1ull<<(tile_index&63);
 		}
+		const wfc_tile_t* tile=table->tiles+tile_index;
+		(void)tile;
 	}
 }
