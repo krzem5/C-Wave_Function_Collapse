@@ -137,16 +137,14 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 		const wfc_color_t* base_tile_data=(out->tiles+i)->data;
 		for (unsigned int j=0;j<4;j++){
 			wfc_box_size_t ex=box_size-(j&1);
-			wfc_box_size_t ey=(box_size-(!(j&1)))*box_size;
 			wfc_box_size_t offset=(!j)*box_size+(j==3);
 			const wfc_color_t* tile_data=base_tile_data+(j==1)+(j==2)*box_size;
 			for (wfc_tile_index_t k=0;k<out->tile_count;k++){
 				const wfc_color_t* tile2_data=(out->tiles+k)->data+offset;
-				for (wfc_box_size_t y=0;y<ey;y+=box_size){
-					for (wfc_box_size_t x=0;x<ex;x++){
-						if (tile_data[x+y]!=tile2_data[x+y]){
-							goto _skip_tile;
-						}
+				for (wfc_box_size_t m=0;m<box_size*(box_size-1);m++){
+					wfc_box_size_t n=(m%ex)+m/ex*box_size;
+					if (tile_data[n]!=tile2_data[n]){
+						goto _skip_tile;
 					}
 				}
 				data[k>>6]|=1ull<<(k&63);
