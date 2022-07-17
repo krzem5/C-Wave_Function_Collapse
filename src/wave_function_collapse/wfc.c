@@ -94,8 +94,8 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 	wfc_box_size_t half=(box_size-1)>>1;
 	out->tile_count=0;
 	out->tiles=NULL;
-	for (wfc_size_t x=0;x<image->width;x++){
-		for (wfc_size_t y=0;y<image->height;y++){
+	for (wfc_size_t x=((flags&WFC_FLAG_CUTOFF_X)?half:0);x<image->width-((flags&WFC_FLAG_CUTOFF_X)?half:0);x++){
+		for (wfc_size_t y=((flags&WFC_FLAG_CUTOFF_Y)?half:0);y<image->height-((flags&WFC_FLAG_CUTOFF_Y)?half:0);y++){
 			wfc_tile_hash_t hash=_hash_tile(image,box_size,x-half,y-half,flags);
 			for (wfc_tile_index_t i=0;i<out->tile_count;i++){
 				if ((out->tiles+i)->hash!=hash){
@@ -253,7 +253,7 @@ void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,const 
 				sum+=POPULATION_COUNT(data[i]);
 			}
 			data+=state->data_elem_size;
-			*ptr=(sum!=1?0xff00ffff:image->data[tile->x+tile->y*image->width]);
+			*ptr=(sum!=1?0x00010100*(80+7*sum)+0xff:image->data[tile->x+tile->y*image->width]);
 			ptr++;
 		}
 	}
@@ -432,7 +432,7 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 				target++;
 			}
 			if (!new_sum){
-				return 0;
+				return 1;
 			}
 			if (old_sum!=1){
 				new_sum--;

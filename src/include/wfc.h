@@ -6,9 +6,11 @@
 
 #define WFC_FLAG_EXTEND_X 0
 #define WFC_FLAG_WRAP_X 1
+#define WFC_FLAG_CUTOFF_X 2
 
 #define WFC_FLAG_EXTEND_Y 0
-#define WFC_FLAG_WRAP_Y 2
+#define WFC_FLAG_WRAP_Y 4
+#define WFC_FLAG_CUTOFF_Y 8
 
 
 
