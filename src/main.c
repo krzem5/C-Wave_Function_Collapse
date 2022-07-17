@@ -40,7 +40,7 @@ int main(int argc,const char** argv){
 		output_image_data
 	};
 	wfc_table_t table;
-	wfc_build_table(&input_image,BOX_SIZE,WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y|WFC_FLAG_ROTATE|WFC_FLAG_FLIP,&table);
+	wfc_build_table(&input_image,BOX_SIZE,WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y|WFC_FLAG_WRAP_OUTPUT_X|WFC_FLAG_WRAP_OUTPUT_Y|WFC_FLAG_ROTATE|WFC_FLAG_FLIP,&table);
 	wfc_print_table(&table);
 	wfc_state_t state;
 	wfc_init_state(&table,&output_image,&state);
