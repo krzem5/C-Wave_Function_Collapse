@@ -250,16 +250,14 @@ void wfc_free_table(wfc_table_t* table){
 void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,wfc_image_t* out){
 	wfc_color_t* ptr=out->data;
 	const uint64_t* data=state->data;
-	wfc_box_size_t center_offset=0;//((table->box_size-1)>>1)*(table->box_size+1);
 	for (wfc_size_t y=0;y<out->height;y++){
 		for (wfc_size_t x=0;x<out->width;x++){
-			const wfc_tile_t* tile=table->tiles+_find_first_bit(data);
 			wfc_tile_index_t sum=0;
 			for (wfc_tile_index_t i=0;i<state->data_elem_size;i++){
 				sum+=POPULATION_COUNT(data[i]);
 			}
+			*ptr=(sum!=1?460544*sum+5263615:(table->tiles+_find_first_bit(data))->data[0]);
 			data+=state->data_elem_size;
-			*ptr=(sum!=1?460544*sum+5263615:tile->data[center_offset]);
 			ptr++;
 		}
 	}
