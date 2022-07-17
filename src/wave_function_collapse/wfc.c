@@ -253,7 +253,7 @@ void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,const 
 				sum+=POPULATION_COUNT(data[i]);
 			}
 			data+=state->data_elem_size;
-			*ptr=(sum!=1?0x00010100*(80+7*sum)+0xff:image->data[tile->x+tile->y*image->width]);
+			*ptr=(sum!=1?0xff00ffff:image->data[tile->x+tile->y*image->width]);
 			ptr++;
 		}
 	}
@@ -369,14 +369,7 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 				wfc_tile_index_t bit_cnt=POPULATION_COUNT(*tmp);
 				sum+=bit_cnt;
 				if (bit_cnt>bit_index){
-					uint64_t value=*tmp;
-					while (bit_index){
-						tile_index++;
-						if (value&1){
-							bit_index--;
-						}
-						value>>=1;
-					}
+					tile_index+=_tzcnt_u64(_pdep_u64(1ull<<bit_index,*tmp));
 					break;
 				}
 				bit_index-=bit_cnt;
@@ -439,7 +432,7 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 				target++;
 			}
 			if (!new_sum){
-				return 1;
+				return 0;
 			}
 			if (old_sum!=1){
 				new_sum--;
