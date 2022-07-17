@@ -76,6 +76,8 @@ typedef struct _WFC_QUEUE{
 
 typedef struct _WFC_STATE{
 	uint64_t* data;
+	uint64_t* bitmap;
+	wfc_size_t bitmap_size;
 	wfc_size_t length;
 	wfc_queue_t* queues;
 	wfc_tile_index_t tile_count;
