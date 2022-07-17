@@ -7,10 +7,15 @@
 #define WFC_FLAG_EXTEND_X 0
 #define WFC_FLAG_WRAP_X 1
 #define WFC_FLAG_CUTOFF_X 2
+#define WFC_FLAG_WRAP_OUTPUT_X 4
 
 #define WFC_FLAG_EXTEND_Y 0
-#define WFC_FLAG_WRAP_Y 4
-#define WFC_FLAG_CUTOFF_Y 8
+#define WFC_FLAG_WRAP_Y 8
+#define WFC_FLAG_CUTOFF_Y 16
+#define WFC_FLAG_WRAP_OUTPUT_Y 32
+
+#define WFC_FLAG_ROTATE 64
+#define WFC_FLAG_FLIP 128
 
 
 
@@ -51,9 +56,8 @@ typedef struct _WFC_IMAGE{
 
 
 typedef struct _WFC_TILE{
-	wfc_size_t x;
-	wfc_size_t y;
 	wfc_tile_hash_t hash;
+	wfc_color_t* data;
 	uint64_t* connections;
 } wfc_tile_t;
 
@@ -104,7 +108,7 @@ void wfc_free_table(wfc_table_t* table);
 
 
 
-void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,const wfc_image_t* image,wfc_image_t* out);
+void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,wfc_image_t* out);
 
 
 
@@ -116,7 +120,7 @@ void wfc_print_image(const wfc_image_t* image);
 
 
 
-void wfc_print_table(const wfc_table_t* table,const wfc_image_t* image);
+void wfc_print_table(const wfc_table_t* table);
 
 
 
