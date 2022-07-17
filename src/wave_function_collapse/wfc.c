@@ -10,24 +10,6 @@
 
 
 
-#define RESOLVE_FLAGS(x,y) \
-	do{ \
-		if (x<0){ \
-			x=((flags&WFC_FLAG_WRAP_X)?x+image->width:0); \
-		} \
-		if (y<0){ \
-			y=((flags&WFC_FLAG_WRAP_Y)?y+image->height:0); \
-		} \
-		if (x>=image->width){ \
-			x=((flags&WFC_FLAG_WRAP_X)?x-image->width:image->width-1); \
-		} \
-		if (y>=image->height){ \
-			y=((flags&WFC_FLAG_WRAP_Y)?y-image->height:image->height-1); \
-		} \
-	} while (0)
-
-
-
 #define FNV_OFFSET_BASIS 0xcbf29ce484222325
 #define FNV_PRIME 0x100000001b3
 
@@ -90,22 +72,18 @@ static wfc_tile_index_t _find_first_bit(const uint64_t* data){
 
 void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_t flags,wfc_table_t* out){
 	const int32_t direction_offset[4]={box_size,-1,-box_size,1};
-	wfc_box_size_t half=(box_size-1)>>1;
 	out->box_size=box_size;
 	out->flags=flags;
 	out->tile_count=0;
 	out->tiles=NULL;
 	wfc_color_t* buffer=malloc(box_size*box_size*sizeof(wfc_color_t));
-	for (wfc_size_t x=((flags&WFC_FLAG_CUTOFF_X)?half:0);x<image->width-((flags&WFC_FLAG_CUTOFF_X)?half:0);x++){
-		for (wfc_size_t y=((flags&WFC_FLAG_CUTOFF_Y)?half:0);y<image->height-((flags&WFC_FLAG_CUTOFF_Y)?half:0);y++){
+	for (wfc_size_t x=0;x<image->width-((flags&WFC_FLAG_WRAP_X)?0:box_size-1);x++){
+		for (wfc_size_t y=0;y<image->height-((flags&WFC_FLAG_WRAP_Y)?0:box_size-1);y++){
 			wfc_color_t* ptr=buffer;
-			int32_t tx=x-half;
-			int32_t ty=y-half;
+			wfc_size_t tx=x;
+			wfc_size_t ty=y;
 			for (wfc_box_size_t i=0;i<box_size*box_size;i++){
-				int32_t ptx=tx;
-				int32_t pty=ty;
-				RESOLVE_FLAGS(ptx,pty);
-				*ptr=image->data[ptx+pty*image->width];
+				*ptr=image->data[(tx%image->width)+(ty%image->height)*image->width];
 				ptr++;
 				tx++;
 				if ((i%box_size)==box_size-1){
@@ -155,9 +133,9 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 	free(buffer);
 	out->data_elem_size=(out->tile_count+63)>>6;
 	for (wfc_tile_index_t i=0;i<out->tile_count;i++){
-		wfc_tile_t* tile=out->tiles+i;
 		uint64_t* data=calloc(4*out->data_elem_size,sizeof(uint64_t));
-		tile->connections=data;
+		(out->tiles+i)->connections=data;
+		const wfc_color_t* tile_data=(out->tiles+i)->data;
 		for (unsigned int j=0;j<4;j++){
 			wfc_box_size_t sx=(j==1);
 			wfc_box_size_t sy=(j==2)*box_size;
@@ -168,7 +146,7 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 				const wfc_color_t* tile2_data=(out->tiles+k)->data+offset;
 				for (wfc_box_size_t y=sy;y<ey;y+=box_size){
 					for (wfc_box_size_t x=sx;x<ex;x++){
-						if (tile->data[x+y]!=tile2_data[x+y]){
+						if (tile_data[x+y]!=tile2_data[x+y]){
 							goto _skip_tile;
 						}
 					}
