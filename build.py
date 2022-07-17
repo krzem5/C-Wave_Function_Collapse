@@ -58,4 +58,4 @@ else:
 		if (subprocess.run(["gcc","-g","-mavx","-mavx2","-o","build/wave_function_collapse"]+fl).returncode!=0):
 			sys.exit(1)
 	if ("--run" in sys.argv):
-		subprocess.run(["build/wave_function_collapse"]+DEFAULT_ARGS)
+		subprocess.run(["gdb","-ex=r","--args","build/wave_function_collapse"]+DEFAULT_ARGS)
