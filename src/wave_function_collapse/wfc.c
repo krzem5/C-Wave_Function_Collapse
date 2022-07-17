@@ -439,7 +439,6 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 				target++;
 			}
 			if (!new_sum){
-				asm("int3":::"memory");
 				return 1;
 			}
 			if (old_sum!=1){
