@@ -71,7 +71,6 @@ static wfc_tile_index_t _find_first_bit(const uint64_t* data){
 
 
 void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_t flags,wfc_table_t* out){
-	const int32_t direction_offset[4]={box_size,-1,-box_size,1};
 	out->box_size=box_size;
 	out->flags=flags;
 	out->tile_count=0;
@@ -135,17 +134,16 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 	for (wfc_tile_index_t i=0;i<out->tile_count;i++){
 		uint64_t* data=calloc(4*out->data_elem_size,sizeof(uint64_t));
 		(out->tiles+i)->connections=data;
-		const wfc_color_t* tile_data=(out->tiles+i)->data;
+		const wfc_color_t* base_tile_data=(out->tiles+i)->data;
 		for (unsigned int j=0;j<4;j++){
-			wfc_box_size_t sx=(j==1);
-			wfc_box_size_t sy=(j==2)*box_size;
-			wfc_box_size_t ex=box_size-(j==3);
-			wfc_box_size_t ey=(box_size-(!j))*box_size;
-			int32_t offset=direction_offset[j];
+			wfc_box_size_t ex=box_size-(j&1);
+			wfc_box_size_t ey=(box_size-(!(j&1)))*box_size;
+			wfc_box_size_t offset=(!j)*box_size+(j==3);
+			const wfc_color_t* tile_data=base_tile_data+(j==1)+(j==2)*box_size;
 			for (wfc_tile_index_t k=0;k<out->tile_count;k++){
 				const wfc_color_t* tile2_data=(out->tiles+k)->data+offset;
-				for (wfc_box_size_t y=sy;y<ey;y+=box_size){
-					for (wfc_box_size_t x=sx;x<ex;x++){
+				for (wfc_box_size_t y=0;y<ey;y+=box_size){
+					for (wfc_box_size_t x=0;x<ex;x++){
 						if (tile_data[x+y]!=tile2_data[x+y]){
 							goto _skip_tile;
 						}
