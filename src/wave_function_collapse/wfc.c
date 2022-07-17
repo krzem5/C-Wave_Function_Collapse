@@ -236,8 +236,8 @@ void wfc_free_state(wfc_state_t* state){
 void wfc_free_table(wfc_table_t* table){
 	while (table->tile_count){
 		table->tile_count--;
-		free((table->tiles+table->tile_count)->connections);
 		free((table->tiles+table->tile_count)->data);
+		free((table->tiles+table->tile_count)->connections);
 	}
 	free(table->tiles);
 	table->tiles=NULL;
