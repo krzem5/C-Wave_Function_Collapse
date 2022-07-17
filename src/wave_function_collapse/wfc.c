@@ -312,7 +312,6 @@ void wfc_print_table(const wfc_table_t* table){
 
 _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 	wfc_size_t direction_offsets[4]={-state->width,1,state->width,-1};
-	wfc_size_t height=state->pixel_count/state->width;
 	while (1){
 		wfc_queue_t* queue=state->queues;
 		wfc_tile_index_t qi=0;
@@ -373,7 +372,7 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 					continue;
 				}
 			}
-			else if (i==2&&y==height-1){
+			else if (i==2&&y==state->pixel_count/state->width-1){
 				if (table->flags&WFC_FLAG_WRAP_OUTPUT_Y){
 					tile_offset-=state->pixel_count;
 				}
@@ -391,24 +390,24 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 			}
 			const uint64_t* mask=tile->connections+i*table->data_elem_size;
 			uint64_t* target=data+tile_offset*state->data_elem_size;
-			wfc_tile_index_t old_sum=0;
-			wfc_tile_index_t new_sum=0;
+			uint64_t change=0;
+			wfc_tile_index_t sum=0;
 			for (wfc_tile_index_t j=0;j<table->data_elem_size;j++){
-				uint64_t value=*target;
-				old_sum+=POPULATION_COUNT(value);
-				value&=*mask;
-				new_sum+=POPULATION_COUNT(value);
+				uint64_t old_value=*target;
+				uint64_t value=old_value&(*mask);
+				change|=value^old_value;
+				sum+=POPULATION_COUNT(value);
 				*target=value;
 				mask++;
 				target++;
 			}
-			if (!new_sum){
+			if (!sum){
 				return 0;
 			}
-			if (old_sum!=1){
-				new_sum--;
-				(state->queues+new_sum)->data[(state->queues+new_sum)->length]=offset+tile_offset;
-				(state->queues+new_sum)->length++;
+			if (change){
+				sum--;
+				(state->queues+sum)->data[(state->queues+sum)->length]=offset+tile_offset;
+				(state->queues+sum)->length++;
 			}
 		}
 	}
