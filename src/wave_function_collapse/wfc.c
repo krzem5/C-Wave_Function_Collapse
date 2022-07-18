@@ -191,30 +191,19 @@ _skip_tile:;
 
 
 void wfc_clear_state(wfc_state_t* state){
-	uint64_t* tmp=calloc(state->data_elem_size,sizeof(uint64_t));
-	uint64_t* bit_ptr=tmp;
-	wfc_tile_index_t bit_count=state->tile_count;
-	while (bit_count){
-		if (bit_count>63){
-			bit_count-=64;
-			*bit_ptr=0xffffffffffffffff;
-		}
-		else{
-			*bit_ptr=(1ull<<bit_count)-1;
-			break;
-		}
-		bit_ptr++;
-	}
-	uint64_t* data=state->data;
+	__m256i ones=_mm256_set1_epi8(0xff);
+	__m256i mask=_mm256_srlv_epi32(ones,_mm256_subs_epu16(_mm256_set_epi32(256,224,192,160,128,96,64,32),_mm256_set1_epi32(state->tile_count&255)));
+	__m256i* ptr=(__m256i*)(state->data);
 	for (wfc_size_t i=0;i<state->pixel_count;i++){
-		for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
-			*data=*(tmp+j);
-			data++;
+		for (wfc_tile_index_t j=0;j<(state->data_elem_size>>2)-1;j++){
+			_mm256_storeu_si256(ptr,ones);
+			ptr++;
 		}
+		_mm256_storeu_si256(ptr,mask);
+		ptr++;
 	}
-	free(tmp);
 	__m256i zero=_mm256_setzero_si256();
-	__m256i* ptr=(__m256i*)(state->bitmap);
+	ptr=(__m256i*)(state->bitmap);
 	for (wfc_size_t i=0;i<state->bitmap_size;i++){
 		_mm256_storeu_si256(ptr,zero);
 		ptr++;
