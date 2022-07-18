@@ -403,15 +403,14 @@ _restart_loop:;
 		uint8_t bounds=(offset<state->width)|((x==state->width-1)<<1)|((offset>=state->pixel_count-state->width)<<2)|((!x)<<3);
 		const uint64_t* mask=(table->tiles+tile_index)->connections;
 		for (unsigned int i=0;i<4;i++){
-			int32_t tile_offset=direction_offsets[i];
+			wfc_size_t neightbour_offset=offset+direction_offsets[i];
 			if (bounds&(1<<i)){
 				if (no_wrap&(1<<i)){
 					mask+=state->data_elem_size;
 					continue;
 				}
-				tile_offset+=direction_offset_adjustment[i];
+				neightbour_offset+=direction_offset_adjustment[i];
 			}
-			wfc_size_t neightbour_offset=offset+tile_offset;
 			if (state->bitmap[neightbour_offset>>6]&(1ull<<(neightbour_offset&63))){
 				mask+=state->data_elem_size;
 				continue;
