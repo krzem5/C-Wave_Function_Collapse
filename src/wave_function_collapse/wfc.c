@@ -10,11 +10,6 @@
 
 
 
-#define FNV_OFFSET_BASIS 0xcbf29ce484222325
-#define FNV_PRIME 0x100000001b3
-
-
-
 #ifdef _MSC_VER
 #pragma intrinsic(_BitScanForward64)
 static __SLL_FORCE_INLINE __SLL_U32 FIND_FIRST_SET_BIT(__SLL_U64 m){
@@ -27,6 +22,13 @@ static __SLL_FORCE_INLINE __SLL_U32 FIND_FIRST_SET_BIT(__SLL_U64 m){
 #define FIND_FIRST_SET_BIT(m) (__builtin_ffsll((m))-1)
 #define POPULATION_COUNT(m) __builtin_popcountll((m))
 #endif
+
+
+
+#define FNV_OFFSET_BASIS 0xcbf29ce484222325
+#define FNV_PRIME 0x100000001b3
+
+#define WEIGHT_RANDOMNESS_SHIFT 3
 
 
 
@@ -183,7 +185,9 @@ void wfc_clear_state(wfc_state_t* state){
 	memset(state->bitmap,0,state->bitmap_size);
 	for (wfc_tile_index_t i=0;i<state->tile_count-1;i++){
 		(state->queues+i)->length=0;
+		state->weights[i]=state->pixel_count;
 	}
+	state->weights[state->tile_count-1]=state->pixel_count;
 	for (wfc_queue_size_t i=0;i<state->pixel_count;i++){
 		(state->queues+state->tile_count-1)->data[i]=i;
 	}
@@ -203,6 +207,8 @@ void wfc_free_state(wfc_state_t* state){
 		free((state->queues+i)->data);
 	}
 	state->queues=NULL;
+	free(state->weights);
+	state->weights=NULL;
 	state->tile_count=0;
 	state->data_elem_size=0;
 	state->pixel_count=0;
@@ -247,6 +253,7 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_
 	for (wfc_tile_index_t i=0;i<table->tile_count;i++){
 		(out->queues+i)->data=malloc(pixel_count*sizeof(wfc_size_t));
 	}
+	out->weights=malloc(table->tile_count*sizeof(wfc_weight_t));
 	out->tile_count=table->tile_count;
 	out->data_elem_size=table->data_elem_size;
 	out->pixel_count=pixel_count;
@@ -334,31 +341,25 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 			tile_index=_find_first_bit(state->data+offset);
 		}
 		else{
-			wfc_tile_index_t bit_index=_get_random(qi+1);
+			wfc_weight_t weight_sum=0;
 			uint64_t* data=state->data+offset;
-			wfc_tile_index_t i=0;
-			while (1){
+			for (wfc_tile_index_t i=0;i<state->data_elem_size;i++){
 				uint64_t value=*data;
 				*data=0;
-				i++;
-				wfc_tile_index_t bit_cnt=POPULATION_COUNT(value);
-				if (bit_cnt>bit_index){
-					wfc_tile_index_t shift=_tzcnt_u64(_pdep_u64(1ull<<bit_index,value));
-					tile_index+=shift;
-					(*data)|=1ull<<shift;
-					break;
+				while (value){
+					wfc_tile_index_t j=(i<<6)|FIND_FIRST_SET_BIT(value);
+					value&=value-1;
+					wfc_weight_t w=state->weights[j];
+					weight_sum+=w;
+					if ((_get_random((weight_sum+1)<<WEIGHT_RANDOMNESS_SHIFT)>>WEIGHT_RANDOMNESS_SHIFT)<=w){
+						tile_index=j;
+					}
 				}
-				bit_index-=bit_cnt;
-				tile_index+=64;
-				data++;
 			}
-			data++;
-			while (i<state->data_elem_size){
-				*data=0;
-				i++;
-				data++;
-			}
+			data[tile_index>>6]|=1ull<<(tile_index&63);
 		}
+		wfc_weight_t weight=state->weights[tile_index];
+		state->weights[tile_index]=(weight<=state->tile_count?1:weight-state->tile_count);
 		wfc_size_t x=offset%state->width;
 		wfc_size_t y=offset/state->width;
 		const uint64_t* mask=(table->tiles+tile_index)->connections;
@@ -417,5 +418,4 @@ _continue:
 			queue->length++;
 		}
 	}
-
 }
