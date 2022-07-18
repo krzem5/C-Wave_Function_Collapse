@@ -33,7 +33,6 @@ static FORCE_INLINE unsigned long FIND_FIRST_SET_BIT(unsigned __int64 m){
 #define WEIGHT_RANDOMNESS_SHIFT 3
 
 
-
 static _Bool _add_tile(wfc_table_t* table,wfc_color_t* data){
 	wfc_tile_hash_t hash=FNV_OFFSET_BASIS;
 	for (wfc_box_size_t i=0;i<table->box_size*table->box_size;i++){
@@ -55,39 +54,38 @@ static _Bool _add_tile(wfc_table_t* table,wfc_color_t* data){
 
 
 static FORCE_INLINE uint32_t _get_random(wfc_state_t* state,uint32_t n){
-	if (state->prng.count){
-		state->prng.count--;
-		return state->prng.data[state->prng.count]%n;
+	if (!state->prng.count){
+		__m256i* ptr=(__m256i*)(state->prng.data);
+		__m256i permute_a=_mm256_set_epi32(4,3,2,1,0,7,6,5);
+		__m256i permute_b=_mm256_set_epi32(2,1,0,7,6,5,4,3);
+		__m256i s0=_mm256_lddqu_si256(ptr+0);
+		__m256i s1=_mm256_lddqu_si256(ptr+1);
+		__m256i s2=_mm256_lddqu_si256(ptr+2);
+		__m256i s3=_mm256_lddqu_si256(ptr+3);
+		__m256i u0=_mm256_srli_epi64(s0,1);
+		__m256i u1=_mm256_srli_epi64(s1,3);
+		__m256i u2=_mm256_srli_epi64(s2,1);
+		__m256i u3=_mm256_srli_epi64(s3,3);
+		__m256i t0=_mm256_permutevar8x32_epi32(s0,permute_a);
+		__m256i t1=_mm256_permutevar8x32_epi32(s1,permute_b);
+		__m256i t2=_mm256_permutevar8x32_epi32(s2,permute_a);
+		__m256i t3=_mm256_permutevar8x32_epi32(s3,permute_b);
+		s0=_mm256_add_epi64(t0,u0);
+		s1=_mm256_add_epi64(t1,u1);
+		s2=_mm256_add_epi64(t2,u2);
+		s3=_mm256_add_epi64(t3,u3);
+		_mm256_storeu_si256(ptr+0,s0);
+		_mm256_storeu_si256(ptr+1,s1);
+		_mm256_storeu_si256(ptr+2,s2);
+		_mm256_storeu_si256(ptr+3,s3);
+		_mm256_storeu_si256(ptr+4,_mm256_xor_si256(u0,t1));
+		_mm256_storeu_si256(ptr+5,_mm256_xor_si256(u2,t3));
+		_mm256_storeu_si256(ptr+6,_mm256_xor_si256(s0,s3));
+		_mm256_storeu_si256(ptr+7,_mm256_xor_si256(s2,s1));
+		state->prng.count=64;
 	}
-	__m256i* ptr=(__m256i*)(state->prng.data);
-	__m256i permute_a=_mm256_set_epi32(4,3,2,1,0,7,6,5);
-	__m256i permute_b=_mm256_set_epi32(2,1,0,7,6,5,4,3);
-	__m256i s0=_mm256_lddqu_si256(ptr+0);
-	__m256i s1=_mm256_lddqu_si256(ptr+1);
-	__m256i s2=_mm256_lddqu_si256(ptr+2);
-	__m256i s3=_mm256_lddqu_si256(ptr+3);
-	__m256i u0=_mm256_srli_epi64(s0,1);
-	__m256i u1=_mm256_srli_epi64(s1,3);
-	__m256i u2=_mm256_srli_epi64(s2,1);
-	__m256i u3=_mm256_srli_epi64(s3,3);
-	__m256i t0=_mm256_permutevar8x32_epi32(s0,permute_a);
-	__m256i t1=_mm256_permutevar8x32_epi32(s1,permute_b);
-	__m256i t2=_mm256_permutevar8x32_epi32(s2,permute_a);
-	__m256i t3=_mm256_permutevar8x32_epi32(s3,permute_b);
-	s0=_mm256_add_epi64(t0,u0);
-	s1=_mm256_add_epi64(t1,u1);
-	s2=_mm256_add_epi64(t2,u2);
-	s3=_mm256_add_epi64(t3,u3);
-	_mm256_storeu_si256(ptr+0,s0);
-	_mm256_storeu_si256(ptr+1,s1);
-	_mm256_storeu_si256(ptr+2,s2);
-	_mm256_storeu_si256(ptr+3,s3);
-	_mm256_storeu_si256(ptr+4,_mm256_xor_si256(u0,t1));
-	_mm256_storeu_si256(ptr+5,_mm256_xor_si256(u2,t3));
-	_mm256_storeu_si256(ptr+6,_mm256_xor_si256(s0,s3));
-	_mm256_storeu_si256(ptr+7,_mm256_xor_si256(s2,s1));
-	state->prng.count=63;
-	return state->prng.data[63]%n;
+	state->prng.count--;
+	return state->prng.data[state->prng.count]%n;
 }
 
 
@@ -185,42 +183,6 @@ _skip_tile:;
 			}
 			data+=out->data_elem_size;
 		}
-	}
-}
-
-
-
-void wfc_clear_state(wfc_state_t* state){
-	__m256i ones=_mm256_set1_epi8(0xff);
-	__m256i mask=_mm256_srlv_epi32(ones,_mm256_subs_epu16(_mm256_set_epi32(256,224,192,160,128,96,64,32),_mm256_set1_epi32(state->tile_count&255)));
-	__m256i* ptr=(__m256i*)(state->data);
-	for (wfc_size_t i=0;i<state->pixel_count;i++){
-		for (wfc_tile_index_t j=0;j<(state->data_elem_size>>2)-1;j++){
-			_mm256_storeu_si256(ptr,ones);
-			ptr++;
-		}
-		_mm256_storeu_si256(ptr,mask);
-		ptr++;
-	}
-	__m256i zero=_mm256_setzero_si256();
-	ptr=(__m256i*)(state->bitmap);
-	for (wfc_size_t i=0;i<state->bitmap_size;i++){
-		_mm256_storeu_si256(ptr,zero);
-		ptr++;
-	}
-	for (wfc_tile_index_t i=0;i<state->tile_count-1;i++){
-		(state->queues+i)->length=0;
-		state->weights[i]=state->pixel_count;
-	}
-	(state->queues+state->tile_count-1)->length=state->pixel_count;
-	state->weights[state->tile_count-1]=state->pixel_count;
-	__m256i counter=_mm256_set_epi32(0,1,2,3,4,5,6,7);
-	__m256i increment=_mm256_set1_epi32(8);
-	ptr=(__m256i*)((state->queues+state->tile_count-1)->data);
-	for (wfc_queue_size_t i=0;i<state->queue_size;i++){
-		_mm256_storeu_si256(ptr,counter);
-		counter=_mm256_add_epi32(counter,increment);
-		ptr++;
 	}
 }
 
@@ -356,8 +318,40 @@ void wfc_print_table(const wfc_table_t* table){
 
 
 
-_Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
+void wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 	wfc_size_t direction_offsets[4]={-state->width,1,state->width,-1};
+_restart_loop:;
+	__m256i ones=_mm256_set1_epi8(0xff);
+	__m256i mask=_mm256_srlv_epi32(ones,_mm256_subs_epu16(_mm256_set_epi32(256,224,192,160,128,96,64,32),_mm256_set1_epi32(state->tile_count&255)));
+	__m256i* ptr=(__m256i*)(state->data);
+	for (wfc_size_t i=0;i<state->pixel_count;i++){
+		for (wfc_tile_index_t j=0;j<(state->data_elem_size>>2)-1;j++){
+			_mm256_storeu_si256(ptr,ones);
+			ptr++;
+		}
+		_mm256_storeu_si256(ptr,mask);
+		ptr++;
+	}
+	__m256i zero=_mm256_setzero_si256();
+	ptr=(__m256i*)(state->bitmap);
+	for (wfc_size_t i=0;i<state->bitmap_size;i++){
+		_mm256_storeu_si256(ptr,zero);
+		ptr++;
+	}
+	for (wfc_tile_index_t i=0;i<state->tile_count-1;i++){
+		(state->queues+i)->length=0;
+		state->weights[i]=state->pixel_count;
+	}
+	(state->queues+state->tile_count-1)->length=state->pixel_count;
+	state->weights[state->tile_count-1]=state->pixel_count;
+	__m256i counter=_mm256_set_epi32(0,1,2,3,4,5,6,7);
+	__m256i increment=_mm256_set1_epi32(8);
+	ptr=(__m256i*)((state->queues+state->tile_count-1)->data);
+	for (wfc_queue_size_t i=0;i<state->queue_size;i++){
+		_mm256_storeu_si256(ptr,counter);
+		counter=_mm256_add_epi32(counter,increment);
+		ptr++;
+	}
 	while (1){
 		wfc_queue_t* queue=state->queues;
 		wfc_tile_index_t qi=0;
@@ -365,7 +359,7 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 			queue++;
 		}
 		if (qi==state->tile_count){
-			return 1;
+			return;
 		}
 		wfc_size_t offset;
 		wfc_tile_index_t tile_index=0;
@@ -452,7 +446,7 @@ _continue:
 				continue;
 			}
 			if (!sum){
-				return 0;
+				goto _restart_loop;
 			}
 			queue=state->queues+sum-1;
 			queue->data[queue->length]=neightbour_offset;

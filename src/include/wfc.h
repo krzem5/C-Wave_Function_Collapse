@@ -106,10 +106,6 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 
 
 
-void wfc_clear_state(wfc_state_t* state);
-
-
-
 void wfc_free_state(wfc_state_t* state);
 
 
@@ -134,7 +130,7 @@ void wfc_print_table(const wfc_table_t* table);
 
 
 
-_Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state);
+void wfc_solve(const wfc_table_t* table,wfc_state_t* state);
 
 
 
