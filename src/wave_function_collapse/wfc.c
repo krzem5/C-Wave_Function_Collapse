@@ -53,9 +53,6 @@ static _Bool _add_tile(wfc_table_t* table,wfc_color_t* data){
 
 
 static uint32_t _get_random(uint32_t n){
-	if (n==1){
-		return 0;
-	}
 	return rand()%n;
 }
 
@@ -328,21 +325,23 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 		if (qi==state->tile_count){
 			return 1;
 		}
-		wfc_queue_size_t index=_get_random(queue->length);
-		wfc_size_t offset=queue->data[index]*state->data_elem_size;
-		queue->length--;
-		queue->data[index]=queue->data[queue->length];
-		if (state->bitmap[offset>>6]&(1ull<<(offset&63))){
-			continue;
-		}
-		state->bitmap[offset>>6]|=1ull<<(offset&63);
+		wfc_size_t offset;
 		wfc_tile_index_t tile_index=0;
 		if (!qi){
-			tile_index=_find_first_bit(state->data+offset);
+			queue->length--;
+			offset=queue->data[queue->length];
+			tile_index=_find_first_bit(state->data+offset*state->data_elem_size);
 		}
 		else{
+			wfc_queue_size_t index=(queue->length>1?_get_random(queue->length):1);
+			offset=queue->data[index];
+			queue->length--;
+			queue->data[index]=queue->data[queue->length];
+			if (state->bitmap[offset>>6]&(1ull<<(offset&63))){
+				continue;
+			}
 			wfc_weight_t weight_sum=0;
-			uint64_t* data=state->data+offset;
+			uint64_t* data=state->data+offset*state->data_elem_size;
 			for (wfc_tile_index_t i=0;i<state->data_elem_size;i++){
 				uint64_t value=*data;
 				*data=0;
@@ -358,6 +357,7 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 			}
 			data[tile_index>>6]|=1ull<<(tile_index&63);
 		}
+		state->bitmap[offset>>6]|=1ull<<(offset&63);
 		wfc_weight_t weight=state->weights[tile_index];
 		state->weights[tile_index]=(weight<=state->tile_count?1:weight-state->tile_count);
 		wfc_size_t x=offset%state->width;
