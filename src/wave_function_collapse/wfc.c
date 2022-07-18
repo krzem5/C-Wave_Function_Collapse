@@ -165,8 +165,12 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 	}
 	free(buffer);
 	out->data_elem_size=((out->tile_count+255)>>6)&0xfffffffc;
+	__m256i zero=_mm256_setzero_si256();
 	for (wfc_tile_index_t i=0;i<out->tile_count;i++){
-		uint64_t* data=calloc(4*out->data_elem_size,sizeof(uint64_t));
+		uint64_t* data=malloc(4*out->data_elem_size*sizeof(uint64_t));
+		for (wfc_tile_index_t j=0;j<out->data_elem_size;j++){
+			_mm256_storeu_si256((__m256i*)(data+(j<<2)),zero);
+		}
 		(out->tiles+i)->connections=data;
 		const wfc_color_t* base_tile_data=(out->tiles+i)->data;
 		for (unsigned int j=0;j<4;j++){

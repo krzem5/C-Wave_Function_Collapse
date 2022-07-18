@@ -22,6 +22,7 @@ int main(int argc,const char** argv){
 	SetConsoleMode(GetStdHandle(-11),7);
 #endif
 	srand(time(NULL));
+	srand(12);////////////////////////
 	wfc_color_t input_image_data[INPUT_WIDTH*INPUT_HEIGHT]={
 		0xffffffff,0xffffffff,0xffffffff,0xffffffff,
 		0xffffffff,0x5a5a5aff,0x5a5a5aff,0x5a5a5aff,
