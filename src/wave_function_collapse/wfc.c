@@ -32,6 +32,9 @@ static FORCE_INLINE unsigned long FIND_FIRST_SET_BIT(unsigned __int64 m){
 
 #define WEIGHT_RANDOMNESS_SHIFT 3
 
+#define MODULO(a,b) ((a)>=(b)?(a)%(b):(a))
+
+
 
 static _Bool _add_tile(wfc_table_t* table,wfc_color_t* data){
 	wfc_tile_hash_t hash=FNV_OFFSET_BASIS;
@@ -85,7 +88,7 @@ static FORCE_INLINE uint32_t _get_random(wfc_state_t* state,uint32_t n){
 		state->prng.count=64;
 	}
 	state->prng.count--;
-	return state->prng.data[state->prng.count]%n;
+	return MODULO(state->prng.data[state->prng.count],n);
 }
 
 
