@@ -163,7 +163,7 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 		}
 	}
 	free(buffer);
-	out->data_elem_size=(out->tile_count+63)>>6;
+	out->data_elem_size=((out->tile_count+255)>>6)&0xfffffffc;
 	for (wfc_tile_index_t i=0;i<out->tile_count;i++){
 		uint64_t* data=calloc(4*out->data_elem_size,sizeof(uint64_t));
 		(out->tiles+i)->connections=data;
@@ -191,7 +191,7 @@ _skip_tile:;
 
 
 void wfc_clear_state(wfc_state_t* state){
-	uint64_t* tmp=malloc(state->data_elem_size*sizeof(uint64_t));
+	uint64_t* tmp=calloc(state->data_elem_size,sizeof(uint64_t));
 	uint64_t* bit_ptr=tmp;
 	wfc_tile_index_t bit_count=state->tile_count;
 	while (bit_count){
@@ -213,7 +213,12 @@ void wfc_clear_state(wfc_state_t* state){
 		}
 	}
 	free(tmp);
-	memset(state->bitmap,0,state->bitmap_size);
+	__m256i zero=_mm256_setzero_si256();
+	__m256i* ptr=(__m256i*)(state->bitmap);
+	for (wfc_size_t i=0;i<state->bitmap_size;i++){
+		_mm256_storeu_si256(ptr,zero);
+		ptr++;
+	}
 	for (wfc_tile_index_t i=0;i<state->tile_count-1;i++){
 		(state->queues+i)->length=0;
 		state->weights[i]=state->pixel_count;
@@ -237,6 +242,7 @@ void wfc_free_state(wfc_state_t* state){
 	for (wfc_tile_index_t i=0;i<state->tile_count;i++){
 		free((state->queues+i)->data);
 	}
+	free(state->queues);
 	state->queues=NULL;
 	free(state->weights);
 	state->weights=NULL;
@@ -282,10 +288,10 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_
 		prng_data++;
 	}
 	out->prng.count=64;
-	out->length=(pixel_count*table->data_elem_size+3)>>2;
-	out->data=malloc(out->length<<5);
-	out->bitmap_size=((pixel_count+63)>>3)&0xfffffff8;
-	out->bitmap=malloc(out->bitmap_size);
+	out->length=pixel_count*table->data_elem_size;
+	out->data=malloc(out->length*sizeof(uint64_t));
+	out->bitmap_size=(pixel_count+255)>>8;
+	out->bitmap=malloc(out->bitmap_size<<5);
 	out->queues=malloc(table->tile_count*sizeof(wfc_queue_t));
 	for (wfc_tile_index_t i=0;i<table->tile_count;i++){
 		(out->queues+i)->data=malloc(pixel_count*sizeof(wfc_size_t));
@@ -359,7 +365,7 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 	while (1){
 		wfc_queue_t* queue=state->queues;
 		wfc_tile_index_t qi=0;
-		for (;!queue->length&&qi<state->tile_count;qi++){
+		for (;qi<state->tile_count&&!queue->length;qi++){
 			queue++;
 		}
 		if (qi==state->tile_count){
@@ -416,7 +422,7 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 				}
 				tile_offset-=state->width;
 			}
-			else if (i==2&&offset>state->pixel_count-state->width){
+			else if (i==2&&offset>=state->pixel_count-state->width){
 				if (!(table->flags&WFC_FLAG_WRAP_OUTPUT_Y)){
 					goto _continue;
 				}
@@ -431,13 +437,13 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 			wfc_size_t neightbour_offset=offset+tile_offset;
 			if (state->bitmap[neightbour_offset>>6]&(1ull<<(neightbour_offset&63))){
 _continue:
-				mask+=table->data_elem_size;
+				mask+=state->data_elem_size;
 				continue;
 			}
 			uint64_t* target=state->data+neightbour_offset*state->data_elem_size;
 			uint64_t change=0;
 			wfc_tile_index_t sum=0;
-			for (wfc_tile_index_t j=0;j<table->data_elem_size;j++){
+			for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
 				uint64_t old_value=*target;
 				uint64_t value=old_value&(*mask);
 				change|=value^old_value;
