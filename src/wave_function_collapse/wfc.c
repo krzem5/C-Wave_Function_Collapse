@@ -167,8 +167,8 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 	out->data_elem_size=((out->tile_count+255)>>6)&0xfffffffc;
 	__m256i zero=_mm256_setzero_si256();
 	for (wfc_tile_index_t i=0;i<out->tile_count;i++){
-		uint64_t* data=malloc(8*out->data_elem_size*sizeof(uint64_t));
-		for (wfc_tile_index_t j=0;j<2*out->data_elem_size;j++){
+		uint64_t* data=malloc(4*out->data_elem_size*sizeof(uint64_t));
+		for (wfc_tile_index_t j=0;j<out->data_elem_size;j++){
 			_mm256_storeu_si256((__m256i*)(data+(j<<2)),zero);
 		}
 		(out->tiles+i)->connections=data;
@@ -187,23 +187,6 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 				}
 				data[k>>6]|=1ull<<(k&63);
 _skip_tile:;
-			}
-			data+=out->data_elem_size;
-		}
-		for (unsigned int j=0;j<4;j++){
-			wfc_box_size_t sx=(j<2);
-			wfc_box_size_t sy=(((j+3)&3)<2);
-			wfc_box_size_t offset=box_size+1-sx-sy*box_size;
-			const wfc_color_t* tile_data=base_tile_data+sx+sy*box_size;
-			for (wfc_tile_index_t k=0;k<out->tile_count;k++){
-				const wfc_color_t* tile2_data=(out->tiles+k)->data+offset;
-				for (wfc_box_size_t m=0;m<(box_size-1)*(box_size-1);m++){
-					if (tile_data[m]!=tile2_data[m]){
-						goto _skip_tile_diagonal;
-					}
-				}
-				data[k>>6]|=1ull<<(k&63);
-_skip_tile_diagonal:;
 			}
 			data+=out->data_elem_size;
 		}
@@ -301,14 +284,14 @@ void wfc_print_image(const wfc_image_t* image){
 
 
 void wfc_print_table(const wfc_table_t* table){
-	const char* direction_strings[8]={"N","E","S","W","NE","SE","SW","NW"};
+	const char* direction_strings[4]={"N","E","S","W"};
 	printf("Tiles: (%u)\n",table->tile_count);
 	const wfc_tile_t* tile=table->tiles;
 	for (wfc_tile_index_t i=0;i<table->tile_count;i++){
 		printf(" [%u]\n",i);
 		printf("  Hash: %.16lx\n",tile->hash);
 		const uint64_t* connection_data=tile->connections;
-		for (unsigned int j=0;j<8;j++){
+		for (unsigned int j=0;j<4;j++){
 			printf("  %s:",direction_strings[j]);
 			for (wfc_tile_index_t k=0;k<table->data_elem_size;k++){
 				uint64_t tmp=*connection_data;
@@ -339,7 +322,6 @@ void wfc_print_table(const wfc_table_t* table){
 void wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 	wfc_size_t direction_offsets[4]={-state->width,1,state->width,-1};
 	wfc_size_t direction_offset_adjustment[4]={state->pixel_count,-state->width,-state->pixel_count,state->width};
-	wfc_size_t diagonal_direction_offsets[4]={1-state->width,1+state->width,state->width-1,-state->width-1};
 	uint8_t no_wrap=(!(table->flags&WFC_FLAG_WRAP_OUTPUT_Y))*5+(!(table->flags&WFC_FLAG_WRAP_OUTPUT_X))*10;
 _restart_loop:;
 	__m256i ones=_mm256_set1_epi8(0xff);
@@ -428,49 +410,6 @@ _restart_loop:;
 					continue;
 				}
 				tile_offset+=direction_offset_adjustment[i];
-			}
-			wfc_size_t neightbour_offset=offset+tile_offset;
-			if (state->bitmap[neightbour_offset>>6]&(1ull<<(neightbour_offset&63))){
-				mask+=state->data_elem_size;
-				continue;
-			}
-			uint64_t* target=state->data+neightbour_offset*state->data_elem_size;
-			uint64_t change=0;
-			wfc_tile_index_t sum=0;
-			for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
-				uint64_t old_value=*target;
-				uint64_t value=old_value&(*mask);
-				change|=value^old_value;
-				sum+=POPULATION_COUNT(value);
-				*target=value;
-				mask++;
-				target++;
-			}
-			if (!change){
-				continue;
-			}
-			if (!sum){
-				goto _restart_loop;
-			}
-			queue=state->queues+sum-1;
-			queue->data[queue->length]=neightbour_offset;
-			queue->length++;
-		}
-		for (unsigned int i=0;i<4;i++){
-			int32_t tile_offset=diagonal_direction_offsets[i];
-			uint8_t next_direction_mask=1<<((i+1)&3);
-			uint8_t direction_mask=(1<<i)|next_direction_mask;
-			if (bounds&direction_mask){
-				if (no_wrap&direction_mask){
-					mask+=state->data_elem_size;
-					continue;
-				}
-				if (bounds&(1<<i)){
-					tile_offset+=direction_offset_adjustment[i];
-				}
-				if (bounds&next_direction_mask){
-					tile_offset+=direction_offset_adjustment[(i+1)&3];
-				}
 			}
 			wfc_size_t neightbour_offset=offset+tile_offset;
 			if (state->bitmap[neightbour_offset>>6]&(1ull<<(neightbour_offset&63))){
