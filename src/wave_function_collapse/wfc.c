@@ -338,6 +338,9 @@ void wfc_print_table(const wfc_table_t* table){
 
 void wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 	wfc_size_t direction_offsets[4]={-state->width,1,state->width,-1};
+	wfc_size_t direction_offset_adjustment[4]={state->pixel_count,-state->width,-state->pixel_count,state->width};
+	wfc_size_t diagonal_direction_offsets[4]={1-state->width,1+state->width,state->width-1,-state->width-1};
+	uint8_t no_wrap=(!(table->flags&WFC_FLAG_WRAP_OUTPUT_Y))*5+(!(table->flags&WFC_FLAG_WRAP_OUTPUT_X))*10;
 _restart_loop:;
 	__m256i ones=_mm256_set1_epi8(0xff);
 	__m256i mask=_mm256_srlv_epi32(ones,_mm256_subs_epu16(_mm256_set_epi32(256,224,192,160,128,96,64,32),_mm256_set1_epi32(state->tile_count&255)));
@@ -415,36 +418,62 @@ _restart_loop:;
 		wfc_weight_t weight=state->weights[tile_index];
 		state->weights[tile_index]=(weight<=state->tile_count?1:weight-state->tile_count);
 		wfc_size_t x=offset%state->width;
+		uint8_t bounds=(offset<state->width)|((x==state->width-1)<<1)|((offset>=state->pixel_count-state->width)<<2)|((!x)<<3);
 		const uint64_t* mask=(table->tiles+tile_index)->connections;
 		for (unsigned int i=0;i<4;i++){
 			int32_t tile_offset=direction_offsets[i];
-			if (!i&&offset<state->width){
-				if (!(table->flags&WFC_FLAG_WRAP_OUTPUT_Y)){
-					goto _continue;
+			if (bounds&(1<<i)){
+				if (no_wrap&(1<<i)){
+					mask+=state->data_elem_size;
+					continue;
 				}
-				tile_offset+=state->pixel_count;
-			}
-			else if (i==1&&x==state->width-1){
-				if (!(table->flags&WFC_FLAG_WRAP_OUTPUT_X)){
-					goto _continue;
-				}
-				tile_offset-=state->width;
-			}
-			else if (i==2&&offset>=state->pixel_count-state->width){
-				if (!(table->flags&WFC_FLAG_WRAP_OUTPUT_Y)){
-					goto _continue;
-				}
-				tile_offset-=state->pixel_count;
-			}
-			else if (i==3&&!x){
-				if (!(table->flags&WFC_FLAG_WRAP_OUTPUT_X)){
-					goto _continue;
-				}
-				tile_offset+=state->width;
+				tile_offset+=direction_offset_adjustment[i];
 			}
 			wfc_size_t neightbour_offset=offset+tile_offset;
 			if (state->bitmap[neightbour_offset>>6]&(1ull<<(neightbour_offset&63))){
-_continue:
+				mask+=state->data_elem_size;
+				continue;
+			}
+			uint64_t* target=state->data+neightbour_offset*state->data_elem_size;
+			uint64_t change=0;
+			wfc_tile_index_t sum=0;
+			for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
+				uint64_t old_value=*target;
+				uint64_t value=old_value&(*mask);
+				change|=value^old_value;
+				sum+=POPULATION_COUNT(value);
+				*target=value;
+				mask++;
+				target++;
+			}
+			if (!change){
+				continue;
+			}
+			if (!sum){
+				goto _restart_loop;
+			}
+			queue=state->queues+sum-1;
+			queue->data[queue->length]=neightbour_offset;
+			queue->length++;
+		}
+		for (unsigned int i=0;i<4;i++){
+			int32_t tile_offset=diagonal_direction_offsets[i];
+			uint8_t next_direction_mask=1<<((i+1)&3);
+			uint8_t direction_mask=(1<<i)|next_direction_mask;
+			if (bounds&direction_mask){
+				if (no_wrap&direction_mask){
+					mask+=state->data_elem_size;
+					continue;
+				}
+				if (bounds&(1<<i)){
+					tile_offset+=direction_offset_adjustment[i];
+				}
+				if (bounds&next_direction_mask){
+					tile_offset+=direction_offset_adjustment[(i+1)&3];
+				}
+			}
+			wfc_size_t neightbour_offset=offset+tile_offset;
+			if (state->bitmap[neightbour_offset>>6]&(1ull<<(neightbour_offset&63))){
 				mask+=state->data_elem_size;
 				continue;
 			}
