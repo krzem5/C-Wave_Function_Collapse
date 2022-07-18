@@ -223,11 +223,16 @@ void wfc_clear_state(wfc_state_t* state){
 		(state->queues+i)->length=0;
 		state->weights[i]=state->pixel_count;
 	}
-	state->weights[state->tile_count-1]=state->pixel_count;
-	for (wfc_queue_size_t i=0;i<state->pixel_count;i++){
-		(state->queues+state->tile_count-1)->data[i]=i;
-	}
 	(state->queues+state->tile_count-1)->length=state->pixel_count;
+	state->weights[state->tile_count-1]=state->pixel_count;
+	__m256i counter=_mm256_set_epi32(0,1,2,3,4,5,6,7);
+	__m256i increment=_mm256_set1_epi32(8);
+	ptr=(__m256i*)((state->queues+state->tile_count-1)->data);
+	for (wfc_queue_size_t i=0;i<state->queue_size;i++){
+		_mm256_storeu_si256(ptr,counter);
+		counter=_mm256_add_epi32(counter,increment);
+		ptr++;
+	}
 }
 
 
@@ -293,8 +298,9 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_
 	out->bitmap_size=(pixel_count+255)>>8;
 	out->bitmap=malloc(out->bitmap_size<<5);
 	out->queues=malloc(table->tile_count*sizeof(wfc_queue_t));
+	out->queue_size=(pixel_count*sizeof(wfc_size_t)+31)>>5;
 	for (wfc_tile_index_t i=0;i<table->tile_count;i++){
-		(out->queues+i)->data=malloc(pixel_count*sizeof(wfc_size_t));
+		(out->queues+i)->data=malloc(out->queue_size<<5);
 	}
 	out->weights=malloc(table->tile_count*sizeof(wfc_weight_t));
 	out->tile_count=table->tile_count;

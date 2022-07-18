@@ -92,6 +92,7 @@ typedef struct _WFC_STATE{
 	wfc_size_t bitmap_size;
 	wfc_size_t length;
 	wfc_queue_t* queues;
+	wfc_queue_size_t queue_size;
 	wfc_weight_t* weights;
 	wfc_tile_index_t tile_count;
 	wfc_tile_index_t data_elem_size;
