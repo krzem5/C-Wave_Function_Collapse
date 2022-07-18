@@ -249,6 +249,7 @@ void wfc_free_state(wfc_state_t* state){
 	}
 	free(state->queues);
 	state->queues=NULL;
+	state->queue_size=0;
 	free(state->weights);
 	state->weights=NULL;
 	state->tile_count=0;
