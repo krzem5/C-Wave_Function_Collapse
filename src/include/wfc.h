@@ -71,6 +71,13 @@ typedef struct _WFC_TABLE{
 
 
 
+typedef struct _WFC_PRNG{
+	uint32_t data[64];
+	uint32_t count;
+} wfc_prng_t;
+
+
+
 typedef struct _WFC_QUEUE{
 	wfc_size_t* data;
 	wfc_queue_size_t length;
@@ -79,6 +86,7 @@ typedef struct _WFC_QUEUE{
 
 
 typedef struct _WFC_STATE{
+	wfc_prng_t prng;
 	uint64_t* data;
 	uint64_t* bitmap;
 	wfc_size_t bitmap_size;

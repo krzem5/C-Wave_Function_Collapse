@@ -12,13 +12,15 @@
 
 #ifdef _MSC_VER
 #pragma intrinsic(_BitScanForward64)
-static __SLL_FORCE_INLINE __SLL_U32 FIND_FIRST_SET_BIT(__SLL_U64 m){
+#define FORCE_INLINE __inline __forceinline
+static FORCE_INLINE unsigned long FIND_FIRST_SET_BIT(unsigned __int64 m){
 	unsigned long o;
 	_BitScanForward64(&o,m);
 	return o;
 }
 #define POPULATION_COUNT(m) __popcnt64((m))
 #else
+#define FORCE_INLINE inline __attribute__((always_inline))
 #define FIND_FIRST_SET_BIT(m) (__builtin_ffsll((m))-1)
 #define POPULATION_COUNT(m) __builtin_popcountll((m))
 #endif
@@ -52,13 +54,45 @@ static _Bool _add_tile(wfc_table_t* table,wfc_color_t* data){
 
 
 
-static uint32_t _get_random(uint32_t n){
-	return rand()%n;
+static FORCE_INLINE uint32_t _get_random(wfc_state_t* state,uint32_t n){
+	if (state->prng.count){
+		state->prng.count--;
+		return state->prng.data[state->prng.count]%n;
+	}
+	__m256i* ptr=(__m256i*)(state->prng.data);
+	__m256i permute_a=_mm256_set_epi32(4,3,2,1,0,7,6,5);
+	__m256i permute_b=_mm256_set_epi32(2,1,0,7,6,5,4,3);
+	__m256i s0=_mm256_lddqu_si256(ptr+0);
+	__m256i s1=_mm256_lddqu_si256(ptr+1);
+	__m256i s2=_mm256_lddqu_si256(ptr+2);
+	__m256i s3=_mm256_lddqu_si256(ptr+3);
+	__m256i u0=_mm256_srli_epi64(s0,1);
+	__m256i u1=_mm256_srli_epi64(s1,3);
+	__m256i u2=_mm256_srli_epi64(s2,1);
+	__m256i u3=_mm256_srli_epi64(s3,3);
+	__m256i t0=_mm256_permutevar8x32_epi32(s0,permute_a);
+	__m256i t1=_mm256_permutevar8x32_epi32(s1,permute_b);
+	__m256i t2=_mm256_permutevar8x32_epi32(s2,permute_a);
+	__m256i t3=_mm256_permutevar8x32_epi32(s3,permute_b);
+	s0=_mm256_add_epi64(t0,u0);
+	s1=_mm256_add_epi64(t1,u1);
+	s2=_mm256_add_epi64(t2,u2);
+	s3=_mm256_add_epi64(t3,u3);
+	_mm256_storeu_si256(ptr+0,s0);
+	_mm256_storeu_si256(ptr+1,s1);
+	_mm256_storeu_si256(ptr+2,s2);
+	_mm256_storeu_si256(ptr+3,s3);
+	_mm256_storeu_si256(ptr+4,_mm256_xor_si256(u0,t1));
+	_mm256_storeu_si256(ptr+5,_mm256_xor_si256(u2,t3));
+	_mm256_storeu_si256(ptr+6,_mm256_xor_si256(s0,s3));
+	_mm256_storeu_si256(ptr+7,_mm256_xor_si256(s2,s1));
+	state->prng.count=63;
+	return state->prng.data[63]%n;
 }
 
 
 
-static wfc_tile_index_t _find_first_bit(const uint64_t* data){
+static FORCE_INLINE wfc_tile_index_t _find_first_bit(const uint64_t* data){
 	wfc_tile_index_t out=0;
 	while (!(*data)){
 		data++;
@@ -242,6 +276,12 @@ void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,wfc_im
 
 void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_t* out){
 	wfc_size_t pixel_count=image->width*image->height;
+	uint8_t* prng_data=(uint8_t*)(out->prng.data);
+	for (unsigned int i=0;i<256;i++){
+		*prng_data=rand()&255;
+		prng_data++;
+	}
+	out->prng.count=64;
 	out->length=(pixel_count*table->data_elem_size+3)>>2;
 	out->data=malloc(out->length<<5);
 	out->bitmap_size=((pixel_count+63)>>3)&0xfffffff8;
@@ -333,7 +373,7 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 			tile_index=_find_first_bit(state->data+offset*state->data_elem_size);
 		}
 		else{
-			wfc_queue_size_t index=(queue->length>1?_get_random(queue->length):1);
+			wfc_queue_size_t index=(queue->length>1?_get_random(state,queue->length):1);
 			offset=queue->data[index];
 			queue->length--;
 			queue->data[index]=queue->data[queue->length];
@@ -350,7 +390,7 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 					value&=value-1;
 					wfc_weight_t w=state->weights[j];
 					weight_sum+=w;
-					if ((_get_random((weight_sum+1)<<WEIGHT_RANDOMNESS_SHIFT)>>WEIGHT_RANDOMNESS_SHIFT)<=w){
+					if ((_get_random(state,(weight_sum+1)<<WEIGHT_RANDOMNESS_SHIFT)>>WEIGHT_RANDOMNESS_SHIFT)<=w){
 						tile_index=j;
 					}
 				}
@@ -361,11 +401,10 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 		wfc_weight_t weight=state->weights[tile_index];
 		state->weights[tile_index]=(weight<=state->tile_count?1:weight-state->tile_count);
 		wfc_size_t x=offset%state->width;
-		wfc_size_t y=offset/state->width;
 		const uint64_t* mask=(table->tiles+tile_index)->connections;
 		for (unsigned int i=0;i<4;i++){
 			int32_t tile_offset=direction_offsets[i];
-			if (!i&&!y){
+			if (!i&&offset<state->width){
 				if (!(table->flags&WFC_FLAG_WRAP_OUTPUT_Y)){
 					goto _continue;
 				}
@@ -377,7 +416,7 @@ _Bool wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 				}
 				tile_offset-=state->width;
 			}
-			else if (i==2&&y==state->pixel_count/state->width-1){
+			else if (i==2&&offset>state->pixel_count-state->width){
 				if (!(table->flags&WFC_FLAG_WRAP_OUTPUT_Y)){
 					goto _continue;
 				}
