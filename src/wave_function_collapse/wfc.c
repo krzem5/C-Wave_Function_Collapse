@@ -12,16 +12,23 @@
 
 #ifdef _MSC_VER
 #pragma intrinsic(_BitScanForward64)
+#pragma intrinsic(_BitScanReverse)
 #define FORCE_INLINE __inline __forceinline
 static FORCE_INLINE unsigned long FIND_FIRST_SET_BIT(unsigned __int64 m){
 	unsigned long o;
 	_BitScanForward64(&o,m);
 	return o;
 }
+static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
+	unsigned long o;
+	_BitScanReverse(&o,m);
+	return o;
+}
 #define POPULATION_COUNT(m) __popcnt64((m))
 #else
 #define FORCE_INLINE inline __attribute__((always_inline))
 #define FIND_FIRST_SET_BIT(m) (__builtin_ffsll((m))-1)
+#define FIND_LAST_SET_BIT(m) (31-__builtin_clz((m)))
 #define POPULATION_COUNT(m) __builtin_popcountll((m))
 #endif
 
@@ -323,6 +330,22 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 	wfc_size_t direction_offsets[4]={-state->width,1,state->width,-1};
 	wfc_size_t direction_offset_adjustment[4]={state->pixel_count,-state->width,-state->pixel_count,state->width};
 	uint8_t no_wrap=(!(table->flags&WFC_FLAG_WRAP_OUTPUT_Y))*5+(!(table->flags&WFC_FLAG_WRAP_OUTPUT_X))*10;
+	uint64_t mult=0;
+	uint8_t shift=FIND_LAST_SET_BIT(state->width);
+	if (state->width&(state->width-1)){
+		uint64_t n=1ull<<(shift+32);
+		mult=n/state->width;
+		uint32_t rem=n-mult*state->width;
+		mult+=mult+1;
+		const uint32_t twice_rem=rem<<1;
+		if (twice_rem>=state->width||twice_rem<rem){
+			mult+=1;
+		}
+		mult&=0xffffffff;
+	}
+	else{
+		shift--;
+	}
 _restart_loop:;
 	__m256i ones=_mm256_set1_epi8(0xff);
 	__m256i mask=_mm256_srlv_epi32(ones,_mm256_subs_epu16(_mm256_set_epi32(256,224,192,160,128,96,64,32),_mm256_set1_epi32(state->tile_count&255)));
@@ -399,7 +422,8 @@ _restart_loop:;
 		state->bitmap[offset>>6]|=1ull<<(offset&63);
 		wfc_weight_t weight=state->weights[tile_index];
 		state->weights[tile_index]=(weight<=state->tile_count?1:weight-state->tile_count);
-		wfc_size_t x=offset%state->width;
+		wfc_size_t x=(offset*mult)>>32;
+		x=offset-((((offset-x)>>1)+x)>>shift)*state->width;
 		uint8_t bounds=(offset<state->width)|((x==state->width-1)<<1)|((offset>=state->pixel_count-state->width)<<2)|((!x)<<3);
 		const uint64_t* mask=(table->tiles+tile_index)->connections;
 		for (unsigned int i=0;i<4;i++){
