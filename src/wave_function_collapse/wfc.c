@@ -337,8 +337,8 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 		mult=n/state->width;
 		uint32_t rem=n-mult*state->width;
 		mult+=mult+1;
-		const uint32_t twice_rem=rem<<1;
-		if (twice_rem>=state->width||twice_rem<rem){
+		uint32_t rem2=rem<<1;
+		if (rem2>=state->width||rem2<rem){
 			mult+=1;
 		}
 		mult&=0xffffffff;
