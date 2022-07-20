@@ -428,7 +428,9 @@ _restart_loop:;
 		const uint64_t* mask=(table->tiles+tile_index)->connections;
 		for (unsigned int i=0;i<4;i++){
 			wfc_size_t neightbour_offset=offset+direction_offsets[i];
-			if (bounds&(1<<i)){
+			sll_bool_t bound_hit=bounds&1
+			bounds>>=1;
+			if (bound_hit){
 				if (no_wrap&(1<<i)){
 					mask+=state->data_elem_size;
 					continue;
