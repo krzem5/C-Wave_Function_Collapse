@@ -346,9 +346,11 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 	else{
 		shift--;
 	}
-_restart_loop:;
 	__m256i ones=_mm256_set1_epi8(0xff);
 	__m256i mask=_mm256_srlv_epi32(ones,_mm256_subs_epu16(_mm256_set_epi32(256,224,192,160,128,96,64,32),_mm256_set1_epi32(state->tile_count&255)));
+	__m256i zero=_mm256_setzero_si256();
+	__m256i increment=_mm256_set1_epi32(8);
+_restart_loop:;
 	__m256i* ptr=(__m256i*)(state->data);
 	for (wfc_size_t i=0;i<state->pixel_count;i++){
 		for (wfc_tile_index_t j=0;j<(state->data_elem_size>>2)-1;j++){
@@ -358,7 +360,6 @@ _restart_loop:;
 		_mm256_storeu_si256(ptr,mask);
 		ptr++;
 	}
-	__m256i zero=_mm256_setzero_si256();
 	ptr=(__m256i*)(state->bitmap);
 	for (wfc_size_t i=0;i<state->bitmap_size;i++){
 		_mm256_storeu_si256(ptr,zero);
@@ -371,7 +372,6 @@ _restart_loop:;
 	(state->queues+state->tile_count-1)->length=state->pixel_count;
 	state->weights[state->tile_count-1]=state->pixel_count;
 	__m256i counter=_mm256_set_epi32(0,1,2,3,4,5,6,7);
-	__m256i increment=_mm256_set1_epi32(8);
 	ptr=(__m256i*)((state->queues+state->tile_count-1)->data);
 	for (wfc_queue_size_t i=0;i<state->queue_size;i++){
 		_mm256_storeu_si256(ptr,counter);
