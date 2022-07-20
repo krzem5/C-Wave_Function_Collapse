@@ -424,13 +424,12 @@ _restart_loop:;
 		state->weights[tile_index]=(weight<=state->tile_count?1:weight-state->tile_count);
 		wfc_size_t x=(offset*mult)>>32;
 		x=offset-((((offset-x)>>1)+x)>>shift)*state->width;
-		uint8_t bounds=(offset<state->width)|((x==state->width-1)<<1)|((offset>=state->pixel_count-state->width)<<2)|((!x)<<3);
+		uint8_t bounds=((offset<state->width)<<1)|((x==state->width-1)<<2)|((offset>=state->pixel_count-state->width)<<3)|((!x)<<4);
 		const uint64_t* mask=(table->tiles+tile_index)->connections;
 		for (unsigned int i=0;i<4;i++){
 			wfc_size_t neightbour_offset=offset+direction_offsets[i];
-			sll_bool_t bound_hit=bounds&1
 			bounds>>=1;
-			if (bound_hit){
+			if (bounds&1){
 				if (no_wrap&(1<<i)){
 					mask+=state->data_elem_size;
 					continue;
