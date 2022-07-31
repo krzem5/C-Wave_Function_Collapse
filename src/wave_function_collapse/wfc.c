@@ -217,6 +217,8 @@ void wfc_free_state(wfc_state_t* state){
 	state->queue_size=0;
 	free(state->weights);
 	state->weights=NULL;
+	free(state->rewind_stack);
+	state->rewind_stack=NULL;
 	state->tile_count=0;
 	state->data_elem_size=0;
 	state->pixel_count=0;
@@ -269,6 +271,7 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_
 		(out->queues+i)->data=malloc(out->queue_size<<5);
 	}
 	out->weights=malloc(table->tile_count*sizeof(wfc_weight_t));
+	out->rewind_stack=malloc(pixel_count*sizeof(wfc_size_t));
 	out->tile_count=table->tile_count;
 	out->data_elem_size=table->data_elem_size;
 	out->pixel_count=pixel_count;
@@ -351,6 +354,7 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 	__m256i zero=_mm256_setzero_si256();
 	__m256i increment=_mm256_set1_epi32(8);
 _restart_loop:;
+	wfc_queue_size_t rewind_stack_size=0;
 	__m256i* ptr=(__m256i*)(state->data);
 	for (wfc_size_t i=0;i<state->pixel_count;i++){
 		for (wfc_tile_index_t j=0;j<(state->data_elem_size>>2)-1;j++){
@@ -420,6 +424,8 @@ _restart_loop:;
 			data[tile_index>>6]|=1ull<<(tile_index&63);
 		}
 		state->bitmap[offset>>6]|=1ull<<(offset&63);
+		state->rewind_stack[rewind_stack_size]=offset;
+		rewind_stack_size++;
 		wfc_weight_t weight=state->weights[tile_index];
 		state->weights[tile_index]=(weight<=state->tile_count?1:weight-state->tile_count);
 		wfc_size_t x=(offset*mult)>>32;
