@@ -111,7 +111,7 @@ static FORCE_INLINE wfc_tile_index_t _find_first_bit(const uint64_t* data){
 
 
 
-static FORCE_INLINE void _recalc_pixel_mask(const wfc_table_t* table,wfc_state_t* state,wfc_size_t offset,const wfc_size_t* direction_offsets,const wfc_size_t* direction_offset_adjustment,uint8_t no_wrap,__m256i ones,__m256i data_mask){
+static FORCE_INLINE _Bool _recalc_pixel_mask(const wfc_table_t* table,wfc_state_t* state,wfc_size_t offset,const wfc_size_t* direction_offsets,const wfc_size_t* direction_offset_adjustment,uint8_t no_wrap,__m256i ones,__m256i data_mask){
 	wfc_size_t x=offset%state->width;
 	uint8_t bounds=((offset<state->width)<<1)|((x==state->width-1)<<2)|((offset>=state->pixel_count-state->width)<<3)|((!x)<<4);
 	uint64_t* target=state->data+offset*state->data_elem_size;
@@ -146,9 +146,12 @@ static FORCE_INLINE void _recalc_pixel_mask(const wfc_table_t* table,wfc_state_t
 	for (wfc_tile_index_t i=0;i<state->data_elem_size;i++){
 		count+=POPULATION_COUNT(*(target+i));
 	}
-	if (!_get_random(state,count+1)){
-		return;
+	if (_get_random(state,count+1)){
+		state->queues->data[state->queues->length]=offset;
+		state->queues->length++;
+		return 1;
 	}
+	return 0;
 }
 
 
@@ -434,6 +437,7 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 		ptr++;
 	}
 	while (1){
+_next_pixel:;
 		wfc_queue_t* queue=state->queues;
 		wfc_tile_index_t qi=0;
 		for (;qi<state->tile_count&&!queue->length;qi++){
@@ -516,10 +520,11 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 				while (rewind_stack_size){
 					rewind_stack_size--;
 					offset=state->rewind_stack[rewind_stack_size];
-					_recalc_pixel_mask(table,state,offset,direction_offsets,direction_offset_adjustment,no_wrap,ones,data_mask);
-					break;
+					if (_recalc_pixel_mask(table,state,offset,direction_offsets,direction_offset_adjustment,no_wrap,ones,data_mask)){
+						break;
+					}
 				}
-				return;
+				goto _next_pixel;
 			}
 			queue=state->queues+sum-1;
 			queue->data[queue->length]=neightbour_offset;
