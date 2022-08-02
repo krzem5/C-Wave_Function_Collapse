@@ -420,7 +420,7 @@ _next_pixel:;
 			tile_index=_find_first_bit(state->data+offset*state->data_elem_size);
 		}
 		else{
-			wfc_queue_size_t index=(queue->length>1?_get_random(state,queue->length):1);
+			wfc_queue_size_t index=(queue->length>1?_get_random(state,queue->length):0);
 			offset=queue->data[index];
 			queue->length--;
 			queue->data[index]=queue->data[queue->length];
@@ -673,7 +673,7 @@ _next_pixel:;
 								}
 							}
 						}
-	_skip_x_loop:;
+_skip_x_loop:;
 						delta_adj=delta;
 						if (bounds&10){
 							delta_adj+=base_y;
