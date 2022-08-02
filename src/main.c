@@ -8,6 +8,13 @@
 #include <wfc.h>
 
 
+
+#define IMAGE(w,h,...) \
+	wfc_color_t __img_##__LINE__[]={__VA_ARGS__}; \
+	wfc_image_t input_image={w,h,__img_##__LINE__}
+
+
+
 #define INPUT_WIDTH 4
 #define INPUT_HEIGHT 4
 #define BOX_SIZE 2
@@ -22,18 +29,14 @@ int main(int argc,const char** argv){
 	SetConsoleMode(GetStdHandle(-11),7);
 #endif
 	srand(time(NULL));
-	wfc_color_t input_image_data[INPUT_WIDTH*INPUT_HEIGHT]={
+	IMAGE(
+		4,4,
 		0xffffffff,0xffffffff,0xffffffff,0xffffffff,
 		0xffffffff,0x5a5a5aff,0x5a5a5aff,0x5a5a5aff,
 		0xffffffff,0x5a5a5aff,0xe55a5aff,0x5a5a5aff,
 		0xffffffff,0x5a5a5aff,0x5a5a5aff,0x5a5a5aff,
-	};
+	);
 	wfc_color_t output_image_data[OUTPUT_WIDTH*OUTPUT_HEIGHT];
-	wfc_image_t input_image={
-		INPUT_WIDTH,
-		INPUT_HEIGHT,
-		input_image_data
-	};
 	wfc_image_t output_image={
 		OUTPUT_WIDTH,
 		OUTPUT_HEIGHT,
