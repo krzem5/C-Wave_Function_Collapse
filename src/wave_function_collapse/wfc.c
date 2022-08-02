@@ -43,6 +43,8 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 
 #define QUEUE_INDEX_COLLAPSED 0xffff
 
+#define MAX_ALLOWED_DELETES 128
+
 
 
 static _Bool _add_tile(wfc_table_t* table,wfc_color_t* data){
@@ -369,6 +371,7 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 	__m256i data_mask=_mm256_srlv_epi32(ones,_mm256_subs_epu16(_mm256_set_epi32(256,224,192,160,128,96,64,32),_mm256_set1_epi32(state->tile_count&255)));
 	__m256i zero=_mm256_setzero_si256();
 	__m256i increment=_mm256_set1_epi32(8);
+_retry_from_start:;
 	__m256i* ptr=(__m256i*)(state->data);
 	for (wfc_size_t i=0;i<state->pixel_count;i++){
 		for (wfc_tile_index_t j=0;j<(state->data_elem_size>>2)-1;j++){
@@ -378,6 +381,7 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 		_mm256_storeu_si256(ptr,data_mask);
 		ptr++;
 		(state->queue_indicies+i)->queue_index=table->tile_count-1;
+		(state->queue_indicies+i)->_delete_count=0;
 		(state->queue_indicies+i)->index=i;
 	}
 	ptr=(__m256i*)(state->bitmap);
@@ -474,8 +478,13 @@ _next_pixel:;
 				state->delete_stack[0]=neightbour_offset;
 				while (delete_stack_size){
 					delete_stack_size--;
-					wfc_size_t base_x=(state->delete_stack[delete_stack_size]%state->width)+_get_random(state,(table->box_size<<1)+1)-table->box_size;
-					wfc_size_t base_y=(state->delete_stack[delete_stack_size]/state->width)+_get_random(state,(table->box_size<<1)+1)-table->box_size;
+					offset=state->delete_stack[delete_stack_size];
+					(state->queue_indicies+offset)->_delete_count++;
+					if ((state->queue_indicies+offset)->_delete_count==MAX_ALLOWED_DELETES){
+						goto _retry_from_start;
+					}
+					wfc_size_t base_x=(offset%state->width)+_get_random(state,(table->box_size<<1)+1)-table->box_size;
+					wfc_size_t base_y=(offset/state->width)+_get_random(state,(table->box_size<<1)+1)-table->box_size;
 					for (int32_t y=-table->box_size;y<=((int32_t)(table->box_size));y++){
 						int32_t y_off=base_y+y;
 						if (y_off<0){
