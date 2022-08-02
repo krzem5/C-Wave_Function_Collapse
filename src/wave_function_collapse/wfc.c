@@ -398,11 +398,8 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 		counter=_mm256_add_epi32(counter,increment);
 		ptr++;
 	}
-	wfc_image_t output_image={40,20,malloc(3200)};
 	while (1){
 _next_pixel:;
-		wfc_generate_image(table,state,&output_image);
-		// wfc_print_image(&output_image);
 		wfc_queue_t* queue=state->queues;
 		wfc_tile_index_t qi=0;
 		for (;qi<state->tile_count&&!queue->length;qi++){
