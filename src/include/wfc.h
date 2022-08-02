@@ -85,6 +85,13 @@ typedef struct _WFC_QUEUE{
 
 
 
+typedef struct _WFC_QUEUE_LOCATION{
+	wfc_tile_index_t queue_index;
+	wfc_size_t index;
+} wfc_queue_location_t;
+
+
+
 typedef struct _WFC_STATE{
 	wfc_prng_t prng;
 	uint64_t* data;
@@ -94,7 +101,7 @@ typedef struct _WFC_STATE{
 	wfc_queue_t* queues;
 	wfc_queue_size_t queue_size;
 	wfc_weight_t* weights;
-	wfc_size_t* rewind_stack;
+	wfc_queue_location_t* queue_indicies;
 	wfc_tile_index_t tile_count;
 	wfc_tile_index_t data_elem_size;
 	wfc_size_t pixel_count;
