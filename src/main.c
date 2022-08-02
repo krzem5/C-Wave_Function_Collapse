@@ -18,8 +18,8 @@
 #define INPUT_WIDTH 4
 #define INPUT_HEIGHT 4
 #define BOX_SIZE 2
-#define OUTPUT_WIDTH 40
-#define OUTPUT_HEIGHT 40
+#define OUTPUT_WIDTH 960
+#define OUTPUT_HEIGHT 540
 
 
 
@@ -52,6 +52,7 @@ int main(int argc,const char** argv){
 		OUTPUT_HEIGHT,
 		output_image_data
 	};
+	wfc_print_image(&input_image);
 	wfc_table_t table;
 	wfc_build_table(&input_image,BOX_SIZE,WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y|WFC_FLAG_WRAP_OUTPUT_X|WFC_FLAG_WRAP_OUTPUT_Y|WFC_FLAG_ROTATE|WFC_FLAG_FLIP,&table);
 	wfc_print_table(&table);
@@ -63,6 +64,6 @@ int main(int argc,const char** argv){
 	wfc_free_state(&state);
 	wfc_free_table(&table);
 	putchar('\n');
-	wfc_print_image(&output_image);
+	wfc_save_image(&output_image,"build/export.bmp");
 	return 0;
 }

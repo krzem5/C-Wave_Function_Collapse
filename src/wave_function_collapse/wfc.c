@@ -38,12 +38,12 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 #define FNV_PRIME 0x100000001b3
 
 #define WEIGHT_RANDOMNESS_SHIFT 3
-
-#define MODULO(a,b) ((a)>=(b)?(a)%(b):(a))
-
 #define QUEUE_INDEX_COLLAPSED 0xffff
-
 #define MAX_ALLOWED_DELETES 128
+
+#define BMP_HEADER_SIZE 54
+#define DIB_HEADER_SIZE 40
+#define BI_RGB 0
 
 
 
@@ -99,7 +99,7 @@ static FORCE_INLINE uint32_t _get_random(wfc_state_t* state,uint32_t n){
 		state->prng.count=64;
 	}
 	state->prng.count--;
-	return MODULO(state->prng.data[state->prng.count],n);
+	return state->prng.data[state->prng.count]%n;
 }
 
 
@@ -342,6 +342,37 @@ void wfc_print_table(const wfc_table_t* table){
 		}
 		tile++;
 	}
+}
+
+
+
+void wfc_save_image(const wfc_image_t* image,const char* path){
+	FILE* fh=fopen(path,"wb");
+	if (!fh){
+		return;
+	}
+	uint32_t row_size=(image->width*3+3)&0xfffffffc;
+	uint32_t data_size=row_size*image->height;
+	uint32_t size=data_size+BMP_HEADER_SIZE;
+	int32_t inv_height=-((int32_t)(image->height));
+	uint8_t header[BMP_HEADER_SIZE]={'B','M',size&0xff,(size>>8)&0xff,(size>>16)&0xff,size>>24,0,0,0,0,BMP_HEADER_SIZE,0,0,0,DIB_HEADER_SIZE,0,0,0,image->width&0xff,(image->width>>8)&0xff,(image->width>>16)&0xff,image->width>>24,inv_height&0xff,(inv_height>>8)&0xff,(inv_height>>16)&0xff,inv_height>>24,1,0,24,0,BI_RGB,0,0,0,data_size&0xff,(data_size>>8)&0xff,(data_size>>16)&0xff,data_size>>24,0x13,0x0b,0,0,0x13,0x0b,0,0,0,0,0,0,0,0,0,0};
+	fwrite(header,sizeof(uint8_t),BMP_HEADER_SIZE,fh);
+	uint8_t* row_buffer=malloc(row_size*sizeof(uint8_t));
+	const wfc_color_t* ptr=image->data;
+	for (wfc_size_t i=0;i<image->height;i++){
+		uint8_t* buffer_ptr=row_buffer;
+		for (wfc_size_t j=0;j<image->width;j++){
+			wfc_color_t color=*ptr;
+			*buffer_ptr=color>>24;
+			*(buffer_ptr+1)=color>>16;
+			*(buffer_ptr+2)=color>>8;
+			buffer_ptr+=3;
+			ptr++;
+		}
+		fwrite(row_buffer,sizeof(uint8_t),row_size,fh);
+	}
+	free(row_buffer);
+	fclose(fh);
 }
 
 
