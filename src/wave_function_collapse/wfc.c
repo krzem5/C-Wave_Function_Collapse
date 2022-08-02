@@ -433,8 +433,11 @@ _retry_from_start:;
 		counter=_mm256_add_epi32(counter,increment);
 		ptr++;
 	}
+	// wfc_image_t __AAA={40,20,malloc(20*40*4)};
 	while (1){
 _next_pixel:;
+		// wfc_generate_image(table,state,&__AAA);
+		// wfc_print_image(&__AAA);
 		wfc_queue_t* queue=state->queues;
 		wfc_tile_index_t qi=0;
 		for (;qi<state->tile_count&&!queue->length;qi++){
@@ -655,10 +658,12 @@ _next_pixel:;
 										count--;
 										wfc_queue_location_t* location=state->queue_indicies+offset;
 										if (count!=location->queue_index){
-											queue=state->queues+location->queue_index;
-											queue->length--;
-											queue->data[location->index]=queue->data[queue->length];
-											(state->queue_indicies+queue->data[location->index])->index=location->index;
+											if (location->queue_index!=QUEUE_INDEX_COLLAPSED){
+												queue=state->queues+location->queue_index;
+												queue->length--;
+												queue->data[location->index]=queue->data[queue->length];
+												(state->queue_indicies+queue->data[location->index])->index=location->index;
+											}
 											queue=state->queues+count;
 											queue->data[queue->length]=offset;
 											location->queue_index=count;
@@ -690,10 +695,12 @@ _next_pixel:;
 										count--;
 										wfc_queue_location_t* location=state->queue_indicies+offset;
 										if (count!=location->queue_index){
-											queue=state->queues+location->queue_index;
-											queue->length--;
-											queue->data[location->index]=queue->data[queue->length];
-											(state->queue_indicies+queue->data[location->index])->index=location->index;
+											if (location->queue_index!=QUEUE_INDEX_COLLAPSED){
+												queue=state->queues+location->queue_index;
+												queue->length--;
+												queue->data[location->index]=queue->data[queue->length];
+												(state->queue_indicies+queue->data[location->index])->index=location->index;
+											}
 											queue=state->queues+count;
 											queue->data[queue->length]=offset;
 											location->queue_index=count;
@@ -743,10 +750,12 @@ _skip_x_loop:;
 										count--;
 										wfc_queue_location_t* location=state->queue_indicies+offset;
 										if (count!=location->queue_index){
-											queue=state->queues+location->queue_index;
-											queue->length--;
-											queue->data[location->index]=queue->data[queue->length];
-											(state->queue_indicies+queue->data[location->index])->index=location->index;
+											if (location->queue_index!=QUEUE_INDEX_COLLAPSED){
+												queue=state->queues+location->queue_index;
+												queue->length--;
+												queue->data[location->index]=queue->data[queue->length];
+												(state->queue_indicies+queue->data[location->index])->index=location->index;
+											}
 											queue=state->queues+count;
 											queue->data[queue->length]=offset;
 											location->queue_index=count;
@@ -778,10 +787,12 @@ _skip_x_loop:;
 										count--;
 										wfc_queue_location_t* location=state->queue_indicies+offset;
 										if (count!=location->queue_index){
-											queue=state->queues+location->queue_index;
-											queue->length--;
-											queue->data[location->index]=queue->data[queue->length];
-											(state->queue_indicies+queue->data[location->index])->index=location->index;
+											if (location->queue_index!=QUEUE_INDEX_COLLAPSED){
+												queue=state->queues+location->queue_index;
+												queue->length--;
+												queue->data[location->index]=queue->data[queue->length];
+												(state->queue_indicies+queue->data[location->index])->index=location->index;
+											}
 											queue=state->queues+count;
 											queue->data[queue->length]=offset;
 											location->queue_index=count;
