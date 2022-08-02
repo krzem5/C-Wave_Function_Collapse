@@ -12,7 +12,7 @@
 #define INPUT_HEIGHT 4
 #define BOX_SIZE 2
 #define OUTPUT_WIDTH 40
-#define OUTPUT_HEIGHT 20
+#define OUTPUT_HEIGHT 40
 
 
 
