@@ -87,7 +87,7 @@ typedef struct _WFC_QUEUE{
 
 typedef struct _WFC_QUEUE_LOCATION{
 	wfc_tile_index_t queue_index;
-	uint16_t _delete_count;
+	uint16_t delete_count;
 	wfc_size_t index;
 } wfc_queue_location_t;
 
@@ -103,6 +103,7 @@ typedef struct _WFC_STATE{
 	wfc_queue_size_t queue_size;
 	wfc_weight_t* weights;
 	wfc_queue_location_t* queue_indicies;
+	wfc_size_t* update_stack;
 	wfc_size_t* delete_stack;
 	wfc_tile_index_t tile_count;
 	wfc_tile_index_t data_elem_size;
