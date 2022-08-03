@@ -39,7 +39,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 
 #define WEIGHT_RANDOMNESS_SHIFT 3
 #define QUEUE_INDEX_COLLAPSED 0xffff
-#define MAX_ALLOWED_DELETES 128
+#define MAX_ALLOWED_REMOVALS 128
 
 #define BMP_HEADER_SIZE 54
 #define DIB_HEADER_SIZE 40
@@ -403,6 +403,7 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state){
 	__m256i zero=_mm256_setzero_si256();
 	__m256i increment=_mm256_set1_epi32(8);
 _retry_from_start:;
+	wfc_size_t delete_stack_size=0;
 	__m256i* ptr=(__m256i*)(state->data);
 	for (wfc_size_t i=0;i<state->pixel_count;i++){
 		for (wfc_tile_index_t j=0;j<(state->data_elem_size>>2)-1;j++){
@@ -433,11 +434,7 @@ _retry_from_start:;
 		counter=_mm256_add_epi32(counter,increment);
 		ptr++;
 	}
-	// wfc_image_t __AAA={40,20,malloc(20*40*4)};
 	while (1){
-_next_pixel:;
-		// wfc_generate_image(table,state,&__AAA);
-		// wfc_print_image(&__AAA);
 		wfc_queue_t* queue=state->queues;
 		wfc_tile_index_t qi=0;
 		for (;qi<state->tile_count&&!queue->length;qi++){
@@ -508,304 +505,9 @@ _next_pixel:;
 				target++;
 			}
 			if (!sum){
-				wfc_size_t delete_stack_size=1;
-				state->delete_stack[0]=neightbour_offset;
-				while (delete_stack_size){
-					delete_stack_size--;
-					offset=state->delete_stack[delete_stack_size];
-					(state->queue_indicies+offset)->_delete_count++;
-					if ((state->queue_indicies+offset)->_delete_count==MAX_ALLOWED_DELETES){
-						goto _retry_from_start;
-					}
-					wfc_size_t base_x=(offset%state->width)+_get_random(state,(table->box_size<<1)+1)-table->box_size;
-					wfc_size_t base_y=(offset/state->width)+_get_random(state,(table->box_size<<1)+1)-table->box_size;
-					for (int32_t y=-table->box_size;y<=((int32_t)(table->box_size));y++){
-						int32_t y_off=base_y+y;
-						if (y_off<0){
-							if (no_wrap&1){
-								continue;
-							}
-							y_off+=height;
-						}
-						else if (y_off>=height){
-							if (no_wrap&4){
-								continue;
-							}
-							y_off-=height;
-						}
-						y_off*=state->width;
-						for (int32_t x=-table->box_size;x<=((int32_t)(table->box_size));x++){
-							int32_t x_off=base_x+x;
-							if (x_off<0){
-								if (no_wrap&8){
-									continue;
-								}
-								x_off+=state->width;
-							}
-							else if (x_off>=state->width){
-								if (no_wrap&2){
-									continue;
-								}
-								x_off-=state->width;
-							}
-							offset=x_off+y_off;
-							state->bitmap[offset>>6]&=~(1ull<<(offset&63));
-							__m256i* ptr=(__m256i*)(state->data+offset*state->data_elem_size);
-							for (wfc_tile_index_t i=0;i<(state->data_elem_size>>2)-1;i++){
-								_mm256_storeu_si256(ptr,ones);
-								ptr++;
-							}
-							_mm256_storeu_si256(ptr,data_mask);
-							wfc_queue_location_t* location=state->queue_indicies+offset;
-							if (location->queue_index!=QUEUE_INDEX_COLLAPSED){
-								queue=state->queues+location->queue_index;
-								queue->length--;
-								queue->data[location->index]=queue->data[queue->length];
-								(state->queue_indicies+queue->data[location->index])->index=location->index;
-							}
-							queue=state->queues+table->tile_count-1;
-							queue->data[queue->length]=offset;
-							location->queue_index=table->tile_count-1;
-							location->index=queue->length;
-							queue->length++;
-						}
-					}
-					bounds=~(((base_y<table->box_size+1)|((base_x>=state->width-table->box_size-1)<<1)|((base_y>=height-table->box_size-1)<<2)|((base_x<table->box_size+1)<<3))&no_wrap);
-					wfc_size_t boundary_tiles[8];
-					if (bounds&1){
-						int32_t y=base_y-table->box_size;
-						if (y<0){
-							y+=height;
-						}
-						boundary_tiles[0]=y*state->width;
-						y--;
-						if (y<0){
-							y+=height;
-						}
-						boundary_tiles[1]=y*state->width;
-					}
-					if (bounds&2){
-						int32_t x=base_x+table->box_size;
-						if (x>=state->width){
-							x-=state->width;
-						}
-						boundary_tiles[2]=x;
-						x++;
-						if (x>=state->width){
-							x-=state->width;
-						}
-						boundary_tiles[3]=x;
-					}
-					if (bounds&4){
-						int32_t y=base_y+table->box_size;
-						if (y>=height){
-							y-=height;
-						}
-						boundary_tiles[4]=y*state->width;
-						y++;
-						if (y>=height){
-							y-=height;
-						}
-						boundary_tiles[5]=y*state->width;
-					}
-					if (bounds&8){
-						int32_t x=base_x-table->box_size;
-						if (x<0){
-							x+=state->width;
-						}
-						boundary_tiles[6]=x;
-						x--;
-						if (x<0){
-							x+=state->width;
-						}
-						boundary_tiles[7]=x;
-					}
-					for (int32_t delta=-table->box_size;delta<=((int32_t)(table->box_size));delta++){
-						int32_t delta_adj=delta;
-						if (bounds&5){
-							delta_adj+=base_x;
-							if (delta_adj<0){
-								if (no_wrap&2){
-									goto _skip_x_loop;
-								}
-								delta_adj+=state->width;
-							}
-							else if (delta_adj>=state->width){
-								if (no_wrap&8){
-									goto _skip_x_loop;
-								}
-								delta_adj-=state->width;
-							}
-							if (bounds&1){
-								offset=boundary_tiles[1]+delta_adj;
-								if (state->bitmap[offset>>6]&(1ull<<(offset&63))){
-									const uint64_t* mask=(table->tiles+_find_first_bit(state->data+offset*state->data_elem_size))->connections+2*state->data_elem_size;
-									offset=boundary_tiles[0]+delta_adj;
-									uint64_t* data=state->data+offset*state->data_elem_size;
-									wfc_tile_index_t count=0;
-									for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
-										uint64_t value=(*data)&(*mask);
-										count+=POPULATION_COUNT(value);
-										*data=value;
-										data++;
-										mask++;
-									}
-									if (!count){
-										state->delete_stack[delete_stack_size]=offset;
-										delete_stack_size++;
-									}
-									else{
-										count--;
-										wfc_queue_location_t* location=state->queue_indicies+offset;
-										if (count!=location->queue_index){
-											if (location->queue_index!=QUEUE_INDEX_COLLAPSED){
-												queue=state->queues+location->queue_index;
-												queue->length--;
-												queue->data[location->index]=queue->data[queue->length];
-												(state->queue_indicies+queue->data[location->index])->index=location->index;
-											}
-											queue=state->queues+count;
-											queue->data[queue->length]=offset;
-											location->queue_index=count;
-											location->index=queue->length;
-											queue->length++;
-										}
-									}
-								}
-							}
-							if (bounds&4){
-								offset=boundary_tiles[5]+delta_adj;
-								if (state->bitmap[offset>>6]&(1ull<<(offset&63))){
-									const uint64_t* mask=(table->tiles+_find_first_bit(state->data+offset*state->data_elem_size))->connections;
-									offset=boundary_tiles[4]+delta_adj;
-									uint64_t* data=state->data+offset*state->data_elem_size;
-									wfc_tile_index_t count=0;
-									for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
-										uint64_t value=(*data)&(*mask);
-										count+=POPULATION_COUNT(value);
-										*data=value;
-										data++;
-										mask++;
-									}
-									if (!count){
-										state->delete_stack[delete_stack_size]=offset;
-										delete_stack_size++;
-									}
-									else{
-										count--;
-										wfc_queue_location_t* location=state->queue_indicies+offset;
-										if (count!=location->queue_index){
-											if (location->queue_index!=QUEUE_INDEX_COLLAPSED){
-												queue=state->queues+location->queue_index;
-												queue->length--;
-												queue->data[location->index]=queue->data[queue->length];
-												(state->queue_indicies+queue->data[location->index])->index=location->index;
-											}
-											queue=state->queues+count;
-											queue->data[queue->length]=offset;
-											location->queue_index=count;
-											location->index=queue->length;
-											queue->length++;
-										}
-									}
-								}
-							}
-						}
-_skip_x_loop:;
-						delta_adj=delta;
-						if (bounds&10){
-							delta_adj+=base_y;
-							if (delta_adj<0){
-								if (no_wrap&1){
-									continue;
-								}
-								delta_adj+=height;
-							}
-							else if (delta_adj>=height){
-								if (no_wrap&4){
-									continue;
-								}
-								delta_adj-=height;
-							}
-							delta_adj*=state->width;
-							if (bounds&2){
-								offset=boundary_tiles[3]+delta_adj;
-								if (state->bitmap[offset>>6]&(1ull<<(offset&63))){
-									const uint64_t* mask=(table->tiles+_find_first_bit(state->data+offset*state->data_elem_size))->connections+3*state->data_elem_size;
-									offset=boundary_tiles[2]+delta_adj;
-									uint64_t* data=state->data+offset*state->data_elem_size;
-									wfc_tile_index_t count=0;
-									for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
-										uint64_t value=(*data)&(*mask);
-										count+=POPULATION_COUNT(value);
-										*data=value;
-										data++;
-										mask++;
-									}
-									if (!count){
-										state->delete_stack[delete_stack_size]=offset;
-										delete_stack_size++;
-									}
-									else{
-										count--;
-										wfc_queue_location_t* location=state->queue_indicies+offset;
-										if (count!=location->queue_index){
-											if (location->queue_index!=QUEUE_INDEX_COLLAPSED){
-												queue=state->queues+location->queue_index;
-												queue->length--;
-												queue->data[location->index]=queue->data[queue->length];
-												(state->queue_indicies+queue->data[location->index])->index=location->index;
-											}
-											queue=state->queues+count;
-											queue->data[queue->length]=offset;
-											location->queue_index=count;
-											location->index=queue->length;
-											queue->length++;
-										}
-									}
-								}
-							}
-							if (bounds&8){
-								offset=boundary_tiles[7]+delta_adj;
-								if (state->bitmap[offset>>6]&(1ull<<(offset&63))){
-									const uint64_t* mask=(table->tiles+_find_first_bit(state->data+offset*state->data_elem_size))->connections+state->data_elem_size;
-									offset=boundary_tiles[6]+delta_adj;
-									uint64_t* data=state->data+offset*state->data_elem_size;
-									wfc_tile_index_t count=0;
-									for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
-										uint64_t value=(*data)&(*mask);
-										count+=POPULATION_COUNT(value);
-										*data=value;
-										data++;
-										mask++;
-									}
-									if (!count){
-										state->delete_stack[delete_stack_size]=offset;
-										delete_stack_size++;
-									}
-									else{
-										count--;
-										wfc_queue_location_t* location=state->queue_indicies+offset;
-										if (count!=location->queue_index){
-											if (location->queue_index!=QUEUE_INDEX_COLLAPSED){
-												queue=state->queues+location->queue_index;
-												queue->length--;
-												queue->data[location->index]=queue->data[queue->length];
-												(state->queue_indicies+queue->data[location->index])->index=location->index;
-											}
-											queue=state->queues+count;
-											queue->data[queue->length]=offset;
-											location->queue_index=count;
-											location->index=queue->length;
-											queue->length++;
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-				goto _next_pixel;
+				state->delete_stack[delete_stack_size]=neightbour_offset;
+				delete_stack_size++;
+				continue;
 			}
 			sum--;
 			wfc_queue_location_t* location=state->queue_indicies+neightbour_offset;
@@ -821,6 +523,301 @@ _skip_x_loop:;
 			location->queue_index=sum;
 			location->index=queue->length;
 			queue->length++;
+		}
+		while (delete_stack_size){
+			delete_stack_size--;
+			offset=state->delete_stack[delete_stack_size];
+			(state->queue_indicies+offset)->_delete_count++;
+			if ((state->queue_indicies+offset)->_delete_count==MAX_ALLOWED_REMOVALS){
+				goto _retry_from_start;
+			}
+			wfc_size_t base_x=(offset%state->width)+_get_random(state,(table->box_size<<1)+1)-table->box_size;
+			wfc_size_t base_y=(offset/state->width)+_get_random(state,(table->box_size<<1)+1)-table->box_size;
+			for (int32_t y=-table->box_size;y<=((int32_t)(table->box_size));y++){
+				int32_t y_off=base_y+y;
+				if (y_off<0){
+					if (no_wrap&1){
+						continue;
+					}
+					y_off+=height;
+				}
+				else if (y_off>=height){
+					if (no_wrap&4){
+						continue;
+					}
+					y_off-=height;
+				}
+				y_off*=state->width;
+				for (int32_t x=-table->box_size;x<=((int32_t)(table->box_size));x++){
+					int32_t x_off=base_x+x;
+					if (x_off<0){
+						if (no_wrap&8){
+							continue;
+						}
+						x_off+=state->width;
+					}
+					else if (x_off>=state->width){
+						if (no_wrap&2){
+							continue;
+						}
+						x_off-=state->width;
+					}
+					offset=x_off+y_off;
+					state->bitmap[offset>>6]&=~(1ull<<(offset&63));
+					__m256i* ptr=(__m256i*)(state->data+offset*state->data_elem_size);
+					for (wfc_tile_index_t i=0;i<(state->data_elem_size>>2)-1;i++){
+						_mm256_storeu_si256(ptr,ones);
+						ptr++;
+					}
+					_mm256_storeu_si256(ptr,data_mask);
+					wfc_queue_location_t* location=state->queue_indicies+offset;
+					if (location->queue_index!=QUEUE_INDEX_COLLAPSED){
+						queue=state->queues+location->queue_index;
+						queue->length--;
+						queue->data[location->index]=queue->data[queue->length];
+						(state->queue_indicies+queue->data[location->index])->index=location->index;
+					}
+					queue=state->queues+table->tile_count-1;
+					queue->data[queue->length]=offset;
+					location->queue_index=table->tile_count-1;
+					location->index=queue->length;
+					queue->length++;
+				}
+			}
+			bounds=~(((base_y<table->box_size+1)|((base_x>=state->width-table->box_size-1)<<1)|((base_y>=height-table->box_size-1)<<2)|((base_x<table->box_size+1)<<3))&no_wrap);
+			wfc_size_t boundary_tiles[8];
+			if (bounds&1){
+				int32_t y=base_y-table->box_size;
+				if (y<0){
+					y+=height;
+				}
+				boundary_tiles[0]=y*state->width;
+				y--;
+				if (y<0){
+					y+=height;
+				}
+				boundary_tiles[1]=y*state->width;
+			}
+			if (bounds&2){
+				int32_t x=base_x+table->box_size;
+				if (x>=state->width){
+					x-=state->width;
+				}
+				boundary_tiles[2]=x;
+				x++;
+				if (x>=state->width){
+					x-=state->width;
+				}
+				boundary_tiles[3]=x;
+			}
+			if (bounds&4){
+				int32_t y=base_y+table->box_size;
+				if (y>=height){
+					y-=height;
+				}
+				boundary_tiles[4]=y*state->width;
+				y++;
+				if (y>=height){
+					y-=height;
+				}
+				boundary_tiles[5]=y*state->width;
+			}
+			if (bounds&8){
+				int32_t x=base_x-table->box_size;
+				if (x<0){
+					x+=state->width;
+				}
+				boundary_tiles[6]=x;
+				x--;
+				if (x<0){
+					x+=state->width;
+				}
+				boundary_tiles[7]=x;
+			}
+			for (int32_t delta=-table->box_size;delta<=((int32_t)(table->box_size));delta++){
+				int32_t delta_adj=delta;
+				if (bounds&5){
+					delta_adj+=base_x;
+					if (delta_adj<0){
+						if (no_wrap&2){
+							goto _skip_x_loop;
+						}
+						delta_adj+=state->width;
+					}
+					else if (delta_adj>=state->width){
+						if (no_wrap&8){
+							goto _skip_x_loop;
+						}
+						delta_adj-=state->width;
+					}
+					if (bounds&1){
+						offset=boundary_tiles[1]+delta_adj;
+						if (state->bitmap[offset>>6]&(1ull<<(offset&63))){
+							const uint64_t* mask=(table->tiles+_find_first_bit(state->data+offset*state->data_elem_size))->connections+2*state->data_elem_size;
+							offset=boundary_tiles[0]+delta_adj;
+							uint64_t* data=state->data+offset*state->data_elem_size;
+							wfc_tile_index_t count=0;
+							for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
+								uint64_t value=(*data)&(*mask);
+								count+=POPULATION_COUNT(value);
+								*data=value;
+								data++;
+								mask++;
+							}
+							if (!count){
+								state->delete_stack[delete_stack_size]=offset;
+								delete_stack_size++;
+							}
+							else{
+								count--;
+								wfc_queue_location_t* location=state->queue_indicies+offset;
+								if (count!=location->queue_index){
+									if (location->queue_index!=QUEUE_INDEX_COLLAPSED){
+										queue=state->queues+location->queue_index;
+										queue->length--;
+										queue->data[location->index]=queue->data[queue->length];
+										(state->queue_indicies+queue->data[location->index])->index=location->index;
+									}
+									queue=state->queues+count;
+									queue->data[queue->length]=offset;
+									location->queue_index=count;
+									location->index=queue->length;
+									queue->length++;
+								}
+							}
+						}
+					}
+					if (bounds&4){
+						offset=boundary_tiles[5]+delta_adj;
+						if (state->bitmap[offset>>6]&(1ull<<(offset&63))){
+							const uint64_t* mask=(table->tiles+_find_first_bit(state->data+offset*state->data_elem_size))->connections;
+							offset=boundary_tiles[4]+delta_adj;
+							uint64_t* data=state->data+offset*state->data_elem_size;
+							wfc_tile_index_t count=0;
+							for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
+								uint64_t value=(*data)&(*mask);
+								count+=POPULATION_COUNT(value);
+								*data=value;
+								data++;
+								mask++;
+							}
+							if (!count){
+								state->delete_stack[delete_stack_size]=offset;
+								delete_stack_size++;
+							}
+							else{
+								count--;
+								wfc_queue_location_t* location=state->queue_indicies+offset;
+								if (count!=location->queue_index){
+									if (location->queue_index!=QUEUE_INDEX_COLLAPSED){
+										queue=state->queues+location->queue_index;
+										queue->length--;
+										queue->data[location->index]=queue->data[queue->length];
+										(state->queue_indicies+queue->data[location->index])->index=location->index;
+									}
+									queue=state->queues+count;
+									queue->data[queue->length]=offset;
+									location->queue_index=count;
+									location->index=queue->length;
+									queue->length++;
+								}
+							}
+						}
+					}
+				}
+_skip_x_loop:;
+				delta_adj=delta;
+				if (bounds&10){
+					delta_adj+=base_y;
+					if (delta_adj<0){
+						if (no_wrap&1){
+							continue;
+						}
+						delta_adj+=height;
+					}
+					else if (delta_adj>=height){
+						if (no_wrap&4){
+							continue;
+						}
+						delta_adj-=height;
+					}
+					delta_adj*=state->width;
+					if (bounds&2){
+						offset=boundary_tiles[3]+delta_adj;
+						if (state->bitmap[offset>>6]&(1ull<<(offset&63))){
+							const uint64_t* mask=(table->tiles+_find_first_bit(state->data+offset*state->data_elem_size))->connections+3*state->data_elem_size;
+							offset=boundary_tiles[2]+delta_adj;
+							uint64_t* data=state->data+offset*state->data_elem_size;
+							wfc_tile_index_t count=0;
+							for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
+								uint64_t value=(*data)&(*mask);
+								count+=POPULATION_COUNT(value);
+								*data=value;
+								data++;
+								mask++;
+							}
+							if (!count){
+								state->delete_stack[delete_stack_size]=offset;
+								delete_stack_size++;
+							}
+							else{
+								count--;
+								wfc_queue_location_t* location=state->queue_indicies+offset;
+								if (count!=location->queue_index){
+									if (location->queue_index!=QUEUE_INDEX_COLLAPSED){
+										queue=state->queues+location->queue_index;
+										queue->length--;
+										queue->data[location->index]=queue->data[queue->length];
+										(state->queue_indicies+queue->data[location->index])->index=location->index;
+									}
+									queue=state->queues+count;
+									queue->data[queue->length]=offset;
+									location->queue_index=count;
+									location->index=queue->length;
+									queue->length++;
+								}
+							}
+						}
+					}
+					if (bounds&8){
+						offset=boundary_tiles[7]+delta_adj;
+						if (state->bitmap[offset>>6]&(1ull<<(offset&63))){
+							const uint64_t* mask=(table->tiles+_find_first_bit(state->data+offset*state->data_elem_size))->connections+state->data_elem_size;
+							offset=boundary_tiles[6]+delta_adj;
+							uint64_t* data=state->data+offset*state->data_elem_size;
+							wfc_tile_index_t count=0;
+							for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
+								uint64_t value=(*data)&(*mask);
+								count+=POPULATION_COUNT(value);
+								*data=value;
+								data++;
+								mask++;
+							}
+							if (!count){
+								state->delete_stack[delete_stack_size]=offset;
+								delete_stack_size++;
+							}
+							else{
+								count--;
+								wfc_queue_location_t* location=state->queue_indicies+offset;
+								if (count!=location->queue_index){
+									if (location->queue_index!=QUEUE_INDEX_COLLAPSED){
+										queue=state->queues+location->queue_index;
+										queue->length--;
+										queue->data[location->index]=queue->data[queue->length];
+										(state->queue_indicies+queue->data[location->index])->index=location->index;
+									}
+									queue=state->queues+count;
+									queue->data[queue->length]=offset;
+									location->queue_index=count;
+									location->index=queue->length;
+									queue->length++;
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 }
