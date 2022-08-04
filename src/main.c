@@ -29,7 +29,6 @@ int main(int argc,const char** argv){
 	SetConsoleMode(GetStdHandle(-11),7);
 #endif
 	srand(time(NULL));
-	srand(1234);
 	// IMAGE(
 	// 	4,4,
 	// 	0xffffffff,0xffffffff,0xffffffff,0xffffffff,
