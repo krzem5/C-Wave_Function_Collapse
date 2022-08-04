@@ -114,6 +114,10 @@ typedef struct _WFC_STATE{
 
 
 
+typedef void (*wfc_callback_t)(const wfc_table_t*,const wfc_state_t*,void*);
+
+
+
 void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_t flags,wfc_table_t* out);
 
 
@@ -146,7 +150,7 @@ void wfc_save_image(const wfc_image_t* image,const char* path);
 
 
 
-void wfc_solve(const wfc_table_t* table,wfc_state_t* state);
+void wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_callback_t callback,void* ctx);
 
 
 

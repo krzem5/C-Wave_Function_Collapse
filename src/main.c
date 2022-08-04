@@ -18,6 +18,18 @@
 #define BOX_SIZE 4
 #define OUTPUT_WIDTH 104
 #define OUTPUT_HEIGHT 32
+#define DRAW_PROGRESS_IMAGES 1
+
+
+
+void _progress_callback(const wfc_table_t* table,const wfc_state_t* state,void* ctx){
+#if DRAW_PROGRESS_IMAGES
+	wfc_image_t* image=ctx;
+	wfc_generate_image(table,state,image);
+	printf("\x1b[0;0H");
+	wfc_print_image(image);
+#endif
+}
 
 
 
@@ -134,7 +146,7 @@ int main(int argc,const char** argv){
 	wfc_state_t state;
 	wfc_init_state(&table,&output_image,&state);
 	fflush(stdout);
-	wfc_solve(&table,&state);
+	wfc_solve(&table,&state,_progress_callback,&output_image);
 	wfc_generate_image(&table,&state,&output_image);
 	wfc_free_state(&state);
 	wfc_free_table(&table);

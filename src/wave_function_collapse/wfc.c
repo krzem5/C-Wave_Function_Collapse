@@ -383,7 +383,7 @@ void wfc_save_image(const wfc_image_t* image,const char* path){
 
 
 
-void wfc_solve(const wfc_table_t* table,wfc_state_t* state){
+void wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_callback_t callback,void* ctx){
 	wfc_size_t direction_offsets[4]={-state->width,1,state->width,-1};
 	wfc_size_t direction_offset_adjustment[4]={state->pixel_count,-state->width,-state->pixel_count,state->width};
 	uint8_t no_wrap=(!(table->flags&WFC_FLAG_WRAP_OUTPUT_Y))*5+(!(table->flags&WFC_FLAG_WRAP_OUTPUT_X))*10;
@@ -440,6 +440,9 @@ _retry_from_start:;
 		ptr++;
 	}
 	while (1){
+		if (callback){
+			callback(table,state,ctx);
+		}
 		wfc_queue_t* queue=state->queues;
 		wfc_tile_index_t qi=0;
 		for (;qi<state->tile_count&&!queue->length;qi++){
