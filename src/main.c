@@ -16,8 +16,8 @@
 
 
 #define BOX_SIZE 4
-#define OUTPUT_WIDTH 40
-#define OUTPUT_HEIGHT 20
+#define OUTPUT_WIDTH 104
+#define OUTPUT_HEIGHT 32
 
 
 
@@ -129,7 +129,7 @@ int main(int argc,const char** argv){
 	};
 	wfc_print_image(&input_image);
 	wfc_table_t table;
-	wfc_build_table(&input_image,BOX_SIZE,WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_OUTPUT_X,&table);
+	wfc_build_table(&input_image,BOX_SIZE,0,&table);
 	wfc_print_table(&table);
 	wfc_state_t state;
 	wfc_init_state(&table,&output_image,&state);
