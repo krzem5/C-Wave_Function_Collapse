@@ -105,6 +105,7 @@ typedef struct _WFC_STATE{
 	wfc_queue_location_t* queue_indicies;
 	wfc_size_t* update_stack;
 	wfc_size_t* delete_stack;
+	uint64_t* tile_mask_buffer;
 	wfc_tile_index_t tile_count;
 	wfc_tile_index_t data_elem_size;
 	wfc_size_t pixel_count;

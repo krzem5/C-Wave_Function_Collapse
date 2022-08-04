@@ -227,6 +227,8 @@ void wfc_free_state(wfc_state_t* state){
 	state->update_stack=NULL;
 	free(state->delete_stack);
 	state->delete_stack=NULL;
+	free(state->tile_mask_buffer);
+	state->tile_mask_buffer=NULL;
 	state->tile_count=0;
 	state->data_elem_size=0;
 	state->pixel_count=0;
@@ -292,6 +294,7 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_
 	out->queue_indicies=malloc((pixel_count*sizeof(wfc_queue_location_t)+31)&0xffffffffffffffe0ull);
 	out->update_stack=malloc(pixel_count*sizeof(wfc_size_t));
 	out->delete_stack=malloc(pixel_count*sizeof(wfc_size_t));
+	out->tile_mask_buffer=malloc(4*table->data_elem_size*sizeof(uint64_t));
 	out->tile_count=table->tile_count;
 	out->data_elem_size=table->data_elem_size;
 	out->pixel_count=pixel_count;
@@ -488,7 +491,27 @@ _retry_from_start:;
 			wfc_size_t x=(offset*mult)>>32;
 			x=offset-((((offset-x)>>1)+x)>>shift)*state->width;
 			uint8_t bounds=((offset<state->width)<<1)|((x==state->width-1)<<2)|((offset>=state->pixel_count-state->width)<<3)|((!x)<<4);
-			const uint64_t* mask=(table->tiles+tile_index)->connections;
+			ptr=(__m256i*)(state->tile_mask_buffer);
+			for (wfc_tile_index_t i=0;i<4*(state->data_elem_size>>2);i++){
+				_mm256_storeu_si256(ptr,zero);
+				ptr++;
+			}
+			const uint64_t* state_data=state->data+offset*state->data_elem_size;
+			for (wfc_tile_index_t i=0;i<state->data_elem_size;i++){
+				uint64_t v=*state_data;
+				while (v){
+					const __m256i* mask=(const __m256i*)((table->tiles+(i<<6)+FIND_FIRST_SET_BIT(v))->connections);
+					ptr=(__m256i*)(state->tile_mask_buffer);
+					for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
+						_mm256_storeu_si256(ptr,_mm256_or_si256(_mm256_lddqu_si256(ptr),_mm256_lddqu_si256(mask)));
+						ptr++;
+						mask++;
+					}
+					v&=v-1;
+				}
+				state_data++;
+			}
+			const uint64_t* mask=state->tile_mask_buffer;
 			for (unsigned int i=0;i<4;i++){
 				wfc_size_t neightbour_offset=offset+direction_offsets[i];
 				bounds>>=1;
@@ -531,6 +554,8 @@ _retry_from_start:;
 				location->queue_index=sum;
 				location->index=queue->length;
 				queue->length++;
+				state->update_stack[update_stack_size]=neightbour_offset;
+				update_stack_size++;
 			}
 		}
 		while (delete_stack_size){
@@ -573,7 +598,7 @@ _retry_from_start:;
 					}
 					offset=x_off+y_off;
 					state->bitmap[offset>>6]&=~(1ull<<(offset&63));
-					__m256i* ptr=(__m256i*)(state->data+offset*state->data_elem_size);
+					ptr=(__m256i*)(state->data+offset*state->data_elem_size);
 					for (wfc_tile_index_t i=0;i<(state->data_elem_size>>2)-1;i++){
 						_mm256_storeu_si256(ptr,ones);
 						ptr++;
