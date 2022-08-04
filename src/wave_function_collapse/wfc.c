@@ -263,9 +263,10 @@ void wfc_free_table(wfc_table_t* table){
 
 void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,wfc_image_t* out){
 	const uint64_t* data=state->data;
+	const wfc_queue_location_t* location=state->queue_indicies;
 	wfc_color_t* ptr=out->data;
 	for (wfc_size_t i=0;i<state->pixel_count;i++){
-		if (state->bitmap[i>>6]&(1ull<<(i&63))){
+		if (location->queue_index==QUEUE_INDEX_COLLAPSED){
 			*ptr=(table->tiles+_find_first_bit(data))->data[0];
 			data+=state->data_elem_size;
 		}
@@ -277,6 +278,7 @@ void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,wfc_im
 			}
 			*ptr=255+16777472*(count*255/(table->tile_count+1));
 		}
+		location++;
 		ptr++;
 	}
 }
@@ -493,12 +495,17 @@ _retry_from_start:;
 			(*(state->data+offset*state->data_elem_size+(tile_index>>6)))|=1ull<<(tile_index&63);
 		}
 		(state->queue_indicies+offset)->queue_index=QUEUE_INDEX_COLLAPSED;
-		state->bitmap[offset>>6]|=1ull<<(offset&63);
 		wfc_weight_t weight=state->weights[tile_index];
 		state->weights[tile_index]=(weight<=state->tile_count?1:weight-1);
 		wfc_size_t update_stack_size=1;
 		wfc_size_t delete_stack_size=0;
 		state->update_stack[0]=offset;
+		ptr=(__m256i*)(state->bitmap);
+		for (wfc_size_t i=0;i<state->bitmap_size;i++){
+			_mm256_storeu_si256(ptr,zero);
+			ptr++;
+		}
+		state->bitmap[offset>>6]|=1ull<<(offset&63);
 		while (update_stack_size){
 			update_stack_size--;
 			offset=state->update_stack[update_stack_size];
@@ -533,7 +540,7 @@ _retry_from_start:;
 					}
 					neightbour_offset+=direction_offset_adjustment[i];
 				}
-				if (state->bitmap[neightbour_offset>>6]&(1ull<<(neightbour_offset&63))){
+				if ((state->queue_indicies+neightbour_offset)->queue_index==QUEUE_INDEX_COLLAPSED){
 					mask+=state->data_elem_size;
 					continue;
 				}
@@ -565,8 +572,11 @@ _retry_from_start:;
 				location->queue_index=sum;
 				location->index=queue->length;
 				queue->length++;
-				state->update_stack[update_stack_size]=neightbour_offset;
-				update_stack_size++;
+				if (!(state->bitmap[neightbour_offset>>6]&(1ull<<(neightbour_offset&63)))){
+					state->bitmap[neightbour_offset>>6]|=1ull<<(neightbour_offset&63);
+					state->update_stack[update_stack_size]=neightbour_offset;
+					update_stack_size++;
+				}
 			}
 		}
 		while (delete_stack_size){
@@ -611,7 +621,6 @@ _retry_from_start:;
 						x_off-=state->width;
 					}
 					offset=x_off+y_off;
-					state->bitmap[offset>>6]&=~(1ull<<(offset&63));
 					ptr=(__m256i*)(state->data+offset*state->data_elem_size);
 					for (wfc_tile_index_t i=0;i<(state->data_elem_size>>2)-1;i++){
 						_mm256_storeu_si256(ptr,ones);
@@ -700,7 +709,7 @@ _retry_from_start:;
 					}
 					if (bounds&1){
 						offset=boundary_tiles[1]+delta_adj;
-						if (state->bitmap[offset>>6]&(1ull<<(offset&63))){
+						if ((state->queue_indicies+offset)->queue_index==QUEUE_INDEX_COLLAPSED){
 							const uint64_t* mask=(table->tiles+_find_first_bit(state->data+offset*state->data_elem_size))->connections+2*state->data_elem_size;
 							offset=boundary_tiles[0]+delta_adj;
 							uint64_t* data=state->data+offset*state->data_elem_size;
@@ -737,7 +746,7 @@ _retry_from_start:;
 					}
 					if (bounds&4){
 						offset=boundary_tiles[5]+delta_adj;
-						if (state->bitmap[offset>>6]&(1ull<<(offset&63))){
+						if ((state->queue_indicies+offset)->queue_index==QUEUE_INDEX_COLLAPSED){
 							const uint64_t* mask=(table->tiles+_find_first_bit(state->data+offset*state->data_elem_size))->connections;
 							offset=boundary_tiles[4]+delta_adj;
 							uint64_t* data=state->data+offset*state->data_elem_size;
@@ -792,7 +801,7 @@ _skip_x_loop:;
 					delta_adj*=state->width;
 					if (bounds&2){
 						offset=boundary_tiles[3]+delta_adj;
-						if (state->bitmap[offset>>6]&(1ull<<(offset&63))){
+						if ((state->queue_indicies+offset)->queue_index==QUEUE_INDEX_COLLAPSED){
 							const uint64_t* mask=(table->tiles+_find_first_bit(state->data+offset*state->data_elem_size))->connections+3*state->data_elem_size;
 							offset=boundary_tiles[2]+delta_adj;
 							uint64_t* data=state->data+offset*state->data_elem_size;
@@ -829,7 +838,7 @@ _skip_x_loop:;
 					}
 					if (bounds&8){
 						offset=boundary_tiles[7]+delta_adj;
-						if (state->bitmap[offset>>6]&(1ull<<(offset&63))){
+						if ((state->queue_indicies+offset)->queue_index==QUEUE_INDEX_COLLAPSED){
 							const uint64_t* mask=(table->tiles+_find_first_bit(state->data+offset*state->data_elem_size))->connections+state->data_elem_size;
 							offset=boundary_tiles[6]+delta_adj;
 							uint64_t* data=state->data+offset*state->data_elem_size;
