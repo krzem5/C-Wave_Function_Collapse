@@ -496,24 +496,20 @@ _retry_from_start:;
 			x=offset-((((offset-x)>>1)+x)>>shift)*state->width;
 			uint8_t bounds=((offset<state->width)<<1)|((x==state->width-1)<<2)|((offset>=state->pixel_count-state->width)<<3)|((!x)<<4);
 			ptr=(__m256i*)(state->tile_mask_buffer);
+			const uint64_t* state_data_base=state->data+offset*state->data_elem_size;
 			for (wfc_tile_index_t i=0;i<state->data_elem_size;i++){
-				_mm256_storeu_si256(ptr,zero);
-				ptr++;
-			}
-			const uint64_t* state_data=state->data+offset*state->data_elem_size;
-			for (wfc_tile_index_t i=0;i<state->data_elem_size;i++){
-				uint64_t value=*state_data;
-				while (value){
-					const __m256i* mask=(const __m256i*)((table->tiles+(i<<6)+FIND_FIRST_SET_BIT(value))->connections);
-					ptr=(__m256i*)(state->tile_mask_buffer);
-					for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
-						_mm256_storeu_si256(ptr,_mm256_or_si256(_mm256_lddqu_si256(ptr),_mm256_lddqu_si256(mask)));
-						ptr++;
-						mask++;
+				__m256i data=_mm256_setzero_si256();
+				const uint64_t* state_data=state_data_base;
+				for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
+					uint64_t value=*state_data;
+					while (value){
+						data=_mm256_or_si256(data,_mm256_lddqu_si256((const __m256i*)((table->tiles+(j<<6)+FIND_FIRST_SET_BIT(value))->connections+(i<<2))));
+						value&=value-1;
 					}
-					value&=value-1;
+					state_data++;
 				}
-				state_data++;
+				_mm256_storeu_si256(ptr,data);
+				ptr++;
 			}
 			const uint64_t* mask=state->tile_mask_buffer;
 			for (unsigned int i=0;i<4;i++){
