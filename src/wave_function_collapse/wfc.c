@@ -41,6 +41,16 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 #define QUEUE_INDEX_COLLAPSED 0xffff
 #define MAX_ALLOWED_REMOVALS 128
 
+#define DIVMOD_WIDTH(number,div,mod) \
+	do{ \
+		wfc_size_t __number=(number); \
+		wfc_size_t __div=(__number*mult)>>32; \
+		__div=(((__number-__div)>>1)+__div)>>shift; \
+		div=__div; \
+		mod=__number-__div*state->width; \
+	} while (0)
+
+
 #define BMP_HEADER_SIZE 54
 #define DIB_HEADER_SIZE 40
 #define BI_RGB 0
@@ -492,9 +502,10 @@ _retry_from_start:;
 		while (update_stack_size){
 			update_stack_size--;
 			offset=state->update_stack[update_stack_size];
-			wfc_size_t x=(offset*mult)>>32;
-			x=offset-((((offset-x)>>1)+x)>>shift)*state->width;
-			uint8_t bounds=((offset<state->width)<<1)|((x==state->width-1)<<2)|((offset>=state->pixel_count-state->width)<<3)|((!x)<<4);
+			wfc_size_t x;
+			wfc_size_t y;
+			DIVMOD_WIDTH(offset,y,x);
+			uint8_t bounds=((!y)<<1)|((x==state->width-1)<<2)|((y==height-1)<<3)|((!x)<<4);
 			ptr=(__m256i*)(state->tile_mask_buffer);
 			const uint64_t* state_data_base=state->data+offset*state->data_elem_size;
 			for (wfc_tile_index_t i=0;i<state->data_elem_size;i++){
@@ -565,8 +576,11 @@ _retry_from_start:;
 			if ((state->queue_indicies+offset)->delete_count==MAX_ALLOWED_REMOVALS){
 				goto _retry_from_start;
 			}
-			wfc_size_t base_x=(offset%state->width)+_get_random(state,(table->box_size<<1)+1)-table->box_size;
-			wfc_size_t base_y=(offset/state->width)+_get_random(state,(table->box_size<<1)+1)-table->box_size;
+			wfc_size_t base_x;
+			wfc_size_t base_y;
+			DIVMOD_WIDTH(offset,base_y,base_x);
+			base_x+=_get_random(state,(table->box_size<<1)+1)-table->box_size;
+			base_y+=_get_random(state,(table->box_size<<1)+1)-table->box_size;
 			for (int32_t y=-table->box_size;y<=((int32_t)(table->box_size));y++){
 				int32_t y_off=base_y+y;
 				if (y_off<0){
