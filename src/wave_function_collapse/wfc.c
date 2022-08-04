@@ -369,9 +369,9 @@ void wfc_save_image(const wfc_image_t* image,const char* path){
 		uint8_t* buffer_ptr=row_buffer;
 		for (wfc_size_t j=0;j<image->width;j++){
 			wfc_color_t color=*ptr;
-			*buffer_ptr=color>>24;
+			*buffer_ptr=color>>8;
 			*(buffer_ptr+1)=color>>16;
-			*(buffer_ptr+2)=color>>8;
+			*(buffer_ptr+2)=color>>24;
 			buffer_ptr+=3;
 			ptr++;
 		}
