@@ -417,6 +417,8 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_callback_t callba
 	__m256i data_mask=_mm256_srlv_epi32(ones,_mm256_subs_epu16(_mm256_set_epi32(256,224,192,160,128,96,64,32),_mm256_set1_epi32(state->tile_count&255)));
 	__m256i zero=_mm256_setzero_si256();
 	__m256i increment=_mm256_set1_epi32(8);
+	__m256i popcnt_table=_mm256_setr_epi8(0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4);
+	__m256i popcnt_low_mask=_mm256_set1_epi8(15);
 _retry_from_start:;
 	__m256i* ptr=(__m256i*)(state->data);
 	for (wfc_size_t i=0;i<state->pixel_count;i++){
@@ -492,15 +494,10 @@ _retry_from_start:;
 		wfc_size_t update_stack_size=1;
 		wfc_size_t delete_stack_size=0;
 		state->update_stack[0]=offset;
-		ptr=(__m256i*)(state->bitmap);
-		for (wfc_size_t i=0;i<state->bitmap_size;i++){
-			_mm256_storeu_si256(ptr,zero);
-			ptr++;
-		}
-		state->bitmap[offset>>6]|=1ull<<(offset&63);
 		while (update_stack_size){
 			update_stack_size--;
 			offset=state->update_stack[update_stack_size];
+			state->bitmap[offset>>6]&=~(1ull<<(offset&63));
 			wfc_size_t x;
 			wfc_size_t y;
 			DIVMOD_WIDTH(offset,y,x);
@@ -518,10 +515,12 @@ _retry_from_start:;
 				if ((state->queue_indicies+neightbour_offset)->queue_index==QUEUE_INDEX_COLLAPSED){
 					continue;
 				}
-				__m256i* target_wide=(__m256i*)(state->data+neightbour_offset*state->data_elem_size);
+				__m256i* target=(__m256i*)(state->data+neightbour_offset*state->data_elem_size);
+				__m256i sum_vector=_mm256_setzero_si256();
+				__m256i mask=_mm256_undefined_si256();
 				for (wfc_tile_index_t j=0;j<(state->data_elem_size>>2);j++){
-					__m256i mask=_mm256_setzero_si256();
-					__m256i data=_mm256_lddqu_si256(target_wide);
+					mask=_mm256_xor_si256(mask,mask);
+					__m256i data=_mm256_lddqu_si256(target);
 					const uint64_t* state_data=state_data_base;
 					for (wfc_tile_index_t k=0;k<state->data_elem_size;k++){
 						uint64_t value=*state_data;
@@ -531,16 +530,14 @@ _retry_from_start:;
 						}
 						state_data++;
 					}
-					_mm256_storeu_si256(target_wide,_mm256_and_si256(data,mask));
+					data=_mm256_and_si256(data,mask);
+					_mm256_storeu_si256(target,data);
+					sum_vector=_mm256_add_epi64(sum_vector,_mm256_sad_epu8(_mm256_add_epi8(_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(data,popcnt_low_mask)),_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(_mm256_srli_epi32(data,4),popcnt_low_mask))),zero));
 					mask++;
-					target_wide++;
-				}
-				uint64_t* target=state->data+neightbour_offset*state->data_elem_size;
-				wfc_tile_index_t sum=0;
-				for (wfc_tile_index_t j=0;j<state->data_elem_size;j++){
-					sum+=POPULATION_COUNT(*target);
 					target++;
 				}
+				__m128i sum_vector_half=_mm_add_epi32(_mm256_castsi256_si128(sum_vector),_mm256_extractf128_si256(sum_vector,1));
+				wfc_tile_index_t sum=_mm_cvtsi128_si32(_mm_add_epi64(sum_vector_half,_mm_unpackhi_epi64(sum_vector_half,sum_vector_half)));
 				if (!sum){
 					state->delete_stack[delete_stack_size]=neightbour_offset;
 					delete_stack_size++;
