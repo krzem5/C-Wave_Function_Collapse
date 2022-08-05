@@ -521,6 +521,7 @@ _retry_from_start:;
 				__m256i* target_wide=(__m256i*)(state->data+neightbour_offset*state->data_elem_size);
 				for (wfc_tile_index_t j=0;j<(state->data_elem_size>>2);j++){
 					__m256i mask=_mm256_setzero_si256();
+					__m256i data=_mm256_lddqu_si256(target_wide);
 					const uint64_t* state_data=state_data_base;
 					for (wfc_tile_index_t k=0;k<state->data_elem_size;k++){
 						uint64_t value=*state_data;
@@ -530,7 +531,7 @@ _retry_from_start:;
 						}
 						state_data++;
 					}
-					_mm256_storeu_si256(target_wide,_mm256_and_si256(_mm256_lddqu_si256(target_wide),mask));
+					_mm256_storeu_si256(target_wide,_mm256_and_si256(data,mask));
 					mask++;
 					target_wide++;
 				}
