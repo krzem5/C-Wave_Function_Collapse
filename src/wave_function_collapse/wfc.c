@@ -433,11 +433,6 @@ _retry_from_start:;
 		(state->queue_indicies+i)->delete_count=0;
 		(state->queue_indicies+i)->index=i;
 	}
-	ptr=(__m256i*)(state->bitmap);
-	for (wfc_size_t i=0;i<state->bitmap_size;i++){
-		_mm256_storeu_si256(ptr,zero);
-		ptr++;
-	}
 	for (wfc_tile_index_t i=0;i<state->tile_count-1;i++){
 		(state->queues+i)->length=0;
 		state->weights[i]=state->pixel_count;
