@@ -10,12 +10,12 @@
 
 
 #define IMAGE(w,h,...) \
-	wfc_color_t __img_##__LINE__[]={__VA_ARGS__}; \
+	wfc_color_t __img_##__LINE__[(w)*(h)]={__VA_ARGS__}; \
 	wfc_image_t input_image={w,h,__img_##__LINE__}
 
 
 
-#define BOX_SIZE 2
+#define BOX_SIZE 3
 #define OUTPUT_WIDTH 96
 #define OUTPUT_HEIGHT 26
 #define DRAW_PROGRESS_IMAGES 1
