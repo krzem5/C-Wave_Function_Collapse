@@ -331,7 +331,6 @@ void wfc_print_table(const wfc_table_t* table){
 	const wfc_tile_t* tile=table->tiles;
 	for (wfc_tile_index_t i=0;i<table->tile_count;i++){
 		printf(" [%u]\n",i);
-		printf("  Hash: %.16lx\n",tile->hash);
 		const uint64_t* connection_data=tile->connections;
 		for (unsigned int j=0;j<4;j++){
 			printf("  %s:",direction_strings[j]);
