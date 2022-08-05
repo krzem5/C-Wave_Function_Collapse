@@ -186,11 +186,15 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 	}
 	free(buffer);
 	out->data_elem_size=((out->tile_count+255)>>6)&0xfffffffc;
+	out->_connection_data=malloc(4*out->tile_count*out->data_elem_size*sizeof(uint64_t));
 	__m256i zero=_mm256_setzero_si256();
+	__m256i* base_target=(__m256i*)(out->_connection_data);
 	for (wfc_tile_index_t i=0;i<out->tile_count;i++){
 		uint64_t* data=malloc(4*out->data_elem_size*sizeof(uint64_t));
+		__m256i* ptr=(__m256i*)data;
 		for (wfc_tile_index_t j=0;j<out->data_elem_size;j++){
-			_mm256_storeu_si256((__m256i*)(data+(j<<2)),zero);
+			_mm256_storeu_si256(ptr,zero);
+			ptr++;
 		}
 		(out->tiles+i)->connections=data;
 		const wfc_color_t* base_tile_data=(out->tiles+i)->data;
@@ -211,6 +215,14 @@ _skip_tile:;
 			}
 			data+=out->data_elem_size;
 		}
+		ptr=(__m256i*)((out->tiles+i)->connections);
+		__m256i* target=base_target;
+		for (wfc_tile_index_t j=0;j<out->data_elem_size;j++){
+			_mm256_storeu_si256(target,_mm256_lddqu_si256(ptr));
+			target+=out->tile_count;
+			ptr++;
+		}
+		base_target++;
 	}
 }
 
@@ -255,6 +267,8 @@ void wfc_free_table(wfc_table_t* table){
 	table->tiles=NULL;
 	table->box_size=0;
 	table->flags=0;
+	free(table->_connection_data);
+	table->_connection_data=NULL;
 }
 
 
@@ -502,7 +516,10 @@ _retry_from_start:;
 			DIVMOD_WIDTH(offset,y,x);
 			uint8_t bounds=((!y)<<1)|((x==state->width-1)<<2)|((y==height-1)<<3)|((!x)<<4);
 			const uint64_t* state_data_base=state->data+offset*state->data_elem_size;
+			const __m256i* base_mask_data=(const __m256i*)(table->_connection_data);
 			for (unsigned int i=0;i<4;i++){
+				const __m256i* mask_data=base_mask_data;
+				base_mask_data+=(state->data_elem_size*table->tile_count)>>2;
 				wfc_size_t neightbour_offset=offset+direction_offsets[i];
 				bounds>>=1;
 				if (bounds&1){
@@ -523,16 +540,16 @@ _retry_from_start:;
 					const uint64_t* state_data=state_data_base;
 					for (wfc_tile_index_t k=0;k<state->data_elem_size;k++){
 						uint64_t value=*state_data;
+						state_data++;
 						while (value){
-							mask=_mm256_or_si256(mask,_mm256_lddqu_si256((const __m256i*)((table->tiles+(k<<6)+FIND_FIRST_SET_BIT(value))->connections+i*state->data_elem_size+(j<<2))));
+							mask=_mm256_or_si256(mask,_mm256_lddqu_si256(mask_data+(k<<6)+FIND_FIRST_SET_BIT(value)));
 							value&=value-1;
 						}
-						state_data++;
 					}
 					data=_mm256_and_si256(data,mask);
 					_mm256_storeu_si256(target,data);
 					sum_vector=_mm256_add_epi64(sum_vector,_mm256_sad_epu8(_mm256_add_epi8(_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(data,popcnt_low_mask)),_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(_mm256_srli_epi32(data,4),popcnt_low_mask))),zero));
-					mask++;
+					mask_data+=table->tile_count;
 					target++;
 				}
 				__m128i sum_vector_half=_mm_add_epi32(_mm256_castsi256_si128(sum_vector),_mm256_extractf128_si256(sum_vector,1));

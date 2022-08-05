@@ -67,6 +67,7 @@ typedef struct _WFC_TABLE{
 	wfc_box_size_t box_size;
 	wfc_flags_t flags;
 	wfc_tile_index_t data_elem_size;
+	uint64_t* _connection_data;
 } wfc_table_t;
 
 
