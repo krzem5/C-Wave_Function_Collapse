@@ -50,6 +50,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 		mod=__number-__div*state->width; \
 	} while (0)
 
+#define FAST_MASK_COUNT_SHIFT 12
 
 #define BMP_HEADER_SIZE 54
 #define DIB_HEADER_SIZE 40
@@ -432,8 +433,14 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_callback_t callba
 	__m256i increment=_mm256_set1_epi32(8);
 	__m256i popcnt_table=_mm256_setr_epi8(0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4);
 	__m256i popcnt_low_mask=_mm256_set1_epi8(15);
+	wfc_fast_mask_t fast_mask[1<<FAST_MASK_COUNT_SHIFT];
+	__m256i* ptr=(__m256i*)fast_mask;
+	for (wfc_size_t i=0;i<(sizeof(wfc_fast_mask_t)<<(FAST_MASK_COUNT_SHIFT-6));i++){
+		_mm256_storeu_si256(ptr,zero);
+		ptr++;
+	}
 _retry_from_start:;
-	__m256i* ptr=(__m256i*)(state->data);
+	ptr=(__m256i*)(state->data);
 	for (wfc_size_t i=0;i<state->pixel_count;i++){
 		for (wfc_tile_index_t j=0;j<(state->data_elem_size>>2)-1;j++){
 			_mm256_storeu_si256(ptr,ones);
@@ -534,6 +541,7 @@ _retry_from_start:;
 				__m256i* target=(__m256i*)(state->data+neightbour_offset*state->data_elem_size);
 				__m256i sum_vector=_mm256_setzero_si256();
 				__m256i mask=_mm256_undefined_si256();
+				__m256i sub_mask=_mm256_undefined_si256();
 				for (wfc_tile_index_t j=0;j<state->data_elem_size;j+=4){
 					mask=_mm256_xor_si256(mask,mask);
 					__m256i data=_mm256_lddqu_si256(target);
@@ -541,10 +549,22 @@ _retry_from_start:;
 					for (wfc_tile_index_t k=0;k<state->data_elem_size;k++){
 						uint64_t value=*state_data;
 						state_data++;
-						while (value){
-							mask=_mm256_or_si256(mask,_mm256_lddqu_si256(mask_data+(k<<6)+FIND_FIRST_SET_BIT(value)));
-							value&=value-1;
+						uint32_t key32=value^(value>>32);
+						uint16_t key16=key32^(key32>>16);
+						uint16_t key=(key16^(key16>>(16-FAST_MASK_COUNT_SHIFT)))&((1<<FAST_MASK_COUNT_SHIFT)-1);
+						if ((fast_mask+key)->key==value){
+							sub_mask=_mm256_lddqu_si256((const __m256i*)((fast_mask+key)->data));
 						}
+						else{
+							sub_mask=_mm256_xor_si256(sub_mask,sub_mask);
+							while (value){
+								mask=_mm256_or_si256(mask,_mm256_lddqu_si256(mask_data+(k<<6)+FIND_FIRST_SET_BIT(value)));
+								value&=value-1;
+							}
+							(fast_mask+key)->key=value;
+							_mm256_storeu_si256((__m256i*)((fast_mask+key)->data),sub_mask);
+						}
+						mask=_mm256_or_si256(mask,sub_mask);
 					}
 					data=_mm256_and_si256(data,mask);
 					_mm256_storeu_si256(target,data);

@@ -114,6 +114,13 @@ typedef struct _WFC_STATE{
 
 
 
+typedef struct _WFC_FAST_MASK{
+	uint64_t key;
+	uint64_t data[4];
+} wfc_fast_mask_t;
+
+
+
 typedef void (*wfc_callback_t)(const wfc_table_t*,const wfc_state_t*,void*);
 
 
