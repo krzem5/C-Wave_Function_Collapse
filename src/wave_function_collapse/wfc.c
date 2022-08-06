@@ -50,8 +50,6 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 		mod=__number-__div*state->width; \
 	} while (0)
 
-#define FAST_MASK_COUNT_SHIFT 12
-
 #define BMP_HEADER_SIZE 54
 #define DIB_HEADER_SIZE 40
 #define BI_RGB 0
@@ -433,9 +431,9 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_callback_t callba
 	__m256i increment=_mm256_set1_epi32(8);
 	__m256i popcnt_table=_mm256_setr_epi8(0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4);
 	__m256i popcnt_low_mask=_mm256_set1_epi8(15);
-	wfc_fast_mask_t fast_mask[1<<FAST_MASK_COUNT_SHIFT];
+	wfc_fast_mask_t fast_mask[65536];
 	__m256i* ptr=(__m256i*)fast_mask;
-	for (wfc_size_t i=0;i<(sizeof(wfc_fast_mask_t)<<(FAST_MASK_COUNT_SHIFT-6));i++){
+	for (wfc_size_t i=0;i<(sizeof(wfc_fast_mask_t)<<10);i++){
 		_mm256_storeu_si256(ptr,zero);
 		ptr++;
 	}
@@ -550,8 +548,7 @@ _retry_from_start:;
 						uint64_t value=*state_data;
 						state_data++;
 						uint32_t key32=value^(value>>32);
-						uint16_t key16=key32^(key32>>16);
-						uint16_t key=(key16^(key16>>(16-FAST_MASK_COUNT_SHIFT)))&((1<<FAST_MASK_COUNT_SHIFT)-1);
+						uint16_t key=key32^(key32>>16);
 						if ((fast_mask+key)->key==value){
 							sub_mask=_mm256_lddqu_si256((const __m256i*)((fast_mask+key)->data));
 						}
