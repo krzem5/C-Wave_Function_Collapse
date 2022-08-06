@@ -50,6 +50,9 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 		mod=__number-__div*state->width; \
 	} while (0)
 
+#define FAST_MASK_COUNTER_INIT 512
+#define FAST_MASK_MAX_COUNTER 2048
+
 #define BMP_HEADER_SIZE 54
 #define DIB_HEADER_SIZE 40
 #define BI_RGB 0
@@ -547,9 +550,12 @@ _retry_from_start:;
 					for (wfc_tile_index_t k=0;k<state->data_elem_size;k++){
 						uint64_t value=*state_data;
 						uint32_t key32=value^(value>>32);
-						uint16_t key=key32^(key32>>16);
-						if ((fast_mask+key)->key==value){
-							sub_mask=_mm256_lddqu_si256((const __m256i*)((fast_mask+key)->data));
+						wfc_fast_mask_t* fm=fast_mask+((key32^(key32>>16))&0xffff);
+						if (fm->key==value){
+							sub_mask=_mm256_lddqu_si256((const __m256i*)(fm->data));
+							if (fm->counter<FAST_MASK_MAX_COUNTER){
+								fm->counter++;
+							}
 						}
 						else{
 							sub_mask=_mm256_xor_si256(sub_mask,sub_mask);
@@ -557,8 +563,14 @@ _retry_from_start:;
 								mask=_mm256_or_si256(mask,_mm256_lddqu_si256(mask_data+FIND_FIRST_SET_BIT(value)));
 								value&=value-1;
 							}
-							(fast_mask+key)->key=value;
-							_mm256_storeu_si256((__m256i*)((fast_mask+key)->data),sub_mask);
+							if (!fm->counter){
+								fm->key=value;
+								_mm256_storeu_si256((__m256i*)(fm->data),sub_mask);
+								fm->counter=FAST_MASK_COUNTER_INIT;
+							}
+							else{
+								fm->counter--;
+							}
 						}
 						state_data++;
 						mask=_mm256_or_si256(mask,sub_mask);

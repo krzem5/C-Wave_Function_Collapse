@@ -117,6 +117,7 @@ typedef struct _WFC_STATE{
 typedef struct _WFC_FAST_MASK{
 	uint64_t key;
 	uint64_t data[4];
+	uint16_t counter;
 } wfc_fast_mask_t;
 
 
