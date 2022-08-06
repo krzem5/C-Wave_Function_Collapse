@@ -534,7 +534,7 @@ _retry_from_start:;
 				__m256i* target=(__m256i*)(state->data+neightbour_offset*state->data_elem_size);
 				__m256i sum_vector=_mm256_setzero_si256();
 				__m256i mask=_mm256_undefined_si256();
-				for (wfc_tile_index_t j=0;j<(state->data_elem_size>>2);j++){
+				for (wfc_tile_index_t j=0;j<state->data_elem_size;j+=4){
 					mask=_mm256_xor_si256(mask,mask);
 					__m256i data=_mm256_lddqu_si256(target);
 					const uint64_t* state_data=state_data_base;
