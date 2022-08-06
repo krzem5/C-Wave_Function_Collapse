@@ -546,7 +546,6 @@ _retry_from_start:;
 					const uint64_t* state_data=state_data_base;
 					for (wfc_tile_index_t k=0;k<state->data_elem_size;k++){
 						uint64_t value=*state_data;
-						state_data++;
 						uint32_t key32=value^(value>>32);
 						uint16_t key=key32^(key32>>16);
 						if ((fast_mask+key)->key==value){
@@ -555,18 +554,20 @@ _retry_from_start:;
 						else{
 							sub_mask=_mm256_xor_si256(sub_mask,sub_mask);
 							while (value){
-								mask=_mm256_or_si256(mask,_mm256_lddqu_si256(mask_data+(k<<6)+FIND_FIRST_SET_BIT(value)));
+								mask=_mm256_or_si256(mask,_mm256_lddqu_si256(mask_data+FIND_FIRST_SET_BIT(value)));
 								value&=value-1;
 							}
 							(fast_mask+key)->key=value;
 							_mm256_storeu_si256((__m256i*)((fast_mask+key)->data),sub_mask);
 						}
+						state_data++;
 						mask=_mm256_or_si256(mask,sub_mask);
+						mask_data+=64;
 					}
 					data=_mm256_and_si256(data,mask);
 					_mm256_storeu_si256(target,data);
 					sum_vector=_mm256_add_epi64(sum_vector,_mm256_sad_epu8(_mm256_add_epi8(_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(data,popcnt_low_mask)),_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(_mm256_srli_epi32(data,4),popcnt_low_mask))),zero));
-					mask_data+=table->tile_count;
+					mask_data-=(state->data_elem_size<<6)-table->tile_count;
 					target++;
 				}
 				__m128i sum_vector_half=_mm_add_epi32(_mm256_castsi256_si128(sum_vector),_mm256_extractf128_si256(sum_vector,1));
