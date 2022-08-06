@@ -1,3 +1,4 @@
+
 #ifdef _MSC_VER
 #define WIN32_LEAN_AND_MEAN 1
 #include <windows.h>
@@ -17,7 +18,7 @@
 
 #define BOX_SIZE 3
 #define OUTPUT_WIDTH 96
-#define OUTPUT_HEIGHT 26
+#define OUTPUT_HEIGHT 46
 #define DRAW_PROGRESS_IMAGES 1
 
 
