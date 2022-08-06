@@ -53,6 +53,8 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 #define FAST_MASK_COUNTER_INIT 512
 #define FAST_MASK_MAX_COUNTER 2048
 
+#define MAX_UPDATE_DISTANCE 8
+
 #define BMP_HEADER_SIZE 54
 #define DIB_HEADER_SIZE 40
 #define BI_RGB 0
@@ -515,6 +517,9 @@ _retry_from_start:;
 		wfc_size_t update_stack_size=1;
 		wfc_size_t delete_stack_size=0;
 		state->update_stack[0]=offset;
+		wfc_size_t root_x;
+		wfc_size_t root_y;
+		DIVMOD_WIDTH(offset,root_y,root_x);
 		while (update_stack_size){
 			update_stack_size--;
 			offset=state->update_stack[update_stack_size];
@@ -604,6 +609,17 @@ _retry_from_start:;
 				location->index=queue->length;
 				queue->length++;
 				if (!(state->bitmap[neightbour_offset>>6]&(1ull<<(neightbour_offset&63)))){
+					int32_t dx=root_x-(neightbour_offset%state->width);
+					int32_t dy=root_y-(neightbour_offset/state->width);
+					if (dx<0){
+						dx=-dx;
+					}
+					if (dy<0){
+						dy=-dy;
+					}
+					if (dx+dy>MAX_UPDATE_DISTANCE){
+						continue;
+					}
 					state->bitmap[neightbour_offset>>6]|=1ull<<(neightbour_offset&63);
 					state->update_stack[update_stack_size]=neightbour_offset;
 					update_stack_size++;
