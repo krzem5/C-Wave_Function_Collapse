@@ -571,14 +571,14 @@ _retry_from_start:;
 								mask=_mm256_or_si256(mask,_mm256_lddqu_si256(mask_data+FIND_FIRST_SET_BIT(value)));
 								value&=value-1;
 							}
-							if (!fast_mask_data->counter){
+							if (fast_mask_data->counter){
+								fast_mask_data->counter--;
+							}
+							else{
 								fast_mask_data->key=value;
 								_mm256_storeu_si256((__m256i*)(fast_mask_data->data),sub_mask);
 								fast_mask_data->offset=k;
 								fast_mask_data->counter=FAST_MASK_COUNTER_INIT;
-							}
-							else{
-								fast_mask_data->counter--;
 							}
 						}
 						state_data++;
