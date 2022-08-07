@@ -40,6 +40,8 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 #define WEIGHT_RANDOMNESS_SHIFT 3
 #define QUEUE_INDEX_COLLAPSED 0xffff
 #define MAX_ALLOWED_REMOVALS 128
+#define FAST_MASK_COUNTER_INIT 512
+#define FAST_MASK_MAX_COUNTER 2048
 
 #define DIVMOD_WIDTH(number,div,mod) \
 	do{ \
@@ -49,9 +51,6 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 		div=__div; \
 		mod=__number-__div*state->width; \
 	} while (0)
-
-#define FAST_MASK_COUNTER_INIT 512
-#define FAST_MASK_MAX_COUNTER 2048
 
 #define MAX_UPDATE_DISTANCE 8
 
@@ -556,7 +555,7 @@ _retry_from_start:;
 						uint64_t value=*state_data;
 						uint32_t key32=value^(value>>32);
 						wfc_fast_mask_t* fm=fast_mask+((key32^(key32>>16))&0xffff);
-						if (fm->key==value){
+						if (fm->offset==k&&fm->key==value){
 							sub_mask=_mm256_lddqu_si256((const __m256i*)(fm->data));
 							if (fm->counter<FAST_MASK_MAX_COUNTER){
 								fm->counter++;
@@ -571,6 +570,7 @@ _retry_from_start:;
 							if (!fm->counter){
 								fm->key=value;
 								_mm256_storeu_si256((__m256i*)(fm->data),sub_mask);
+								fm->offset=k;
 								fm->counter=FAST_MASK_COUNTER_INIT;
 							}
 							else{
@@ -609,8 +609,11 @@ _retry_from_start:;
 				location->index=queue->length;
 				queue->length++;
 				if (!(state->bitmap[neightbour_offset>>6]&(1ull<<(neightbour_offset&63)))){
-					int32_t dx=root_x-(neightbour_offset%state->width);
-					int32_t dy=root_y-(neightbour_offset/state->width);
+					int32_t dx;
+					int32_t dy;
+					DIVMOD_WIDTH(neightbour_offset,dy,dx);
+					dx-=root_x;
+					dy-=root_y;
 					if (dx<0){
 						dx=-dx;
 					}
