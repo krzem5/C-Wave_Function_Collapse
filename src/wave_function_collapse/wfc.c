@@ -554,11 +554,11 @@ _retry_from_start:;
 					for (wfc_tile_index_t k=0;k<state->data_elem_size;k++){
 						uint64_t value=*state_data;
 						uint32_t key32=value^(value>>32)^(((uint32_t)(k))<<12);
-						wfc_fast_mask_t* fm=fast_mask+((key32^(key32>>16))&0xffff);
-						if (fm->offset==k&&fm->key==value){
-							sub_mask=_mm256_lddqu_si256((const __m256i*)(fm->data));
-							if (fm->counter<FAST_MASK_MAX_COUNTER){
-								fm->counter++;
+						wfc_fast_mask_t* fast_mask_data=fast_mask+((key32^(key32>>16))&0xffff);
+						if (fast_mask_data->offset==k&&fast_mask_data->key==value){
+							sub_mask=_mm256_lddqu_si256((const __m256i*)(fast_mask_data->data));
+							if (fast_mask_data->counter<FAST_MASK_MAX_COUNTER){
+								fast_mask_data->counter++;
 							}
 						}
 						else{
@@ -567,14 +567,14 @@ _retry_from_start:;
 								mask=_mm256_or_si256(mask,_mm256_lddqu_si256(mask_data+FIND_FIRST_SET_BIT(value)));
 								value&=value-1;
 							}
-							if (!fm->counter){
-								fm->key=value;
-								_mm256_storeu_si256((__m256i*)(fm->data),sub_mask);
-								fm->offset=k;
-								fm->counter=FAST_MASK_COUNTER_INIT;
+							if (!fast_mask_data->counter){
+								fast_mask_data->key=value;
+								_mm256_storeu_si256((__m256i*)(fast_mask_data->data),sub_mask);
+								fast_mask_data->offset=k;
+								fast_mask_data->counter=FAST_MASK_COUNTER_INIT;
 							}
 							else{
-								fm->counter--;
+								fast_mask_data->counter--;
 							}
 						}
 						state_data++;
