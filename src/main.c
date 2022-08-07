@@ -165,12 +165,13 @@ int main(int argc,const char** argv){
 	wfc_state_t state;
 	wfc_init_state(&table,&output_image,&state);
 	fflush(stdout);
-	wfc_solve(&table,&state,_progress_callback,&output_image);
+	double cache=wfc_solve(&table,&state,_progress_callback,&output_image);
 	wfc_generate_image(&table,&state,&output_image);
 	wfc_free_state(&state);
 	wfc_free_table(&table);
 	putchar('\n');
 	wfc_print_image(&output_image);
+	printf("Cache hit percentage: %lf\n",cache);
 	wfc_save_image(&output_image,"build/export.bmp");
 	return 0;
 }

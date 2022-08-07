@@ -159,7 +159,7 @@ void wfc_save_image(const wfc_image_t* image,const char* path);
 
 
 
-void wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_callback_t callback,void* ctx);
+double wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_callback_t callback,void* ctx);
 
 
 

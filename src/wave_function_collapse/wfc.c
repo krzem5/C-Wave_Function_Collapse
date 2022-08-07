@@ -408,7 +408,7 @@ void wfc_save_image(const wfc_image_t* image,const char* path){
 
 
 
-void wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_callback_t callback,void* ctx){
+double wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_callback_t callback,void* ctx){
 	wfc_size_t direction_offsets[4]={-state->width,1,state->width,-1};
 	wfc_size_t direction_offset_adjustment[4]={state->pixel_count,-state->width,-state->pixel_count,state->width};
 	uint8_t no_wrap=(!(table->flags&WFC_FLAG_WRAP_OUTPUT_Y))*5+(!(table->flags&WFC_FLAG_WRAP_OUTPUT_X))*10;
@@ -441,6 +441,8 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_callback_t callba
 		_mm256_storeu_si256(ptr,zero);
 		ptr++;
 	}
+	uint64_t cache_check_count=0;
+	uint64_t cache_hit_count=0;
 _retry_from_start:;
 	ptr=(__m256i*)(state->data);
 	for (wfc_size_t i=0;i<state->pixel_count;i++){
@@ -477,7 +479,7 @@ _retry_from_start:;
 			queue++;
 		}
 		if (qi==state->tile_count){
-			return;
+			return ((double)cache_hit_count)/cache_check_count;
 		}
 		wfc_size_t offset;
 		wfc_tile_index_t tile_index=0;
@@ -553,9 +555,11 @@ _retry_from_start:;
 					const uint64_t* state_data=state_data_base;
 					for (wfc_tile_index_t k=0;k<state->data_elem_size;k++){
 						uint64_t value=*state_data;
-						uint32_t key32=value^(value>>32)^(((uint32_t)(k))<<12);
-						wfc_fast_mask_t* fast_mask_data=fast_mask+((key32^(key32>>16))&0xffff);
+						uint32_t key_wide=value^(value>>32)^(((uint32_t)(k))<<12);
+						wfc_fast_mask_t* fast_mask_data=fast_mask+((key_wide^(key_wide>>16))&0xffff);
+						cache_check_count++;
 						if (fast_mask_data->offset==k&&fast_mask_data->key==value){
+							cache_hit_count++;
 							sub_mask=_mm256_lddqu_si256((const __m256i*)(fast_mask_data->data));
 							if (fast_mask_data->counter<FAST_MASK_MAX_COUNTER){
 								fast_mask_data->counter++;
