@@ -553,7 +553,7 @@ _retry_from_start:;
 					const uint64_t* state_data=state_data_base;
 					for (wfc_tile_index_t k=0;k<state->data_elem_size;k++){
 						uint64_t value=*state_data;
-						uint32_t key32=value^(value>>32);
+						uint32_t key32=value^(value>>32)^(((uint32_t)(k))<<12);
 						wfc_fast_mask_t* fm=fast_mask+((key32^(key32>>16))&0xffff);
 						if (fm->offset==k&&fm->key==value){
 							sub_mask=_mm256_lddqu_si256((const __m256i*)(fm->data));
