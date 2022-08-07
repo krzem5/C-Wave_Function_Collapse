@@ -171,7 +171,7 @@ int main(int argc,const char** argv){
 	wfc_free_table(&table);
 	putchar('\n');
 	wfc_print_image(&output_image);
-	printf("Cache hit percentage: %lf\n",cache);
+	printf("Cache hits: %.3lf%%\n",cache*100);
 	wfc_save_image(&output_image,"build/export.bmp");
 	return 0;
 }
