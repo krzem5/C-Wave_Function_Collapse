@@ -555,6 +555,11 @@ _retry_from_start:;
 					const uint64_t* state_data=state_data_base;
 					for (wfc_tile_index_t k=0;k<state->data_elem_size;k++){
 						uint64_t value=*state_data;
+						state_data++;
+						if (!value){
+							mask_data+=64;
+							continue;
+						}
 						uint32_t key_wide=value^(value>>32)^(((uint32_t)(k))<<12);
 						wfc_fast_mask_t* fast_mask_data=fast_mask+((key_wide^(key_wide>>16))&0xffff);
 						cache_check_count++;
@@ -581,7 +586,6 @@ _retry_from_start:;
 								fast_mask_data->counter=FAST_MASK_COUNTER_INIT;
 							}
 						}
-						state_data++;
 						mask=_mm256_or_si256(mask,sub_mask);
 						mask_data+=64;
 					}
