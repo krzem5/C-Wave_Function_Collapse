@@ -40,8 +40,8 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 #define WEIGHT_RANDOMNESS_SHIFT 3
 #define QUEUE_INDEX_COLLAPSED 0xffff
 #define MAX_ALLOWED_REMOVALS 128
-#define FAST_MASK_COUNTER_INIT 512
-#define FAST_MASK_MAX_COUNTER 2048
+#define FAST_MASK_COUNTER_INIT 256
+#define FAST_MASK_MAX_COUNTER 1024
 
 #define DIVMOD_WIDTH(number,div,mod) \
 	do{ \
@@ -560,10 +560,11 @@ _retry_from_start:;
 							mask_data+=64;
 							continue;
 						}
-						uint32_t key_wide=value^(value>>32)^(((uint32_t)(k))<<12);
+						uint32_t fast_mask_offset=(uint32_t)(((uint64_t)mask_data)-((uint64_t)(table->_connection_data)));
+						uint32_t key_wide=value^(value>>32)^fast_mask_offset;
 						wfc_fast_mask_t* fast_mask_data=fast_mask+((key_wide^(key_wide>>16))&0xffff);
 						cache_check_count++;
-						if (fast_mask_data->offset==k&&fast_mask_data->key==value){
+						if (fast_mask_data->offset==fast_mask_offset&&fast_mask_data->key==value){
 							cache_hit_count++;
 							sub_mask=_mm256_lddqu_si256((const __m256i*)(fast_mask_data->data));
 							if (fast_mask_data->counter<FAST_MASK_MAX_COUNTER){
@@ -572,17 +573,18 @@ _retry_from_start:;
 						}
 						else{
 							sub_mask=_mm256_xor_si256(sub_mask,sub_mask);
-							while (value){
-								mask=_mm256_or_si256(mask,_mm256_lddqu_si256(mask_data+FIND_FIRST_SET_BIT(value)));
+							uint64_t fast_mask_data_key=value;
+							do{
+								sub_mask=_mm256_or_si256(sub_mask,_mm256_lddqu_si256(mask_data+FIND_FIRST_SET_BIT(value)));
 								value&=value-1;
-							}
+							} while (value);
 							if (fast_mask_data->counter){
 								fast_mask_data->counter--;
 							}
 							else{
-								fast_mask_data->key=value;
+								fast_mask_data->key=fast_mask_data_key;
 								_mm256_storeu_si256((__m256i*)(fast_mask_data->data),sub_mask);
-								fast_mask_data->offset=k;
+								fast_mask_data->offset=fast_mask_offset;
 								fast_mask_data->counter=FAST_MASK_COUNTER_INIT;
 							}
 						}
