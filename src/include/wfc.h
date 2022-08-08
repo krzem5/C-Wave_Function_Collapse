@@ -94,6 +94,15 @@ typedef struct _WFC_QUEUE_LOCATION{
 
 
 
+typedef struct _WFC_FAST_MASK{
+	uint64_t key;
+	uint64_t data[4];
+	uint32_t offset;
+	uint16_t counter;
+} wfc_fast_mask_t;
+
+
+
 typedef struct _WFC_STATE{
 	wfc_prng_t prng;
 	uint64_t* data;
@@ -106,20 +115,12 @@ typedef struct _WFC_STATE{
 	wfc_queue_location_t* queue_indicies;
 	wfc_size_t* update_stack;
 	wfc_size_t* delete_stack;
+	wfc_fast_mask_t* fast_mask;
 	wfc_tile_index_t tile_count;
 	wfc_tile_index_t data_elem_size;
 	wfc_size_t pixel_count;
 	wfc_size_t width;
 } wfc_state_t;
-
-
-
-typedef struct _WFC_FAST_MASK{
-	uint64_t key;
-	uint64_t data[4];
-	uint32_t offset;
-	uint16_t counter;
-} wfc_fast_mask_t;
 
 
 

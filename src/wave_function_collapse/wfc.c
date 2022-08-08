@@ -252,6 +252,8 @@ void wfc_free_state(wfc_state_t* state){
 	state->update_stack=NULL;
 	free(state->delete_stack);
 	state->delete_stack=NULL;
+	free(state->fast_mask);
+	state->fast_mask=NULL;
 	state->tile_count=0;
 	state->data_elem_size=0;
 	state->pixel_count=0;
@@ -321,6 +323,7 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_
 	out->queue_indicies=malloc((pixel_count*sizeof(wfc_queue_location_t)+31)&0xffffffffffffffe0ull);
 	out->update_stack=malloc(pixel_count*sizeof(wfc_size_t));
 	out->delete_stack=malloc(pixel_count*sizeof(wfc_size_t));
+	out->fast_mask=malloc(262144*sizeof(wfc_fast_mask_t));
 	out->tile_count=table->tile_count;
 	out->data_elem_size=table->data_elem_size;
 	out->pixel_count=pixel_count;
@@ -435,9 +438,8 @@ double wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_callback_t call
 	__m256i increment=_mm256_set1_epi32(8);
 	__m256i popcnt_table=_mm256_setr_epi8(0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4);
 	__m256i popcnt_low_mask=_mm256_set1_epi8(15);
-	wfc_fast_mask_t fast_mask[65536];
-	__m256i* ptr=(__m256i*)fast_mask;
-	for (wfc_size_t i=0;i<(sizeof(wfc_fast_mask_t)<<10);i++){
+	__m256i* ptr=(__m256i*)(state->fast_mask);
+	for (wfc_size_t i=0;i<(sizeof(wfc_fast_mask_t)<<12);i++){
 		_mm256_storeu_si256(ptr,zero);
 		ptr++;
 	}
@@ -560,9 +562,9 @@ _retry_from_start:;
 							mask_data+=64;
 							continue;
 						}
-						uint32_t fast_mask_offset=(uint32_t)(((uint64_t)mask_data)-((uint64_t)(table->_connection_data)));
+						uint32_t fast_mask_offset=j*state->data_elem_size+k;
 						uint32_t key_wide=value^(value>>32)^fast_mask_offset;
-						wfc_fast_mask_t* fast_mask_data=fast_mask+((key_wide^(key_wide>>16))&0xffff);
+						wfc_fast_mask_t* fast_mask_data=state->fast_mask+((key_wide^(key_wide>>16))&0xffff)+(i<<16);
 						cache_check_count++;
 						if (fast_mask_data->offset==fast_mask_offset&&fast_mask_data->key==value){
 							cache_hit_count++;
