@@ -54,9 +54,60 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 
 #define MAX_UPDATE_DISTANCE 8
 
+#define INIT_RANGE(range) \
+	do{ \
+		wfc_color_range_t* __range=(range); \
+		*((uint32_t*)(__range->min))=0xffffffff; \
+		*((uint32_t*)(__range->max))=0; \
+	} while (0)
+#define UPDATE_RANGE(range,color) \
+	do{ \
+		wfc_color_range_t* __range=(range); \
+		wfc_color_t __color=(color); \
+		for (unsigned int __i=0;__i<4;__i++){ \
+			uint8_t __value=__color>>(__i<<3); \
+			if (__value>__range->max[__i]){ \
+				__range->max[__i]=__value; \
+			} \
+			if (__value<__range->min[__i]){ \
+				__range->min[__i]=__value; \
+			} \
+		} \
+	} while (0)
+#define FINISH_RANGE(range) \
+	do{ \
+		wfc_color_range_t* __range=(range); \
+		*((uint32_t*)(__range->diff))=(*((uint32_t*)(__range->max)))-(*((uint32_t*)(__range->min))); \
+	} while (0)
+
 #define BMP_HEADER_SIZE 54
 #define DIB_HEADER_SIZE 40
 #define BI_RGB 0
+
+
+
+static void _quicksort(const wfc_color_t* palette,uint32_t* data,wfc_palette_size_t length,wfc_color_t mask){
+	wfc_color_t last_color=palette[data[length]]&mask;
+	wfc_palette_size_t i=0;
+	for (wfc_palette_size_t j=0;j<length;j++){
+		if ((palette[data[j]]&mask)<last_color){
+			uint32_t tmp=*(data+i);
+			*(data+i)=*(data+j);
+			*(data+j)=tmp;
+			i++;
+		}
+	}
+	uint32_t tmp=*(data+i);
+	*(data+i)=*(data+length);
+	*(data+length)=tmp;
+	if (i>1){
+		_quicksort(palette,data,i-1,mask);
+	}
+	i++;
+	if (i<length){
+		_quicksort(palette,data+i,length-i,mask);
+	}
+}
 
 
 
@@ -128,7 +179,89 @@ static FORCE_INLINE wfc_tile_index_t _find_first_bit(const uint64_t* data){
 
 
 
-void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_t flags,wfc_table_t* out){
+void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_t flags,wfc_palette_size_t palette_max_size,wfc_table_t* out){
+	wfc_palette_color_index_t* image_palette=malloc(image->width*image->height*sizeof(wfc_palette_color_index_t));
+	wfc_color_t* palette=NULL;
+	wfc_palette_size_t palette_size=0;
+	wfc_color_range_t color_range;
+	INIT_RANGE(&color_range);
+	for (wfc_size_t i=0;i<image->width*image->height;i++){
+		wfc_color_t color=image->data[i];
+		UPDATE_RANGE(&color_range,color);
+		wfc_palette_color_index_t j=0;
+		while (j<palette_size&&palette[j]!=color){
+			j++;
+		}
+		image_palette[i]=j;
+		if (j==palette_size){
+			palette_size++;
+			palette=realloc(palette,palette_size*sizeof(wfc_color_t));
+			palette[palette_size-1]=color;
+		}
+	}
+	const wfc_color_t* data_source=image->data;
+	if (palette_size>palette_max_size){
+		FINISH_RANGE(&color_range);
+		data_source=image_palette;
+		uint32_t* indicies=malloc(palette_size*sizeof(wfc_palette_color_index_t));
+		for (wfc_palette_size_t i=0;i<palette_size;i++){
+			indicies[i]=i;
+		}
+		wfc_palette_range_t* ranges=malloc(palette_max_size*sizeof(wfc_palette_range_t));
+		ranges->data=indicies;
+		ranges->size=palette_size;
+		ranges->range=color_range;
+		wfc_palette_range_t* new_range=ranges+1;
+		for (wfc_palette_size_t i=1;i<palette_max_size;i++){
+			wfc_palette_size_t max_index=0;
+			uint8_t max_offset=0;
+			uint8_t max_diff=0;
+			for (wfc_palette_size_t j=0;j<i;j++){
+				const wfc_palette_range_t* range=ranges+j;
+				if (range->size<2){
+					continue;
+				}
+				for (uint8_t offset=0;offset<4;offset++){
+					if (range->range.diff[offset]>max_diff){
+						max_index=j;
+						max_offset=offset;
+						max_diff=range->range.diff[offset];
+					}
+				}
+			}
+			wfc_palette_range_t* range=ranges+max_index;
+			wfc_palette_size_t size=range->size;
+			_quicksort(palette,range->data,size-1,0xff<<(max_offset<<3));
+			range->size>>=1;
+			new_range->data=range->data+range->size;
+			new_range->size=size-range->size;
+			INIT_RANGE(&color_range);
+			for (wfc_palette_size_t j=0;j<size;j++){
+				if (j==range->size){
+					FINISH_RANGE(&color_range);
+					range->range=color_range;
+					INIT_RANGE(&color_range);
+				}
+				UPDATE_RANGE(&color_range,palette[range->data[j]]);
+			}
+			FINISH_RANGE(&color_range);
+			new_range->range=color_range;
+			new_range++;
+		}
+		for (wfc_palette_size_t i=0;i<palette_max_size;i++){
+			const wfc_palette_range_t* range=ranges+i;
+			wfc_color_t color=(*((uint32_t*)(range->range.min)))+(((*((uint32_t*)(range->range.diff)))&0xfefefefe)>>1);
+			for (wfc_palette_size_t j=0;j<range->size;j++){
+				palette[range->data[j]]=color;
+			}
+		}
+		free(ranges);
+		free(indicies);
+		for (wfc_size_t i=0;i<image->width*image->height;i++){
+			image_palette[i]=palette[image_palette[i]];
+		}
+	}
+	free(palette);
 	out->box_size=box_size;
 	out->flags=flags;
 	out->tile_count=0;
@@ -140,7 +273,7 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 			wfc_size_t tx=x;
 			wfc_size_t ty=y;
 			for (wfc_box_size_t i=0;i<box_size*box_size;i++){
-				*ptr=image->data[(tx%image->width)+(ty%image->height)*image->width];
+				*ptr=data_source[(tx%image->width)+(ty%image->height)*image->width];
 				ptr++;
 				tx++;
 				if ((i%box_size)==box_size-1){
@@ -153,6 +286,7 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 			}
 		}
 	}
+	free(image_palette);
 	if (flags&WFC_FLAG_ROTATE){
 		for (wfc_tile_index_t i=0;i<out->tile_count;i++){
 			const wfc_tile_t* tile=out->tiles+i;

@@ -25,6 +25,14 @@ typedef uint8_t wfc_flags_t;
 
 
 
+typedef uint32_t wfc_palette_color_index_t;
+
+
+
+typedef uint32_t wfc_palette_size_t;
+
+
+
 typedef uint32_t wfc_queue_size_t;
 
 
@@ -124,11 +132,27 @@ typedef struct _WFC_STATE{
 
 
 
+typedef struct _WFC_COLOR_RANGE{
+	uint8_t min[4];
+	uint8_t max[4];
+	uint8_t diff[4];
+} wfc_color_range_t;
+
+
+
+typedef struct _WFC_PALETTE_RANGE{
+	wfc_palette_color_index_t* data;
+	wfc_palette_size_t size;
+	wfc_color_range_t range;
+} wfc_palette_range_t;
+
+
+
 typedef void (*wfc_callback_t)(const wfc_table_t*,const wfc_state_t*,void*);
 
 
 
-void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_t flags,wfc_table_t* out);
+void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_t flags,wfc_palette_size_t palette_max_size,wfc_table_t* out);
 
 
 
