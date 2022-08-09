@@ -52,8 +52,6 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 		mod=__number-__div*state->width; \
 	} while (0)
 
-#define MAX_UPDATE_DISTANCE 7
-
 #define INIT_RANGE(range) \
 	do{ \
 		wfc_color_range_t* __range=(range); \
@@ -545,7 +543,7 @@ void wfc_save_image(const wfc_image_t* image,const char* path){
 
 
 
-double wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_callback_t callback,void* ctx){
+double wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_box_size_t propagation_distance,wfc_callback_t callback,void* ctx){
 	wfc_size_t direction_offsets[4]={-state->width,1,state->width,-1};
 	wfc_size_t direction_offset_adjustment[4]={state->pixel_count,-state->width,-state->pixel_count,state->width};
 	uint8_t no_wrap=(!(table->flags&WFC_FLAG_WRAP_OUTPUT_Y))*5+(!(table->flags&WFC_FLAG_WRAP_OUTPUT_X))*10;
@@ -766,7 +764,7 @@ _retry_from_start:;
 					if (dy<0){
 						dy=-dy;
 					}
-					if (dx+dy>MAX_UPDATE_DISTANCE){
+					if (dx+dy>propagation_distance){
 						continue;
 					}
 					state->bitmap[neightbour_offset>>6]|=1ull<<(neightbour_offset&63);
