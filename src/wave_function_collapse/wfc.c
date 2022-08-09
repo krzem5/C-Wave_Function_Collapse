@@ -198,7 +198,7 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 		}
 	}
 	const wfc_color_t* data_source=image->data;
-	if (palette_size>palette_max_size){
+	if (palette_max_size&&palette_size>palette_max_size){
 		FINISH_RANGE(&color_range);
 		data_source=image_palette;
 		uint32_t* indicies=malloc(palette_size*sizeof(wfc_palette_color_index_t));
