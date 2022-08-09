@@ -52,7 +52,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 		mod=__number-__div*state->width; \
 	} while (0)
 
-#define MAX_UPDATE_DISTANCE 8
+#define MAX_UPDATE_DISTANCE 7
 
 #define INIT_RANGE(range) \
 	do{ \
