@@ -184,7 +184,7 @@ void wfc_save_image(const wfc_image_t* image,const char* path);
 
 
 
-double wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_box_size_t propagation_distance,wfc_callback_t callback,void* ctx);
+double wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_box_size_t propagation_distance,wfc_box_size_t delete_size,wfc_callback_t callback,void* ctx);
 
 
 

@@ -39,7 +39,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 
 #define WEIGHT_RANDOMNESS_SHIFT 3
 #define QUEUE_INDEX_COLLAPSED 0xffff
-#define MAX_ALLOWED_REMOVALS 128
+#define MAX_ALLOWED_REMOVALS 1024
 #define FAST_MASK_COUNTER_INIT 256
 #define FAST_MASK_MAX_COUNTER 1024
 
@@ -543,7 +543,7 @@ void wfc_save_image(const wfc_image_t* image,const char* path){
 
 
 
-double wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_box_size_t propagation_distance,wfc_callback_t callback,void* ctx){
+double wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_box_size_t propagation_distance,wfc_box_size_t delete_size,wfc_callback_t callback,void* ctx){
 	wfc_size_t direction_offsets[4]={-state->width,1,state->width,-1};
 	wfc_size_t direction_offset_adjustment[4]={state->pixel_count,-state->width,-state->pixel_count,state->width};
 	uint8_t no_wrap=(!(table->flags&WFC_FLAG_WRAP_OUTPUT_Y))*5+(!(table->flags&WFC_FLAG_WRAP_OUTPUT_X))*10;
@@ -655,10 +655,14 @@ _retry_from_start:;
 		wfc_size_t root_x;
 		wfc_size_t root_y;
 		DIVMOD_WIDTH(offset,root_y,root_x);
+		ptr=(__m256i*)(state->bitmap);
+		for (wfc_size_t i=0;i<state->bitmap_size;i++){
+			_mm256_storeu_si256(ptr,zero);
+			ptr++;
+		}
 		while (update_stack_size){
 			update_stack_size--;
 			offset=state->update_stack[update_stack_size];
-			state->bitmap[offset>>6]&=~(1ull<<(offset&63));
 			wfc_size_t x;
 			wfc_size_t y;
 			DIVMOD_WIDTH(offset,y,x);
@@ -783,9 +787,9 @@ _retry_from_start:;
 			wfc_size_t base_x;
 			wfc_size_t base_y;
 			DIVMOD_WIDTH(offset,base_y,base_x);
-			base_x+=_get_random(state,(table->box_size<<1)+1)-table->box_size;
-			base_y+=_get_random(state,(table->box_size<<1)+1)-table->box_size;
-			for (int32_t y=-table->box_size;y<=((int32_t)(table->box_size));y++){
+			base_x+=_get_random(state,(delete_size<<1)+1)-delete_size;
+			base_y+=_get_random(state,(delete_size<<1)+1)-delete_size;
+			for (int32_t y=-delete_size;y<=((int32_t)(delete_size));y++){
 				int32_t y_off=base_y+y;
 				if (y_off<0){
 					if (no_wrap&1){
@@ -800,7 +804,7 @@ _retry_from_start:;
 					y_off-=height;
 				}
 				y_off*=state->width;
-				for (int32_t x=-table->box_size;x<=((int32_t)(table->box_size));x++){
+				for (int32_t x=-delete_size;x<=((int32_t)(delete_size));x++){
 					int32_t x_off=base_x+x;
 					if (x_off<0){
 						if (no_wrap&8){
@@ -835,10 +839,10 @@ _retry_from_start:;
 					queue->length++;
 				}
 			}
-			uint8_t bounds=~(((base_y<table->box_size+1)|((base_x>=state->width-table->box_size-1)<<1)|((base_y>=height-table->box_size-1)<<2)|((base_x<table->box_size+1)<<3))&no_wrap);
+			uint8_t bounds=~(((base_y<delete_size+1)|((base_x>=state->width-delete_size-1)<<1)|((base_y>=height-delete_size-1)<<2)|((base_x<delete_size+1)<<3))&no_wrap);
 			wfc_size_t boundary_tiles[8];
 			if (bounds&1){
-				int32_t y=base_y-table->box_size;
+				int32_t y=base_y-delete_size;
 				if (y<0){
 					y+=height;
 				}
@@ -850,7 +854,7 @@ _retry_from_start:;
 				boundary_tiles[1]=y*state->width;
 			}
 			if (bounds&2){
-				int32_t x=base_x+table->box_size;
+				int32_t x=base_x+delete_size;
 				if (x>=state->width){
 					x-=state->width;
 				}
@@ -862,7 +866,7 @@ _retry_from_start:;
 				boundary_tiles[3]=x;
 			}
 			if (bounds&4){
-				int32_t y=base_y+table->box_size;
+				int32_t y=base_y+delete_size;
 				if (y>=height){
 					y-=height;
 				}
@@ -874,7 +878,7 @@ _retry_from_start:;
 				boundary_tiles[5]=y*state->width;
 			}
 			if (bounds&8){
-				int32_t x=base_x-table->box_size;
+				int32_t x=base_x-delete_size;
 				if (x<0){
 					x+=state->width;
 				}
@@ -885,7 +889,7 @@ _retry_from_start:;
 				}
 				boundary_tiles[7]=x;
 			}
-			for (int32_t delta=-table->box_size;delta<=((int32_t)(table->box_size));delta++){
+			for (int32_t delta=-delete_size;delta<=((int32_t)(delete_size));delta++){
 				int32_t delta_adj=delta;
 				if (bounds&5){
 					delta_adj+=base_x;
