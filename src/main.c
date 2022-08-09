@@ -18,7 +18,7 @@
 
 #define BOX_SIZE 4
 #define OUTPUT_WIDTH 96
-#define OUTPUT_HEIGHT 26
+#define OUTPUT_HEIGHT 32
 #define DRAW_PROGRESS_IMAGES 1
 
 
