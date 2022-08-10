@@ -210,7 +210,7 @@ int main(int argc,const char** argv){
 	};
 	wfc_print_image(&input_image);
 	wfc_table_t table;
-	wfc_build_table(&input_image,3,0,4,&table);
+	wfc_build_table(&input_image,4,0,4,&table);
 	wfc_print_table(&table);
 	wfc_state_t state;
 	wfc_init_state(&table,&output_image,&state);
