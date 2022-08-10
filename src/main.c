@@ -26,7 +26,7 @@ void _progress_callback(const wfc_table_t* table,const wfc_state_t* state,void* 
 #if DRAW_PROGRESS_IMAGES
 	static unsigned short int index=0;
 	index++;
-	index&=8191;
+	index&=4095;
 	if (index){
 		return;
 	}
