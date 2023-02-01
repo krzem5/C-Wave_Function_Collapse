@@ -21,6 +21,10 @@ typedef uint32_t wfc_color_t;
 
 
 
+typedef uint32_t wfc_color_diffrence_t;
+
+
+
 typedef uint8_t wfc_flags_t;
 
 
@@ -152,7 +156,7 @@ typedef void (*wfc_callback_t)(const wfc_table_t*,const wfc_state_t*,void*);
 
 
 
-void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_t flags,wfc_palette_size_t palette_max_size,wfc_table_t* out);
+void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_t flags,wfc_palette_size_t palette_max_size,wfc_color_diffrence_t max_color_diff,wfc_table_t* out);
 
 
 
