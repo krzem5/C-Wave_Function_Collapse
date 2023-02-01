@@ -329,7 +329,7 @@ int main(int argc,const char** argv){
 	};
 	wfc_print_image(&input_image);
 	wfc_table_t table;
-	wfc_build_table(&input_image,6,WFC_FLAG_FLIP/*|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_OUTPUT_X|WFC_FLAG_WRAP_OUTPUT_Y*/,16,2250,&table);
+	wfc_build_table(&input_image,3,WFC_FLAG_FLIP/*|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_OUTPUT_X|WFC_FLAG_WRAP_OUTPUT_Y*/,16,250,&table);
 	wfc_print_table(&table);
 	wfc_state_t state;
 	wfc_init_state(&table,&output_image,&state);
