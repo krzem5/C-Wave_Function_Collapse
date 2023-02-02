@@ -41,11 +41,10 @@ static void _progress_callback(const wfc_table_t* table,const wfc_state_t* state
 #if DRAW_PROGRESS_IMAGES
 	static unsigned long int _last_time=0;
 	unsigned long int current_time=get_time();
-	_Bool ignore_callback=current_time-_last_time<(unsigned long int)(PROGRESS_FRAME_INTERVAL*1e9);
-	_last_time=current_time;
-	if (ignore_callback){
+	if (current_time-_last_time<(unsigned long int)(PROGRESS_FRAME_INTERVAL*1e9)){
 		return;
 	}
+	_last_time=current_time;
 	wfc_image_t* image=ctx;
 	wfc_generate_image(table,state,image);
 	static _Bool first=1;
