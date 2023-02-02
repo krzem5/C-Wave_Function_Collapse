@@ -27,7 +27,7 @@ static unsigned long int get_time(void){
 #ifdef _MSC_VER
 	FILETIME ft;
 	GetSystemTimeAsFileTime(&ft);
-	return ((((sll_time_t)ft.dwHighDateTime)<<32)|ft.dwLowDateTime)*100-11644473600000000000;
+	return ((((unsigned long int)ft.dwHighDateTime)<<32)|ft.dwLowDateTime)*100-11644473600000000000;
 #else
 	struct timespec tm;
 	clock_gettime(CLOCK_REALTIME,&tm);
@@ -288,20 +288,24 @@ int main(int argc,const char** argv){
 		output_image_data
 	};
 	wfc_print_image(&input_image);
+	unsigned long int time_start=get_time();
 	wfc_table_t table;
-	wfc_build_table(&input_image,5,WFC_FLAG_FLIP|WFC_FLAG_ROTATE/*|WFC_FLAG_WRAP_OUTPUT_X|WFC_FLAG_WRAP_OUTPUT_Y*/,16,850,&table);
-	// wfc_build_table(&input_image,3,WFC_FLAG_FLIP/*|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_OUTPUT_X|WFC_FLAG_WRAP_OUTPUT_Y*/,16,200,&table);
+	// wfc_build_table(&input_image,5,WFC_FLAG_FLIP|WFC_FLAG_ROTATE/*|WFC_FLAG_WRAP_OUTPUT_X|WFC_FLAG_WRAP_OUTPUT_Y*/,16,850,&table);
+	wfc_build_table(&input_image,3,WFC_FLAG_FLIP/*|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_OUTPUT_X|WFC_FLAG_WRAP_OUTPUT_Y*/,16,200,&table);
+	unsigned long int table_creation_time=get_time()-time_start;
 	wfc_print_table(&table);
 	wfc_state_t state;
 	wfc_init_state(&table,&output_image,&state);
 	fflush(stdout);
+	time_start=get_time();
 	double cache=wfc_solve(&table,&state,4,2,_progress_callback,&output_image);
+	unsigned long int generation_time=get_time()-time_start;
 	wfc_generate_image(&table,&state,&output_image);
-	wfc_free_state(&state);
-	wfc_free_table(&table);
 	putchar('\n');
 	wfc_print_image(&output_image);
-	printf("Cache hits: %.3lf%%\n",cache*100);
+	printf("Table size: %u\nTable creation time: %.3lf\nGeneration time: %.3lf\nCache hits: %.3lf%%\n",table.tile_count,table_creation_time*1e-9,generation_time*1e-9,cache*100);
+	wfc_free_state(&state);
+	wfc_free_table(&table);
 	wfc_save_image(&output_image,"build/export.bmp");
 	return 0;
 }
