@@ -289,8 +289,8 @@ int main(int argc,const char** argv){
 	wfc_print_image(&input_image);
 	unsigned long int time_start=get_time();
 	wfc_table_t table;
-	// wfc_build_table(&input_image,5,WFC_FLAG_FLIP|WFC_FLAG_ROTATE/*|WFC_FLAG_WRAP_OUTPUT_X|WFC_FLAG_WRAP_OUTPUT_Y*/,16,850,&table);
-	wfc_build_table(&input_image,3,WFC_FLAG_FLIP/*|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_OUTPUT_X|WFC_FLAG_WRAP_OUTPUT_Y*/,16,200,&table);
+	wfc_build_table(&input_image,5,WFC_FLAG_FLIP|WFC_FLAG_ROTATE/*|WFC_FLAG_WRAP_OUTPUT_X|WFC_FLAG_WRAP_OUTPUT_Y*/,16,1850,&table);
+	// wfc_build_table(&input_image,3,WFC_FLAG_FLIP/*|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_OUTPUT_X|WFC_FLAG_WRAP_OUTPUT_Y*/,16,200,&table);
 	unsigned long int table_creation_time=get_time()-time_start;
 	wfc_print_table(&table);
 	wfc_state_t state;
