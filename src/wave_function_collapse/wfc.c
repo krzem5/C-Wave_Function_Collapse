@@ -330,6 +330,31 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 		}
 	}
 	free(buffer);
+	if (max_color_diff){
+		wfc_color_diffrence_t adjusted_max_color_diff=max_color_diff;//*box_size/(box_size-1);
+		const wfc_tile_t* src_tile=out->tiles+1;
+		wfc_tile_index_t i=1;
+		while (i<out->tile_count){
+			const wfc_color_t* tile_data=src_tile->data;
+			*(out->tiles+i)=*src_tile;
+			src_tile++;
+			for (wfc_tile_index_t j=0;j<i;j++){
+				const wfc_color_t* tile2_data=(out->tiles+j)->data;
+				wfc_color_diffrence_t diff=0;
+				for (wfc_box_size_t k=0;k<box_size*box_size;k++){
+					diff+=_color_diffrence(tile_data[k],tile2_data[k]);
+				}
+				if (diff<adjusted_max_color_diff){
+					goto _delete_tile;
+				}
+			}
+			i++;
+			continue;
+_delete_tile:
+			free((src_tile-1)->data);
+			out->tile_count--;
+		}
+	}
 	out->data_elem_size=((out->tile_count+255)>>6)&0xfffffffc;
 	out->_connection_data=malloc(4*out->tile_count*out->data_elem_size*sizeof(uint64_t));
 	__m256i zero=_mm256_setzero_si256();
