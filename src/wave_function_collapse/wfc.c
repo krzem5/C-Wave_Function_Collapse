@@ -84,7 +84,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 
 
 
-static inline unsigned int _color_diffrence(wfc_color_t x,wfc_color_t y){
+static FORCE_INLINE unsigned int _color_diffrence(wfc_color_t x,wfc_color_t y){
 	int r=(x>>24)-(y>>24);
 	int g=((x>>16)&0xff)-((y>>16)&0xff);
 	int b=((x>>8)&0xff)-((y>>8)&0xff);
