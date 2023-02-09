@@ -15,7 +15,7 @@
 
 
 
-#define OUTPUT_WIDTH 96
+#define OUTPUT_WIDTH 90
 #define OUTPUT_HEIGHT 32
 #define DRAW_PROGRESS_IMAGES 1
 
@@ -274,12 +274,12 @@ int main(int argc,const char** argv){
 	wfc_init_state(&table,&output_image,&state);
 	fflush(stdout);
 	time_start=get_time();
-	double cache=wfc_solve(&table,&state,4,2,_progress_callback,&output_image);
+	float cache=wfc_solve(&table,&state,4,2,_progress_callback,&output_image);
 	unsigned long int generation_time=get_time()-time_start;
 	wfc_generate_image(&table,&state,&output_image);
 	putchar('\n');
 	wfc_print_image(&output_image);
-	printf("Table size: %u (%lu kB)\nTable creation time: %.3lf\nGeneration time: %.3lf\nCache hits: %.3lf%%\n",table.tile_count,(table.tile_count*table.box_size*table.box_size*sizeof(wfc_color_t)+512)>>10,table_creation_time*1e-9,generation_time*1e-9,cache*100);
+	printf("Table size: %u (%lu kB)\nTable creation time: %.3lf\nGeneration time: %.3lf\nCache hits: %.3f%%\n",table.tile_count,(table.tile_count*table.box_size*table.box_size*sizeof(wfc_color_t)+512)>>10,table_creation_time*1e-9,generation_time*1e-9,cache*100);
 	wfc_free_state(&state);
 	wfc_free_table(&table);
 	wfc_save_image(&output_image,"build/export.bmp");
