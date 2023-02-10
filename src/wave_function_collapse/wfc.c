@@ -331,7 +331,7 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 	}
 	free(buffer);
 	if (max_color_diff){
-		wfc_color_diffrence_t adjusted_max_color_diff=max_color_diff;//*box_size/(box_size-1);
+		wfc_color_diffrence_t adjusted_max_color_diff=max_color_diff;
 		const wfc_tile_t* src_tile=out->tiles+1;
 		wfc_tile_index_t i=1;
 		while (i<out->tile_count){
