@@ -229,9 +229,7 @@ static void _print_integer(unsigned int value,unsigned int width,unsigned int ed
 
 
 void wfc_pick_parameters(const wfc_image_t* image){
-#ifdef _MSC_VER
-	return;
-#else
+#ifndef _MSC_VER
 	wfc_box_size_t box_size=2;
 	wfc_flags_t flags=0;
 	wfc_palette_size_t palette_max_size=256;
