@@ -1,6 +1,9 @@
 {
-	"box_size": 3,
-	"flags": [],
+	"box_size": 2,
+	"flags": [
+		"wrap_x",
+		"wrap_y"
+	],
 	"palette_size": 16,
 	"max_color_diff": 0
 }

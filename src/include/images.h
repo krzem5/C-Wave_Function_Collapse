@@ -233,8 +233,8 @@ static const image_config_t images[9]={
 			4,
 			_image_pattern1_data
 		},
-		3,
-		0,
+		2,
+		WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y,
 		16,
 		0
 	},
