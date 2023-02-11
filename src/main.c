@@ -68,6 +68,10 @@ int main(int argc,const char** argv){
 	while (image_config->name&&strcmp(image_config->name,IMAGE_NAME)){
 		image_config++;
 	}
+	if (!image_config->name){
+		printf("Image '"IMAGE_NAME"' not found\n");
+		return 1;
+	}
 #if PICK_PARAMETERS
 	wfc_pick_parameters(&(image_config->image),image_config->box_size,image_config->flags,image_config->palette_max_size,image_config->max_color_diff);
 #else
