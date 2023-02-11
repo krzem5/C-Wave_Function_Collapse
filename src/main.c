@@ -8,6 +8,7 @@
 #include <images.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <wfc.h>
 
@@ -21,6 +22,7 @@
 
 #define DRAW_PROGRESS_IMAGES 1
 #define PICK_PARAMETERS 0
+#define IMAGE_NAME "cat"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
@@ -66,8 +68,12 @@ int main(int argc,const char** argv){
 	SetConsoleOutputCP(CP_UTF8);
 	SetConsoleMode(GetStdHandle(-11),7);
 #endif
+	const image_config_t* image_config=images;
+	while (image_config->name&&strcmp(image_config->name,IMAGE_NAME)){
+		image_config++;
+	}
 #if PICK_PARAMETERS
-	wfc_pick_parameters(&input_image);
+	wfc_pick_parameters(&(image_config->image));
 #else
 #ifdef _MSC_VER
 	unsigned int output_width=90;
@@ -85,10 +91,10 @@ int main(int argc,const char** argv){
 		output_height,
 		output_image_data
 	};
-	wfc_print_image(&input_image);
+	wfc_print_image(&(image_config->image));
 	unsigned long int time_start=get_time();
 	wfc_table_t table;
-	wfc_build_table(&input_image,3,WFC_FLAG_FLIP|WFC_FLAG_ROTATE,16,300,&table);
+	wfc_build_table(&(image_config->image),image_config->box_size,image_config->flags,image_config->palette_max_size,image_config->max_color_diff,&table);
 	unsigned long int table_creation_time=get_time()-time_start;
 	wfc_print_table(&table);
 	wfc_state_t state;
