@@ -210,18 +210,15 @@ static void _print_integer(unsigned int value,unsigned int width,unsigned int ed
 			is_leading_zero=0;
 		}
 		if (i==edit_index){
-			printf("\x1b[5m");
+			printf("\x1b[38;2;63;153;255m");
 		}
-		if (is_leading_zero){
-			printf("\x1b[38;2;91;104;164m");
+		else if (is_leading_zero){
+			printf("\x1b[38;2;140;83;119m");
 		}
 		else{
-			printf("\x1b[38;2;53;143;255m");
+			printf("\x1b[38;2;240;143;219m");
 		}
 		putchar(digit+48);
-		if (i==edit_index){
-			printf("\x1b[25m");
-		}
 		powers++;
 	}
 }
@@ -478,7 +475,7 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 		}
 	}
 	const wfc_color_t* data_source=image->data;
-	if (palette_max_size&&palette_size>palette_max_size){
+	if (palette_max_size>1&&palette_size>palette_max_size){
 		FINISH_RANGE(&color_range);
 		data_source=image_palette;
 		uint32_t* indicies=malloc(palette_size*sizeof(wfc_palette_color_index_t));
