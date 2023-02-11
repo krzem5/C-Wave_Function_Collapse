@@ -281,8 +281,8 @@ static const image_config_t images[9]={
 			12,
 			_image_pattern3_data
 		},
-		2,
-		0,
+		3,
+		WFC_FLAG_ROTATE|WFC_FLAG_FLIP,
 		16,
 		0
 	},
