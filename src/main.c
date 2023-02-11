@@ -15,7 +15,7 @@
 
 
 #define DRAW_PROGRESS_IMAGES 1
-#define PICK_PARAMETERS 1
+#define PICK_PARAMETERS 0
 #define IMAGE_NAME "cat"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
@@ -49,7 +49,7 @@ static void _progress_callback(const wfc_table_t* table,const wfc_state_t* state
 	wfc_generate_image(table,state,image);
 	static _Bool first=1;
 	if (!first){
-		printf("\x1b[0;0H");
+		printf("\x1b[H");
 	}
 	first=0;
 	wfc_print_image(image);
