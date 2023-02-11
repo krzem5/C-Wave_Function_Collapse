@@ -16,7 +16,7 @@
 
 #define DRAW_PROGRESS_IMAGES 1
 #define PICK_PARAMETERS 0
-#define IMAGE_NAME "pattern2"
+#define IMAGE_NAME "pattern3"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
