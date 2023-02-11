@@ -450,7 +450,7 @@ _next_index:
 	}
 _return:
 	wfc_free_table(&table);
-	printf("\x1b[0m\x1b[?25h\x1b[H\x1b[0J");
+	printf("\x1b[0m\x1b[?25h\x1b[H\x1b[0JBox size: %u\nFlags: %s%s\nPalette size: %u\nSimilarity score: %u\n",box_size,((flags&WFC_FLAG_FLIP)?"WFC_FLAG_FLIP":""),((flags&WFC_FLAG_ROTATE)?"WFC_FLAG_ROTATE":""),palette_max_size,max_color_diff);
 	tcsetattr(STDOUT_FILENO,TCSANOW,&old_terminal_config);
 #endif
 }
