@@ -1,6 +1,9 @@
 #ifdef _MSC_VER
 #define WIN32_LEAN_AND_MEAN 1
 #include <windows.h>
+#else
+#include <unistd.h>
+#include <sys/ioctl.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,8 +18,6 @@
 
 
 
-#define OUTPUT_WIDTH 90
-#define OUTPUT_HEIGHT 32
 #define DRAW_PROGRESS_IMAGES 1
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
@@ -62,6 +63,13 @@ int main(int argc,const char** argv){
 #ifdef _MSC_VER
 	SetConsoleOutputCP(CP_UTF8);
 	SetConsoleMode(GetStdHandle(-11),7);
+	unsigned int output_width=90;
+	unsigned int output_height=32;
+#else
+	struct winsize window_size;
+	ioctl(STDOUT_FILENO,TIOCGWINSZ,&window_size);
+	unsigned int output_width=window_size.ws_col>>1;
+	unsigned int output_height=window_size.ws_row-5;
 #endif
 	srand(time(NULL));
 	// IMAGE(
@@ -256,10 +264,10 @@ int main(int argc,const char** argv){
 		0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,
 		0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,0x000000ff,
 	);
-	wfc_color_t output_image_data[OUTPUT_WIDTH*OUTPUT_HEIGHT];
+	wfc_color_t output_image_data[output_width*output_height];
 	wfc_image_t output_image={
-		OUTPUT_WIDTH,
-		OUTPUT_HEIGHT,
+		output_width,
+		output_height,
 		output_image_data
 	};
 	wfc_print_image(&input_image);
