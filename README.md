@@ -1,1 +1,3 @@
-# C - Wave Function Collapse
+# Wave Function Collapse
+
+A fast and configurable Wave Function Collapse algorithm implementation.
