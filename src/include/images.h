@@ -257,10 +257,10 @@ static const image_config_t images[9]={
 			48,
 			_image_cow_data
 		},
-		3,
-		0,
+		4,
+		WFC_FLAG_FLIP,
 		16,
-		0
+		350
 	},
 	{
 		"hand_drawn_circle",
@@ -308,7 +308,7 @@ static const image_config_t images[9]={
 		3,
 		WFC_FLAG_FLIP,
 		16,
-		250
+		200
 	},
 	{
 		"pattern2",
