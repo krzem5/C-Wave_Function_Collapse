@@ -253,6 +253,8 @@ void wfc_pick_parameters(const wfc_image_t* image){
 		putchar('\n');
 	}
 	unsigned int scrolled_lines=0;
+	unsigned int tile_rows;
+	unsigned int tile_columns;
 	char line_buffer[4096];
 	unsigned int changes=2;
 	char command[4];
@@ -261,6 +263,8 @@ void wfc_pick_parameters(const wfc_image_t* image){
 		if (changes==2){
 			changes=0;
 			wfc_build_table(image,box_size,flags,palette_max_size,max_color_diff,&table);
+			tile_columns=width/(box_size+1);
+			tile_rows=(table.tile_count+tile_columns-1)/tile_columns;
 		}
 		printf("\x1b[H\x1b[48;2;30;31;25m\x1b[38;2;225;225;225mBox size: ");
 		_print_integer(box_size,2,edit_index);
@@ -272,7 +276,7 @@ void wfc_pick_parameters(const wfc_image_t* image){
 			putchar(' ');
 		}
 		for (unsigned int i=1;i<height-1;i++){
-			printf("\n\x1b[48;2;30;31;25mtiles");
+			printf("\n\x1b[48;2;30;31;25mtiles %u x %u",tile_columns,tile_rows);
 		}
 		if (changes){
 			printf("\n\x1b[48;2;165;29;45m");
@@ -280,7 +284,7 @@ void wfc_pick_parameters(const wfc_image_t* image){
 		else{
 			printf("\n\x1b[48;2;30;31;25m");
 		}
-		snprintf(line_buffer,4096,"%u \x1b[38;2;225;225;225mtiles",table.tile_count);
+		snprintf(line_buffer,4096,"(%u,%u) %u \x1b[38;2;225;225;225mtiles",command[0],command[1],table.tile_count);
 		printf("\x1b[38;2;143;240;164m%*s",width+19,line_buffer);
 		fflush(stdout);
 		(void)scrolled_lines;
@@ -294,7 +298,17 @@ void wfc_pick_parameters(const wfc_image_t* image){
 				break;
 			case COMMAND(27,70):
 				scrolled_lines=0xffffffff;
+_apply_scroll_limit:
+				if (scrolled_lines>=(box_size+1)*tile_columns-1){
+					scrolled_lines=(box_size+1)*tile_columns-1;
+				}
 				break;
+			case COMMAND(27,53):
+				scrolled_lines=(scrolled_lines>box_size+1?scrolled_lines-box_size-1:0);
+				break;
+			case COMMAND(27,54):
+				scrolled_lines+=box_size+1;
+				goto _apply_scroll_limit;
 			case COMMAND(27,67):
 _next_index:
 				edit_index=(edit_index==MAX_EDIT_INDEX?0:edit_index+1);
