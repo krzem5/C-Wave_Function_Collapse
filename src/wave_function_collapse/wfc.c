@@ -275,7 +275,7 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_box_size_t box_size,wfc_fl
 		}
 		wfc_box_size_t row=scrolled_lines%(table.box_size+1);
 		unsigned int index=scrolled_lines/(table.box_size+1)*tile_columns;
-		unsigned int vertical_scroll_index=(height-3)*scrolled_lines/max_scroll_height;
+		unsigned int vertical_scroll_index=(height-3)*2*scrolled_lines/max_scroll_height;
 		for (unsigned int i=0;i<height-2;i++){
 			printf("\n\x1b[48;2;30;31;25m");
 			if (row==table.box_size){
@@ -306,10 +306,23 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_box_size_t box_size,wfc_fl
 					putchar(' ');
 				}
 			}
-			if (vertical_scroll_index==i){
-				printf("\x1b[48;2;154;153;150m");
+			if (vertical_scroll_index&1){
+				if ((vertical_scroll_index>>1)==i){
+					printf("\x1b[38;2;154;153;150m▄");
+				}
+				else if (((vertical_scroll_index+1)>>1)==i){
+					printf("\x1b[38;2;154;153;150m▀");
+				}
+				else{
+					putchar(' ');
+				}
 			}
-			putchar(' ');
+			else if ((vertical_scroll_index>>1)==i){
+				printf("\x1b[48;2;154;153;150m ");
+			}
+			else{
+				putchar(' ');
+			}
 			if (row==table.box_size){
 				row=0;
 				index+=tile_columns;
