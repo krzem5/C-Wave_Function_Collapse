@@ -246,7 +246,7 @@ static const image_config_t images[9]={
 			_image_platformer_data
 		},
 		3,
-		0,
+		WFC_FLAG_WRAP_X,
 		16,
 		0
 	},
