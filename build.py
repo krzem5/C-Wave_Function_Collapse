@@ -1,3 +1,4 @@
+from PIL import Image
 import json
 import os
 import subprocess
@@ -6,9 +7,32 @@ import sys
 
 
 def generate_image_header_file(source_directory,header_file_path):
+	images={}
+	for file_path in os.listdir(source_directory):
+		if (not file_path.endswith(".png")):
+			continue
+		with open(source_directory+file_path[:-3]+"json","r") as rf:
+			data=json.loads(rf.read())
+		image=Image.open(source_directory+file_path).convert("RGBA")
+		data["width"]=image.width
+		data["height"]=image.height
+		data["data"]=image
+		images[file_path.split(".")[0].lower()]=data
 	with open(header_file_path,"w") as wf:
-		wf.write("#ifndef _IMAGES_H_\n#define _IMAGES_H_ 1\n#include <wfc.h>\n\n\n\ntypedef struct _IMAGE_CONFIG{\n\tconst char* name;\n\twfc_size_t width;\n\twfc_size_t height\n\tconst wfc_pixel_t* data;\n\twfc_box_size_t box_size;\n\twfc_flags_t flags;\n\twfc_palette_size_t palette_max_size;\n\twfc_color_diffrence_t max_color_diff;\n} image_config_t;\n\n\n\n")
-		wf.write("#endif\n")
+		wf.write("#ifndef _IMAGES_H_\n#define _IMAGES_H_ 1\n#include <wfc.h>\n\n\n\ntypedef struct _IMAGE_CONFIG{\n\tconst char* name;\n\twfc_image_t image;\n\twfc_box_size_t box_size;\n\twfc_flags_t flags;\n\twfc_palette_size_t palette_max_size;\n\twfc_color_diffrence_t max_color_diff;\n} image_config_t;\n\n\n\n")
+		for name,data in images.items():
+			wf.write(f"static wfc_color_t _image_{name}_data[{data['width']*data['height']}]={{\n")
+			for y in range(0,data["height"]):
+				wf.write("\t")
+				for x in range(0,data["width"]):
+					r,g,b,a=data["data"].getpixel((x,y))
+					wf.write(f"0x{r:02x}{g:02x}{b:02x}{a:02x},")
+				wf.write("\n")
+			wf.write("};\n\n\n\n")
+		wf.write(f"static const image_config_t images[{len(images)+1}]={{\n")
+		for name,data in images.items():
+			wf.write(f"\t{{\n\t\t\"{name}\",\n\t\t{{\n\t\t\t{data['width']},\n\t\t\t{data['height']},\n\t\t\t_image_{name}_data\n\t\t}},\n\t\t{data['box_size']},\n\t\t{'|'.join(map(lambda f:'WFC_FLAG_'+f.upper(),data['flags'])) if data['flags'] else 0},\n\t\t{data['palette_size']},\n\t\t{data['max_color_diff']}\n\t}},\n")
+		wf.write("\t{NULL}\n};\n\n\n\n#endif\n")
 
 
 

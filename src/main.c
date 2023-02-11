@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #endif
+#include <images.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
