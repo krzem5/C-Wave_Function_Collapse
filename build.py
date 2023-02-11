@@ -1,13 +1,18 @@
+import json
+import os
 import subprocess
 import sys
-import os
 
 
 
-DEFAULT_ARGS=[]
+def generate_image_header_file(source_directory,header_file_path):
+	with open(header_file_path,"w") as wf:
+		wf.write("#ifndef _IMAGES_H_\n#define _IMAGES_H_ 1\n#include <wfc.h>\n\n\n\ntypedef struct _IMAGE_CONFIG{\n\tconst char* name;\n\twfc_size_t width;\n\twfc_size_t height\n\tconst wfc_pixel_t* data;\n\twfc_box_size_t box_size;\n\twfc_flags_t flags;\n\twfc_palette_size_t palette_max_size;\n\twfc_color_diffrence_t max_color_diff;\n} image_config_t;\n\n\n\n")
+		wf.write("#endif\n")
 
 
 
+generate_image_header_file("images/","src/include/images.h")
 if (os.path.exists("build")):
 	dl=[]
 	for r,ndl,fl in os.walk("build"):
@@ -33,7 +38,7 @@ if (os.name=="nt"):
 			sys.exit(1)
 	os.chdir(cd)
 	if ("--run" in sys.argv):
-		subprocess.run(["build/wave_function_collapse.exe"]+DEFAULT_ARGS)
+		subprocess.run(["build/wave_function_collapse.exe"])
 else:
 	if ("--release" in sys.argv):
 		fl=[]
@@ -58,4 +63,4 @@ else:
 		if (subprocess.run(["gcc","-g","-mavx","-mavx2","-o","build/wave_function_collapse"]+fl).returncode!=0):
 			sys.exit(1)
 	if ("--run" in sys.argv):
-		subprocess.run(["build/wave_function_collapse"]+DEFAULT_ARGS)
+		subprocess.run(["build/wave_function_collapse"])

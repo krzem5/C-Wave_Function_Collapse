@@ -19,6 +19,7 @@
 
 
 #define DRAW_PROGRESS_IMAGES 1
+#define PICK_PARAMETERS 0
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
@@ -63,6 +64,11 @@ int main(int argc,const char** argv){
 #ifdef _MSC_VER
 	SetConsoleOutputCP(CP_UTF8);
 	SetConsoleMode(GetStdHandle(-11),7);
+#endif
+#if PICK_PARAMETERS
+	wfc_pick_parameters(&input_image);
+#else
+#ifdef _MSC_VER
 	unsigned int output_width=90;
 	unsigned int output_height=32;
 #else
@@ -79,12 +85,9 @@ int main(int argc,const char** argv){
 		output_image_data
 	};
 	wfc_print_image(&input_image);
-	wfc_pick_parameters(&input_image);
 	unsigned long int time_start=get_time();
 	wfc_table_t table;
-	// wfc_build_table(&input_image,5,WFC_FLAG_FLIP|WFC_FLAG_ROTATE/*|WFC_FLAG_WRAP_OUTPUT_X|WFC_FLAG_WRAP_OUTPUT_Y*/,16,900,&table);
-	wfc_build_table(&input_image,3,WFC_FLAG_FLIP|WFC_FLAG_ROTATE/*|WFC_FLAG_WRAP_OUTPUT_X|WFC_FLAG_WRAP_OUTPUT_Y*/,16,300,&table);
-	// wfc_build_table(&input_image,3,WFC_FLAG_FLIP/*|WFC_FLAG_WRAP_OUTPUT_X|WFC_FLAG_WRAP_OUTPUT_Y*/,16,250,&table);
+	wfc_build_table(&input_image,3,WFC_FLAG_FLIP|WFC_FLAG_ROTATE,16,300,&table);
 	unsigned long int table_creation_time=get_time()-time_start;
 	wfc_print_table(&table);
 	wfc_state_t state;
@@ -100,5 +103,6 @@ int main(int argc,const char** argv){
 	wfc_free_state(&state);
 	wfc_free_table(&table);
 	wfc_save_image(&output_image,"build/export.bmp");
+#endif
 	return 0;
 }

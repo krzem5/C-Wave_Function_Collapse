@@ -1,5 +1,5 @@
-#ifndef __WFC_H__
-#define __WFC_H__ 1
+#ifndef _WFC_H_
+#define _WFC_H_ 1
 #include <stdint.h>
 
 

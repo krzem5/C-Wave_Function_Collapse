@@ -1,0 +1,9 @@
+{
+	"box_size": 3,
+	"flags": [
+		"flip",
+		"rotate"
+	],
+	"palette_size": 16,
+	"max_color_diff": 300
+}
