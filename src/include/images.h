@@ -317,7 +317,7 @@ static const image_config_t images[9]={
 			7,
 			_image_pattern2_data
 		},
-		3,
+		2,
 		0,
 		16,
 		0
