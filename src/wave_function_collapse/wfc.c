@@ -86,7 +86,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 #define BI_RGB 0
 
 #define COMMAND(a,b) ((((unsigned int)(a))<<8)|(b))
-#define MAX_EDIT_INDEX 11
+#define MAX_EDIT_INDEX 13
 #define ADJUST_VALUE_AT_EDIT_INDEX(var,offset,width,new_digit) \
 	unsigned int pow=powers_of_ten[edit_index-offset+8-width]; \
 	unsigned int digit=(var/pow)%10; \
@@ -201,7 +201,7 @@ static FORCE_INLINE wfc_tile_index_t _find_first_bit(const uint64_t* data){
 
 
 
-static void _print_integer(unsigned int value,unsigned int width,int edit_index){
+static void _print_integer(unsigned int value,unsigned int width,unsigned int edit_index){
 	const unsigned int* powers=powers_of_ten+8-width;
 	_Bool is_leading_zero=1;
 	for (unsigned int i=0;i<width;i++){
@@ -236,7 +236,7 @@ void wfc_pick_parameters(const wfc_image_t* image){
 	wfc_flags_t flags=0;
 	wfc_palette_size_t palette_max_size=256;
 	wfc_color_diffrence_t max_color_diff=0;
-	int edit_index=0;
+	unsigned int edit_index=0;
 	struct winsize window_size;
 	ioctl(STDOUT_FILENO,TIOCGWINSZ,&window_size);
 	unsigned int width=window_size.ws_col;
@@ -247,11 +247,6 @@ void wfc_pick_parameters(const wfc_image_t* image){
 	terminal_config.c_iflag=(terminal_config.c_iflag&(~(INLCR|IGNBRK)))|ICRNL;
 	terminal_config.c_lflag=(terminal_config.c_lflag&(~(ICANON|ECHO)))|ISIG|IEXTEN;
 	tcsetattr(STDIN_FILENO,TCSANOW,&terminal_config);
-	printf("%u x %u | %u %u %u %u\n",width,height,box_size,flags,palette_max_size,max_color_diff);
-	printf("\x1b[?25l");
-	for (unsigned int i=0;i<height;i++){
-		putchar('\n');
-	}
 	unsigned int scrolled_lines=0;
 	unsigned int tile_columns;
 	unsigned int tile_column_buffer;
@@ -261,6 +256,10 @@ void wfc_pick_parameters(const wfc_image_t* image){
 	unsigned int changes=2;
 	char command[4];
 	wfc_table_t table;
+	printf("\x1b[?25l");
+	for (unsigned int i=0;i<height;i++){
+		putchar('\n');
+	}
 	while (1){
 		if (changes==2){
 			changes=0;
@@ -276,7 +275,11 @@ void wfc_pick_parameters(const wfc_image_t* image){
 		_print_integer(palette_max_size,4,edit_index-2);
 		printf("\x1b[38;2;245;245;245m, Similarity score: ");
 		_print_integer(max_color_diff,6,edit_index-6);
-		for (unsigned int i=58;i<width;i++){
+		printf("\x1b[38;2;245;245;245m, Flip: ");
+		_print_integer(!!(flags&WFC_FLAG_FLIP),1,edit_index-12);
+		printf("\x1b[38;2;245;245;245m, Rotation: ");
+		_print_integer(!!(flags&WFC_FLAG_ROTATE),1,edit_index-13);
+		for (unsigned int i=80;i<width;i++){
 			putchar(' ');
 		}
 		wfc_box_size_t row=scrolled_lines%(table.box_size+1);
@@ -333,7 +336,6 @@ void wfc_pick_parameters(const wfc_image_t* image){
 		snprintf(line_buffer,4096,"%u \x1b[38;2;245;245;245mtile%c",table.tile_count,(table.tile_count==1?' ':'s'));
 		printf("\x1b[38;2;143;240;164m%*s",width+19,line_buffer);
 		fflush(stdout);
-		(void)scrolled_lines;
 		int count=read(STDIN_FILENO,command,4);
 		command[1]=(count>2?command[2]:0);
 		switch (COMMAND(command[0],command[1])){
@@ -379,8 +381,14 @@ _next_index:
 				else if (edit_index<6){
 					ADJUST_VALUE_AT_EDIT_INDEX(palette_max_size,2,4,(digit<9?digit+1:0));
 				}
-				else{
+				else if (edit_index<12){
 					ADJUST_VALUE_AT_EDIT_INDEX(max_color_diff,6,6,(digit<9?digit+1:0));
+				}
+				else if (edit_index==12){
+					flags^=WFC_FLAG_FLIP;
+				}
+				else{
+					flags^=WFC_FLAG_ROTATE;
 				}
 				changes=1;
 				break;
@@ -391,8 +399,14 @@ _next_index:
 				else if (edit_index<6){
 					ADJUST_VALUE_AT_EDIT_INDEX(palette_max_size,2,4,(digit?digit-1:9));
 				}
-				else{
+				else if (edit_index<12){
 					ADJUST_VALUE_AT_EDIT_INDEX(max_color_diff,6,6,(digit?digit-1:9));
+				}
+				else if (edit_index==12){
+					flags^=WFC_FLAG_FLIP;
+				}
+				else{
+					flags^=WFC_FLAG_ROTATE;
 				}
 				changes=1;
 				break;
@@ -412,11 +426,26 @@ _next_index:
 				else if (edit_index<6){
 					ADJUST_VALUE_AT_EDIT_INDEX(palette_max_size,2,4,command[0]-48);
 				}
-				else{
+				else if (edit_index<12){
 					ADJUST_VALUE_AT_EDIT_INDEX(max_color_diff,6,6,command[0]-48);
 				}
+				else if (edit_index==12){
+					flags&=~WFC_FLAG_FLIP;
+					if (command[0]!=48){
+						flags|=WFC_FLAG_FLIP;
+					}
+				}
+				else{
+					flags&=~WFC_FLAG_ROTATE;
+					if (command[0]!=48){
+						flags|=WFC_FLAG_ROTATE;
+					}
+				}
 				changes=1;
-				goto _next_index;
+				if (edit_index!=1&&edit_index!=5&&edit_index<11){
+					goto _next_index;
+				}
+				break;
 			case COMMAND(10,0):
 				if (changes){
 					wfc_free_table(&table);
@@ -427,7 +456,7 @@ _next_index:
 	}
 _return:
 	wfc_free_table(&table);
-	printf("\x1b[?25h\x1b[H\x1b[0J");
+	printf("\x1b[0m\x1b[?25h\x1b[H\x1b[0J");
 	tcsetattr(STDOUT_FILENO,TCSANOW,&old_terminal_config);
 #endif
 }
