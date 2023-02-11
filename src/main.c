@@ -14,20 +14,15 @@
 
 
 
-#define IMAGE(w,h,...) \
-	wfc_color_t __image_data_##__LINE__[(w)*(h)]={__VA_ARGS__}; \
-	wfc_image_t input_image={w,h,__image_data_##__LINE__}
-
-
-
 #define DRAW_PROGRESS_IMAGES 1
-#define PICK_PARAMETERS 0
+#define PICK_PARAMETERS 1
 #define IMAGE_NAME "cat"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
 
 
+#if !PICK_PARAMETERS
 static unsigned long int get_time(void){
 #ifdef _MSC_VER
 	FILETIME ft;
@@ -60,6 +55,7 @@ static void _progress_callback(const wfc_table_t* table,const wfc_state_t* state
 	wfc_print_image(image);
 #endif
 }
+#endif
 
 
 
@@ -73,7 +69,7 @@ int main(int argc,const char** argv){
 		image_config++;
 	}
 #if PICK_PARAMETERS
-	wfc_pick_parameters(&(image_config->image));
+	wfc_pick_parameters(&(image_config->image),image_config->box_size,image_config->flags,image_config->palette_max_size,image_config->max_color_diff);
 #else
 #ifdef _MSC_VER
 	unsigned int output_width=90;

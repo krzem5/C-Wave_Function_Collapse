@@ -228,12 +228,8 @@ static void _print_integer(unsigned int value,unsigned int width,unsigned int ed
 
 
 
-void wfc_pick_parameters(const wfc_image_t* image){
+void wfc_pick_parameters(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_t flags,wfc_palette_size_t palette_max_size,wfc_color_diffrence_t max_color_diff){
 #ifndef _MSC_VER
-	wfc_box_size_t box_size=2;
-	wfc_flags_t flags=0;
-	wfc_palette_size_t palette_max_size=256;
-	wfc_color_diffrence_t max_color_diff=0;
 	unsigned int edit_index=0;
 	struct winsize window_size;
 	ioctl(STDOUT_FILENO,TIOCGWINSZ,&window_size);
