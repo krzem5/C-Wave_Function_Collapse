@@ -210,15 +210,18 @@ static void _print_integer(unsigned int value,unsigned int width,int edit_index)
 			is_leading_zero=0;
 		}
 		if (i==edit_index){
-			printf("\x1b[38;2;255;0;0m");
+			printf("\x1b[5m");
 		}
-		else if (is_leading_zero){
+		if (is_leading_zero){
 			printf("\x1b[38;2;61;84;124m");
 		}
 		else{
 			printf("\x1b[38;2;83;113;248m");
 		}
 		putchar(digit+48);
+		if (i==edit_index){
+			printf("\x1b[25m");
+		}
 		powers++;
 	}
 }
@@ -259,17 +262,27 @@ void wfc_pick_parameters(const wfc_image_t* image){
 			changes=0;
 			wfc_build_table(image,box_size,flags,palette_max_size,max_color_diff,&table);
 		}
-		printf("\x1b[H\x1b[48;2;30;31;25m\x1b[38;2;225;225;225mbox size: ");
+		printf("\x1b[H\x1b[48;2;30;31;25m\x1b[38;2;225;225;225mBox size: ");
 		_print_integer(box_size,2,edit_index);
-		printf("\x1b[38;2;225;225;225m, palette size: ");
+		printf("\x1b[38;2;225;225;225m, Palette size: ");
 		_print_integer(palette_max_size,4,edit_index-2);
-		printf("\x1b[38;2;225;225;225m, similarity score: ");
+		printf("\x1b[38;2;225;225;225m, Similarity score: ");
 		_print_integer(max_color_diff,6,edit_index-6);
-		for (unsigned int i=58;i<width-1;i++){
+		for (unsigned int i=58;i<width;i++){
 			putchar(' ');
 		}
-		printf("\nCOMMAND: %u,%u\n",command[0],command[1]);
-		(void)line_buffer;
+		for (unsigned int i=1;i<height-1;i++){
+			printf("\n\x1b[48;2;30;31;25mtiles");
+		}
+		if (changes){
+			printf("\n\x1b[48;2;165;29;45m");
+		}
+		else{
+			printf("\n\x1b[48;2;30;31;25m");
+		}
+		snprintf(line_buffer,4096,"%u \x1b[38;2;225;225;225mtiles",table.tile_count);
+		printf("\x1b[38;2;143;240;164m%*s",width+19,line_buffer);
+		fflush(stdout);
 		(void)scrolled_lines;
 		int count=read(STDIN_FILENO,command,4);
 		command[1]=(count>2?command[2]:0);
