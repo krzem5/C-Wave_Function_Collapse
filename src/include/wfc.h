@@ -156,6 +156,10 @@ typedef void (*wfc_callback_t)(const wfc_table_t*,const wfc_state_t*,void*);
 
 
 
+void wfc_pick_parameters(const wfc_image_t* image);
+
+
+
 void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_t flags,wfc_palette_size_t palette_max_size,wfc_color_diffrence_t max_color_diff,wfc_table_t* out);
 
 

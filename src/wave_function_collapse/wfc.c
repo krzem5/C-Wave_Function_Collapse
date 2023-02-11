@@ -2,6 +2,9 @@
 #include <intrin.h>
 #else
 #include <immintrin.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <termios.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,6 +84,17 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 #define BMP_HEADER_SIZE 54
 #define DIB_HEADER_SIZE 40
 #define BI_RGB 0
+
+#define COMMAND(a,b) ((((unsigned int)(a))<<8)|(b))
+#define MAX_EDIT_INDEX 11
+#define ADJUST_VALUE_AT_EDIT_INDEX(var,offset,width,new_digit) \
+	unsigned int pow=powers_of_ten[edit_index-offset+8-width]; \
+	unsigned int digit=(var/pow)%10; \
+	var+=((new_digit)-digit)*pow;
+
+
+
+static const unsigned int powers_of_ten[8]={10000000,1000000,100000,10000,1000,100,10,1};
 
 
 
@@ -183,6 +197,156 @@ static FORCE_INLINE wfc_tile_index_t _find_first_bit(const uint64_t* data){
 		out+=64;
 	}
 	return out+FIND_FIRST_SET_BIT(*data);
+}
+
+
+
+static void _print_integer(unsigned int value,unsigned int width,int edit_index){
+	const unsigned int* powers=powers_of_ten+8-width;
+	_Bool is_leading_zero=1;
+	for (unsigned int i=0;i<width;i++){
+		unsigned int digit=(value/(*powers))%10;
+		if (digit||i==width-1){
+			is_leading_zero=0;
+		}
+		if (i==edit_index){
+			printf("\x1b[38;2;255;0;0m");
+		}
+		else if (is_leading_zero){
+			printf("\x1b[38;2;61;84;124m");
+		}
+		else{
+			printf("\x1b[38;2;83;113;248m");
+		}
+		putchar(digit+48);
+		powers++;
+	}
+}
+
+
+
+void wfc_pick_parameters(const wfc_image_t* image){
+#ifdef _MSC_VER
+	return;
+#else
+	wfc_box_size_t box_size=2;
+	wfc_flags_t flags=0;
+	wfc_palette_size_t palette_max_size=256;
+	wfc_color_diffrence_t max_color_diff=0;
+	int edit_index=0;
+	struct winsize window_size;
+	ioctl(STDOUT_FILENO,TIOCGWINSZ,&window_size);
+	unsigned int width=window_size.ws_col;
+	unsigned int height=window_size.ws_row;
+	struct termios old_terminal_config;
+	tcgetattr(STDOUT_FILENO,&old_terminal_config);
+	struct termios terminal_config=old_terminal_config;
+	terminal_config.c_iflag=(terminal_config.c_iflag&(~(INLCR|IGNBRK)))|ICRNL;
+	terminal_config.c_lflag=(terminal_config.c_lflag&(~(ICANON|ECHO)))|ISIG|IEXTEN;
+	tcsetattr(STDIN_FILENO,TCSANOW,&terminal_config);
+	printf("%u x %u | %u %u %u %u\n",width,height,box_size,flags,palette_max_size,max_color_diff);
+	printf("\x1b[?25l");
+	for (unsigned int i=0;i<height;i++){
+		putchar('\n');
+	}
+	unsigned int scrolled_lines=0;
+	char line_buffer[4096];
+	unsigned int changes=2;
+	char command[4];
+	wfc_table_t table;
+	while (1){
+		if (changes==2){
+			changes=0;
+			wfc_build_table(image,box_size,flags,palette_max_size,max_color_diff,&table);
+		}
+		printf("\x1b[H\x1b[48;2;30;31;25m\x1b[38;2;225;225;225mbox size: ");
+		_print_integer(box_size,2,edit_index);
+		printf("\x1b[38;2;225;225;225m, palette size: ");
+		_print_integer(palette_max_size,4,edit_index-2);
+		printf("\x1b[38;2;225;225;225m, similarity score: ");
+		_print_integer(max_color_diff,6,edit_index-6);
+		for (unsigned int i=58;i<width-1;i++){
+			putchar(' ');
+		}
+		printf("\nCOMMAND: %u,%u\n",command[0],command[1]);
+		(void)line_buffer;
+		(void)scrolled_lines;
+		int count=read(STDIN_FILENO,command,4);
+		command[1]=(count>2?command[2]:0);
+		switch (COMMAND(command[0],command[1])){
+			case COMMAND(27,0):
+				goto _return;
+			case COMMAND(27,72):
+				scrolled_lines=0;
+				break;
+			case COMMAND(27,70):
+				scrolled_lines=0xffffffff;
+				break;
+			case COMMAND(27,67):
+_next_index:
+				edit_index=(edit_index==MAX_EDIT_INDEX?0:edit_index+1);
+				break;
+			case COMMAND(27,68):
+				edit_index=(edit_index?edit_index-1:MAX_EDIT_INDEX);
+				break;
+			case COMMAND(27,65):
+				if (edit_index<2){
+					ADJUST_VALUE_AT_EDIT_INDEX(box_size,0,2,(digit<9?digit+1:0));
+				}
+				else if (edit_index<6){
+					ADJUST_VALUE_AT_EDIT_INDEX(palette_max_size,2,4,(digit<9?digit+1:0));
+				}
+				else{
+					ADJUST_VALUE_AT_EDIT_INDEX(max_color_diff,6,6,(digit<9?digit+1:0));
+				}
+				changes=1;
+				break;
+			case COMMAND(27,66):
+				if (edit_index<2){
+					ADJUST_VALUE_AT_EDIT_INDEX(box_size,0,2,(digit?digit-1:9));
+				}
+				else if (edit_index<6){
+					ADJUST_VALUE_AT_EDIT_INDEX(palette_max_size,2,4,(digit?digit-1:9));
+				}
+				else{
+					ADJUST_VALUE_AT_EDIT_INDEX(max_color_diff,6,6,(digit?digit-1:9));
+				}
+				changes=1;
+				break;
+			case COMMAND(48,0):
+			case COMMAND(49,0):
+			case COMMAND(50,0):
+			case COMMAND(51,0):
+			case COMMAND(52,0):
+			case COMMAND(53,0):
+			case COMMAND(54,0):
+			case COMMAND(55,0):
+			case COMMAND(56,0):
+			case COMMAND(57,0):
+				if (edit_index<2){
+					ADJUST_VALUE_AT_EDIT_INDEX(box_size,0,2,command[0]-48);
+				}
+				else if (edit_index<6){
+					ADJUST_VALUE_AT_EDIT_INDEX(palette_max_size,2,4,command[0]-48);
+				}
+				else{
+					ADJUST_VALUE_AT_EDIT_INDEX(max_color_diff,6,6,command[0]-48);
+				}
+				changes=1;
+				goto _next_index;
+			case COMMAND(10,0):
+				if (changes){
+					wfc_free_table(&table);
+					changes=2;
+				}
+				break;
+		}
+	}
+_return:
+	wfc_free_table(&table);
+	printf("\x1b[?25h\x1b[H\x1b[0J");
+	tcsetattr(STDOUT_FILENO,TCSANOW,&old_terminal_config);
+#endif
 }
 
 
