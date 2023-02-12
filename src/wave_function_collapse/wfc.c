@@ -254,6 +254,9 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_box_size_t box_size,wfc_fl
 	while (1){
 		_Bool update_grid=0;
 		if (changes==2){
+			if (!box_size){
+				box_size=1;
+			}
 			changes=0;
 			wfc_build_table(image,box_size,flags,palette_max_size,max_color_diff,&table);
 			update_grid=1;
@@ -285,7 +288,7 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_box_size_t box_size,wfc_fl
 		}
 		wfc_box_size_t row=scrolled_lines%(table.box_size+1);
 		unsigned int index=scrolled_lines/(table.box_size+1)*tile_columns;
-		unsigned int vertical_scroll_index=(height-3)*2*scrolled_lines/max_scroll_height;
+		unsigned int vertical_scroll_index=(max_scroll_height?(height-3)*2*scrolled_lines/max_scroll_height:0xffffffff);
 		for (unsigned int i=0;i<height-2;i++){
 			printf("\n\x1b[48;2;30;31;25m");
 			if (row==table.box_size){
@@ -481,6 +484,9 @@ _return:
 
 
 void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_t flags,wfc_palette_size_t palette_max_size,wfc_color_diffrence_t max_color_diff,wfc_table_t* out){
+	if (!box_size){
+		return;
+	}
 	wfc_palette_color_index_t* image_palette=malloc(image->width*image->height*sizeof(wfc_palette_color_index_t));
 	wfc_color_t* palette=NULL;
 	wfc_palette_size_t palette_size=0;
@@ -623,6 +629,14 @@ void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_
 		}
 	}
 	free(buffer);
+	if (out->tile_count<2){
+		out->data_elem_size=((out->tile_count+255)>>6)&0xfffffffc;
+		out->_connection_data=calloc(4*out->tile_count*out->data_elem_size*sizeof(uint64_t),1);
+		if (out->tile_count){
+			out->tiles->connections=out->_connection_data;
+		}
+		return;
+	}
 	if (max_color_diff){
 		wfc_color_diffrence_t adjusted_max_color_diff=max_color_diff;
 		const wfc_tile_t* src_tile=out->tiles+1;
