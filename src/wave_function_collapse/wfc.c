@@ -238,7 +238,7 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_box_size_t box_size,wfc_fl
 	terminal_config.c_iflag=(terminal_config.c_iflag&(~(INLCR|IGNBRK)))|ICRNL;
 	terminal_config.c_lflag=(terminal_config.c_lflag&(~(ICANON|ECHO)))|ISIG|IEXTEN;
 	tcsetattr(STDIN_FILENO,TCSANOW,&terminal_config);
-	unsigned int scrolled_lines=0;
+	int scrolled_lines=0;
 	unsigned int tile_columns;
 	unsigned int tile_column_buffer;
 	unsigned int tile_rows;
@@ -359,7 +359,10 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_box_size_t box_size,wfc_fl
 				scrolled_lines=0;
 				break;
 			case COMMAND(27,70):
-				scrolled_lines=0xffffffff;
+				scrolled_lines=max_scroll_height-height+table.box_size+2;
+				if (scrolled_lines<0){
+					scrolled_lines=0;
+				}
 _apply_scroll_limit:
 				if (scrolled_lines>=max_scroll_height){
 					scrolled_lines=max_scroll_height;
