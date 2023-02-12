@@ -252,9 +252,19 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_box_size_t box_size,wfc_fl
 		putchar('\n');
 	}
 	while (1){
+		_Bool update_grid=0;
 		if (changes==2){
 			changes=0;
 			wfc_build_table(image,box_size,flags,palette_max_size,max_color_diff,&table);
+			update_grid=1;
+		}
+		ioctl(STDOUT_FILENO,TIOCGWINSZ,&window_size);
+		if (window_size.ws_col!=width){
+			width=window_size.ws_col;
+			update_grid=1;
+		}
+		height=window_size.ws_row;
+		if (update_grid){
 			tile_columns=width/(2*box_size+2);
 			tile_column_buffer=width-tile_columns*(2*box_size+2)+2;
 			tile_rows=(table.tile_count+tile_columns-1)/tile_columns;
