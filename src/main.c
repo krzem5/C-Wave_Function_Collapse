@@ -17,7 +17,7 @@
 #define DRAW_PROGRESS_IMAGES 1
 #define PICK_PARAMETERS 1
 #define GENERATE_IMAGE 1
-#define IMAGE_NAME "duck"
+#define IMAGE_NAME "zebra"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
