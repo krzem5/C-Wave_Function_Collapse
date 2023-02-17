@@ -539,7 +539,7 @@ _next_index:
 	}
 _return:
 	wfc_free_table(&table);
-	printf("\x1b[0m\x1b[?25h\x1b[H\x1b[0JBox size: %u\nFlags:%s%s\nPalette size: %u\nSimilarity score: %u\n",config->box_size,((config->flags&WFC_FLAG_FLIP)?" WFC_FLAG_FLIP":""),((config->flags&WFC_FLAG_ROTATE)?" WFC_FLAG_ROTATE":""),config->palette_max_size,config->max_color_diff);
+	printf("\x1b[0m\x1b[?25h\x1b[H\x1b[0JBox size: %u\nFlags:%s%s%s%s%s%s\nPalette size: %u\nSimilarity score: %u\n",config->box_size,((config->flags&WFC_FLAG_FLIP)?" WFC_FLAG_FLIP":""),((config->flags&WFC_FLAG_ROTATE)?" WFC_FLAG_ROTATE":""),((config->flags&WFC_FLAG_WRAP_X)?" WFC_FLAG_WRAP_X":""),((config->flags&WFC_FLAG_WRAP_Y)?" WFC_FLAG_WRAP_Y":""),((config->flags&WFC_FLAG_WRAP_OUTPUT_X)?" WFC_FLAG_WRAP_OUTPUT_X":""),((config->flags&WFC_FLAG_WRAP_OUTPUT_Y)?" WFC_FLAG_WRAP_OUTPUT_Y":""),config->palette_max_size,config->max_color_diff);
 	tcsetattr(STDOUT_FILENO,TCSANOW,&old_terminal_config);
 #endif
 }
