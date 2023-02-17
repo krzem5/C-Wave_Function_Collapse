@@ -815,14 +815,13 @@ void wfc_print_image(const wfc_image_t* image){
 
 
 void wfc_print_table(const wfc_table_t* table,const wfc_config_t* config){
-	const char* direction_strings[4]={"N","E","S","W"};
 	printf("Tiles: (%u)\n",table->tile_count);
 	const wfc_tile_t* tile=table->tiles;
 	for (wfc_tile_index_t i=0;i<table->tile_count;i++){
 		printf(" [%u]\n",i);
 		const uint64_t* connection_data=tile->connections;
 		for (unsigned int j=0;j<4;j++){
-			printf("  %s:",direction_strings[j]);
+			printf("  %c:","NESW"[j]);
 			for (wfc_tile_index_t k=0;k<table->data_elem_size;k++){
 				uint64_t tmp=*connection_data;
 				connection_data++;
