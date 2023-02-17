@@ -113,7 +113,7 @@ static FORCE_INLINE unsigned int _color_diffrence(wfc_color_t x,wfc_color_t y){
 
 
 
-static void _quicksort(const wfc_color_t* palette,uint32_t* data,wfc_palette_size_t length,wfc_color_t mask){
+static void _quicksort_palette(const wfc_color_t* palette,uint32_t* data,wfc_palette_size_t length,wfc_color_t mask){
 	wfc_color_t last_color=palette[data[length]]&mask;
 	wfc_palette_size_t i=0;
 	for (wfc_palette_size_t j=0;j<length;j++){
@@ -128,11 +128,11 @@ static void _quicksort(const wfc_color_t* palette,uint32_t* data,wfc_palette_siz
 	*(data+i)=*(data+length);
 	*(data+length)=tmp;
 	if (i>1){
-		_quicksort(palette,data,i-1,mask);
+		_quicksort_palette(palette,data,i-1,mask);
 	}
 	i++;
 	if (i<length){
-		_quicksort(palette,data+i,length-i,mask);
+		_quicksort_palette(palette,data+i,length-i,mask);
 	}
 }
 
@@ -601,7 +601,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 			}
 			wfc_palette_range_t* range=ranges+max_index;
 			wfc_palette_size_t size=range->size;
-			_quicksort(palette,range->data,size-1,0xff<<(max_offset<<3));
+			_quicksort_palette(palette,range->data,size-1,0xff<<(max_offset<<3));
 			range->size>>=1;
 			new_range->data=range->data+range->size;
 			new_range->size=size-range->size;
