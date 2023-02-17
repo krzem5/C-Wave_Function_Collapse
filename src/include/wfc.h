@@ -126,8 +126,6 @@ typedef struct _WFC_STATE{
 	wfc_size_t* update_stack;
 	wfc_size_t* delete_stack;
 	wfc_fast_mask_t* fast_mask;
-	wfc_tile_index_t tile_count;
-	wfc_tile_index_t data_elem_size;
 	wfc_size_t pixel_count;
 	wfc_size_t width;
 } wfc_state_t;
@@ -173,7 +171,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 
 
 
-void wfc_free_state(wfc_state_t* state);
+void wfc_free_state(const wfc_table_t* table,wfc_state_t* state);
 
 
 
