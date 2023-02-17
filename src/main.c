@@ -49,10 +49,14 @@ static void _progress_callback(const wfc_table_t* table,const wfc_state_t* state
 	wfc_image_t* image=ctx;
 	wfc_generate_image(table,state,image);
 	static _Bool first=1;
-	if (!first){
-		printf("\x1b[H");
+	if (first){
+		printf("\x1b[?25l");
+		for (unsigned int i=0;i<image->height+3;i++){
+			putchar('\n');
+		}
+		first=0;
 	}
-	first=0;
+	printf("\x1b[H");
 	wfc_print_image(image);
 #endif
 }
@@ -107,6 +111,7 @@ int main(int argc,const char** argv){
 	fflush(stdout);
 	time_start=get_time();
 	float cache=wfc_solve(&table,&state,&config,_progress_callback,&output_image);
+	printf("\x1b[0m\x1b[?25h\x1b[H");
 	unsigned long int generation_time=get_time()-time_start;
 	wfc_generate_image(&table,&state,&output_image);
 	putchar('\n');
