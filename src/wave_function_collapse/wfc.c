@@ -86,11 +86,16 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 #define BI_RGB 0
 
 #define COMMAND(a,b) ((((unsigned int)(a))<<8)|(b))
-#define MAX_EDIT_INDEX 13
+#define MAX_EDIT_INDEX 17
 #define ADJUST_VALUE_AT_EDIT_INDEX(var,offset,width,new_digit) \
 	unsigned int pow=powers_of_ten[edit_index-offset+8-width]; \
 	unsigned int digit=(var/pow)%10; \
 	var+=((new_digit)-digit)*pow;
+#define ADJUST_FLAG_AT_INDEX(state,flag) \
+	config->flags&=~flag; \
+	if (state){ \
+		config->flags|=flag; \
+	}
 
 
 
@@ -225,6 +230,24 @@ static void _print_integer(unsigned int value,unsigned int width,unsigned int ed
 
 
 
+static void _print_flag(_Bool value,const char* name,unsigned int edit_index){
+	if (!edit_index){
+		printf("\x1b[38;2;63;153;255m");
+	}
+	else if (!value){
+		printf("\x1b[38;2;140;83;119m");
+	}
+	else{
+		printf("\x1b[38;2;240;143;219m");
+	}
+	while (*name){
+		putchar(*name+(!value)*32);
+		name++;
+	}
+}
+
+
+
 void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 #ifndef _MSC_VER
 	unsigned int edit_index=(config->box_size<10);
@@ -275,17 +298,25 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 			tile_rows=(table.tile_count+tile_columns-1)/tile_columns;
 			max_scroll_height=(table_box_size+1)*(tile_rows-1);
 		}
-		printf("\x1b[H\x1b[48;2;66;67;63m\x1b[38;2;245;245;245mBox size: ");
+		printf("\x1b[H\x1b[48;2;66;67;63m\x1b[38;2;245;245;245mSize: ");
 		_print_integer(config->box_size,2,edit_index);
-		printf("\x1b[38;2;245;245;245m, Palette size: ");
+		printf("\x1b[38;2;245;245;245m, Palette: ");
 		_print_integer(config->palette_max_size,4,edit_index-2);
 		printf("\x1b[38;2;245;245;245m, Similarity score: ");
 		_print_integer(config->max_color_diff,6,edit_index-6);
-		printf("\x1b[38;2;245;245;245m, Flip: ");
-		_print_integer(!!(config->flags&WFC_FLAG_FLIP),1,edit_index-12);
-		printf("\x1b[38;2;245;245;245m, Rotation: ");
-		_print_integer(!!(config->flags&WFC_FLAG_ROTATE),1,edit_index-13);
-		for (unsigned int i=80;i<width;i++){
+		printf("\x1b[38;2;245;245;245m, Flags: ");
+		_print_flag(!!(config->flags&WFC_FLAG_FLIP),"F",edit_index-12);
+		putchar(' ');
+		_print_flag(!!(config->flags&WFC_FLAG_ROTATE),"R",edit_index-13);
+		putchar(' ');
+		_print_flag(!!(config->flags&WFC_FLAG_WRAP_X),"WX",edit_index-14);
+		putchar(' ');
+		_print_flag(!!(config->flags&WFC_FLAG_WRAP_Y),"WY",edit_index-15);
+		putchar(' ');
+		_print_flag(!!(config->flags&WFC_FLAG_WRAP_OUTPUT_X),"WOX",edit_index-16);
+		putchar(' ');
+		_print_flag(!!(config->flags&WFC_FLAG_WRAP_OUTPUT_Y),"ROY",edit_index-17);
+		for (unsigned int i=75;i<width;i++){
 			putchar(' ');
 		}
 		wfc_box_size_t row=scrolled_lines%(table_box_size+1);
@@ -409,8 +440,20 @@ _next_index:
 				else if (edit_index==12){
 					config->flags^=WFC_FLAG_FLIP;
 				}
-				else{
+				else if (edit_index==13){
 					config->flags^=WFC_FLAG_ROTATE;
+				}
+				else if (edit_index==14){
+					config->flags^=WFC_FLAG_WRAP_X;
+				}
+				else if (edit_index==15){
+					config->flags^=WFC_FLAG_WRAP_Y;
+				}
+				else if (edit_index==16){
+					config->flags^=WFC_FLAG_WRAP_OUTPUT_X;
+				}
+				else{
+					config->flags^=WFC_FLAG_WRAP_OUTPUT_Y;
 				}
 				changes=1;
 				break;
@@ -427,8 +470,20 @@ _next_index:
 				else if (edit_index==12){
 					config->flags^=WFC_FLAG_FLIP;
 				}
-				else{
+				else if (edit_index==13){
 					config->flags^=WFC_FLAG_ROTATE;
+				}
+				else if (edit_index==14){
+					config->flags^=WFC_FLAG_WRAP_X;
+				}
+				else if (edit_index==15){
+					config->flags^=WFC_FLAG_WRAP_Y;
+				}
+				else if (edit_index==16){
+					config->flags^=WFC_FLAG_WRAP_OUTPUT_X;
+				}
+				else{
+					config->flags^=WFC_FLAG_WRAP_OUTPUT_Y;
 				}
 				changes=1;
 				break;
@@ -452,16 +507,22 @@ _next_index:
 					ADJUST_VALUE_AT_EDIT_INDEX(config->max_color_diff,6,6,command[0]-48);
 				}
 				else if (edit_index==12){
-					config->flags&=~WFC_FLAG_FLIP;
-					if (command[0]!=48){
-						config->flags|=WFC_FLAG_FLIP;
-					}
+					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_FLIP);
+				}
+				else if (edit_index==13){
+					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_ROTATE);
+				}
+				else if (edit_index==14){
+					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_WRAP_X);
+				}
+				else if (edit_index==15){
+					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_WRAP_Y);
+				}
+				else if (edit_index==16){
+					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_WRAP_OUTPUT_X);
 				}
 				else{
-					config->flags&=~WFC_FLAG_ROTATE;
-					if (command[0]!=48){
-						config->flags|=WFC_FLAG_ROTATE;
-					}
+					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_WRAP_OUTPUT_Y);
 				}
 				changes=1;
 				if (edit_index!=1&&edit_index!=5&&edit_index<11){
