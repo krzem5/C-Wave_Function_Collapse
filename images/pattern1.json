@@ -5,5 +5,7 @@
 		"wrap_y"
 	],
 	"palette_size": 16,
-	"max_color_diff": 0
+	"max_color_diff": 0,
+	"propagation_distance": 4,
+	"delete_size": 2
 }

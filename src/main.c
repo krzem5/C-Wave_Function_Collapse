@@ -15,14 +15,15 @@
 
 
 #define DRAW_PROGRESS_IMAGES 1
-#define PICK_PARAMETERS 1
+#define PICK_PARAMETERS 0
+#define GENERATE_IMAGE 1
 #define IMAGE_NAME "duck"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
 
 
-#if !PICK_PARAMETERS
+#if GENERATE_IMAGE
 static unsigned long int get_time(void){
 #ifdef _MSC_VER
 	FILETIME ft;
@@ -72,9 +73,13 @@ int main(int argc,const char** argv){
 		printf("Image '"IMAGE_NAME"' not found\n");
 		return 1;
 	}
+#if PICK_PARAMETERS||GENERATE_IMAGE
+	wfc_config_t config=image_config->config;
+#endif
 #if PICK_PARAMETERS
-	wfc_pick_parameters(&(image_config->image),image_config->box_size,image_config->flags,image_config->palette_max_size,image_config->max_color_diff);
-#else
+	wfc_pick_parameters(&(image_config->image),&config);
+#endif
+#if GENERATE_IMAGE
 #ifdef _MSC_VER
 	unsigned int output_width=90;
 	unsigned int output_height=32;
@@ -94,14 +99,14 @@ int main(int argc,const char** argv){
 	wfc_print_image(&(image_config->image));
 	unsigned long int time_start=get_time();
 	wfc_table_t table;
-	wfc_build_table(&(image_config->image),image_config->box_size,image_config->flags,image_config->palette_max_size,image_config->max_color_diff,&table);
+	wfc_build_table(&(image_config->image),&config,&table);
 	unsigned long int table_creation_time=get_time()-time_start;
 	wfc_print_table(&table);
 	wfc_state_t state;
 	wfc_init_state(&table,&output_image,&state);
 	fflush(stdout);
 	time_start=get_time();
-	float cache=wfc_solve(&table,&state,4,2,_progress_callback,&output_image);
+	float cache=wfc_solve(&table,&state,&config,_progress_callback,&output_image);
 	unsigned long int generation_time=get_time()-time_start;
 	wfc_generate_image(&table,&state,&output_image);
 	putchar('\n');

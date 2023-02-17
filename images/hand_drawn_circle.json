@@ -5,5 +5,7 @@
 		"rotate"
 	],
 	"palette_size": 16,
-	"max_color_diff": 900
+	"max_color_diff": 900,
+	"propagation_distance": 4,
+	"delete_size": 2
 }

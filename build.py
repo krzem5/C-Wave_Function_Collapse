@@ -19,7 +19,7 @@ def generate_image_header_file(source_directory,header_file_path):
 		data["data"]=image
 		images[file_path.split(".")[0].lower()]=data
 	with open(header_file_path,"w") as wf:
-		wf.write("#ifndef _IMAGES_H_\n#define _IMAGES_H_ 1\n#include <wfc.h>\n\n\n\ntypedef struct _IMAGE_CONFIG{\n\tconst char* name;\n\twfc_image_t image;\n\twfc_box_size_t box_size;\n\twfc_flags_t flags;\n\twfc_palette_size_t palette_max_size;\n\twfc_color_diffrence_t max_color_diff;\n} image_config_t;\n\n\n\n")
+		wf.write("#ifndef _IMAGES_H_\n#define _IMAGES_H_ 1\n#include <wfc.h>\n\n\n\ntypedef struct _IMAGE_CONFIG{\n\tconst char* name;\n\twfc_image_t image;\n\twfc_config_t config;\n} image_config_t;\n\n\n\n")
 		for name,data in images.items():
 			wf.write(f"static wfc_color_t _image_{name}_data[{data['width']*data['height']}]={{\n")
 			for y in range(0,data["height"]):
@@ -31,7 +31,7 @@ def generate_image_header_file(source_directory,header_file_path):
 			wf.write("};\n\n\n\n")
 		wf.write(f"static const image_config_t images[{len(images)+1}]={{\n")
 		for name,data in images.items():
-			wf.write(f"\t{{\n\t\t\"{name}\",\n\t\t{{\n\t\t\t{data['width']},\n\t\t\t{data['height']},\n\t\t\t_image_{name}_data\n\t\t}},\n\t\t{data['box_size']},\n\t\t{'|'.join(map(lambda f:'WFC_FLAG_'+f.upper(),data['flags'])) if data['flags'] else 0},\n\t\t{data['palette_size']},\n\t\t{data['max_color_diff']}\n\t}},\n")
+			wf.write(f"\t{{\n\t\t\"{name}\",\n\t\t{{\n\t\t\t{data['width']},\n\t\t\t{data['height']},\n\t\t\t_image_{name}_data\n\t\t}},\n\t\t{{\n\t\t\t{data['box_size']},\n\t\t\t{'|'.join(map(lambda f:'WFC_FLAG_'+f.upper(),data['flags'])) if data['flags'] else 0},\n\t\t\t{data['palette_size']},\n\t\t\t{data['max_color_diff']},\n\t\t\t{data['propagation_distance']},\n\t\t\t{data['delete_size']}\n\t\t}}\n\t}},\n")
 		wf.write("\t{NULL}\n};\n\n\n\n#endif\n")
 
 

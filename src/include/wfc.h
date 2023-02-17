@@ -152,15 +152,26 @@ typedef struct _WFC_PALETTE_RANGE{
 
 
 
+typedef struct _WFC_CONFIG{
+	wfc_box_size_t box_size;
+	wfc_flags_t flags;
+	wfc_palette_size_t palette_max_size;
+	wfc_color_diffrence_t max_color_diff;
+	wfc_box_size_t propagation_distance;
+	wfc_box_size_t delete_size;
+} wfc_config_t;
+
+
+
 typedef void (*wfc_callback_t)(const wfc_table_t*,const wfc_state_t*,void*);
 
 
 
-void wfc_pick_parameters(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_t flags,wfc_palette_size_t palette_max_size,wfc_color_diffrence_t max_color_diff);
+void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config);
 
 
 
-void wfc_build_table(const wfc_image_t* image,wfc_box_size_t box_size,wfc_flags_t flags,wfc_palette_size_t palette_max_size,wfc_color_diffrence_t max_color_diff,wfc_table_t* out);
+void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_table_t* out);
 
 
 
@@ -192,7 +203,7 @@ void wfc_save_image(const wfc_image_t* image,const char* path);
 
 
 
-float wfc_solve(const wfc_table_t* table,wfc_state_t* state,wfc_box_size_t propagation_distance,wfc_box_size_t delete_size,wfc_callback_t callback,void* ctx);
+float wfc_solve(const wfc_table_t* table,wfc_state_t* state,const wfc_config_t* config,wfc_callback_t callback,void* ctx);
 
 
 

@@ -4,5 +4,7 @@
 		"flip"
 	],
 	"palette_size": 16,
-	"max_color_diff": 350
+	"max_color_diff": 350,
+	"propagation_distance": 4,
+	"delete_size": 2
 }
