@@ -76,8 +76,6 @@ typedef struct _WFC_TILE{
 typedef struct _WFC_TABLE{
 	wfc_tile_index_t tile_count;
 	wfc_tile_t* tiles;
-	wfc_box_size_t box_size;
-	wfc_flags_t flags;
 	wfc_tile_index_t data_elem_size;
 	uint64_t* _connection_data;
 } wfc_table_t;
@@ -195,7 +193,7 @@ void wfc_print_image(const wfc_image_t* image);
 
 
 
-void wfc_print_table(const wfc_table_t* table);
+void wfc_print_table(const wfc_table_t* table,const wfc_config_t* config);
 
 
 

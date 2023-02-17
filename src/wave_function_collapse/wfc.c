@@ -133,13 +133,13 @@ static void _quicksort(const wfc_color_t* palette,uint32_t* data,wfc_palette_siz
 
 
 
-static _Bool _add_tile(wfc_table_t* table,wfc_color_t* data){
+static _Bool _add_tile(wfc_table_t* table,const wfc_config_t* config,wfc_color_t* data){
 	wfc_tile_hash_t hash=FNV_OFFSET_BASIS;
-	for (wfc_box_size_t i=0;i<table->box_size*table->box_size;i++){
+	for (wfc_box_size_t i=0;i<config->box_size*config->box_size;i++){
 		hash=(hash^data[i])*FNV_PRIME;
 	}
 	for (wfc_tile_index_t i=0;i<table->tile_count;i++){
-		if ((table->tiles+i)->hash==hash&&!memcmp((table->tiles+i)->data,data,table->box_size*table->box_size*sizeof(wfc_color_t))){
+		if ((table->tiles+i)->hash==hash&&!memcmp((table->tiles+i)->data,data,config->box_size*config->box_size*sizeof(wfc_color_t))){
 			return 0;
 		}
 	}
@@ -243,6 +243,7 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 	unsigned int tile_column_buffer=0;
 	unsigned int tile_rows=0;
 	unsigned int max_scroll_height=0;
+	wfc_box_size_t table_box_size=config->box_size;
 	char line_buffer[4096];
 	unsigned int changes=2;
 	char command[4];
@@ -259,6 +260,7 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 			}
 			changes=0;
 			wfc_build_table(image,config,&table);
+			table_box_size=config->box_size;
 			update_grid=1;
 		}
 		ioctl(STDOUT_FILENO,TIOCGWINSZ,&window_size);
@@ -271,7 +273,7 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 			tile_columns=width/(2*config->box_size+2);
 			tile_column_buffer=width-tile_columns*(2*config->box_size+2)+2;
 			tile_rows=(table.tile_count+tile_columns-1)/tile_columns;
-			max_scroll_height=(table.box_size+1)*(tile_rows-1);
+			max_scroll_height=(table_box_size+1)*(tile_rows-1);
 		}
 		printf("\x1b[H\x1b[48;2;66;67;63m\x1b[38;2;245;245;245mBox size: ");
 		_print_integer(config->box_size,2,edit_index);
@@ -286,12 +288,12 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 		for (unsigned int i=80;i<width;i++){
 			putchar(' ');
 		}
-		wfc_box_size_t row=scrolled_lines%(table.box_size+1);
-		unsigned int index=scrolled_lines/(table.box_size+1)*tile_columns;
+		wfc_box_size_t row=scrolled_lines%(table_box_size+1);
+		unsigned int index=scrolled_lines/(table_box_size+1)*tile_columns;
 		unsigned int vertical_scroll_index=(max_scroll_height?(height-3)*2*scrolled_lines/max_scroll_height:0xffffffff);
 		for (unsigned int i=0;i<height-2;i++){
 			printf("\n\x1b[48;2;30;31;25m");
-			if (row==table.box_size){
+			if (row==table_box_size){
 				for (unsigned int j=1;j<width;j++){
 					putchar(' ');
 				}
@@ -300,11 +302,11 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 				for (unsigned int j=index;j<index+tile_columns;j++){
 					unsigned int space=j<index+tile_columns-1;
 					if (j>=table.tile_count){
-						space+=table.box_size;
+						space+=table_box_size;
 					}
 					else{
-						for (unsigned int k=0;k<table.box_size;k++){
-							wfc_color_t color=(table.tiles+j)->data[row*table.box_size+k];
+						for (unsigned int k=0;k<table_box_size;k++){
+							wfc_color_t color=(table.tiles+j)->data[row*table_box_size+k];
 							printf("\x1b[48;2;%u;%u;%um  ",color>>24,(color>>16)&0xff,(color>>8)&0xff);
 						}
 						printf("\x1b[48;2;30;31;25m");
@@ -336,7 +338,7 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 			else{
 				putchar(' ');
 			}
-			if (row==table.box_size){
+			if (row==table_box_size){
 				row=0;
 				index+=tile_columns;
 			}
@@ -362,7 +364,7 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 				scrolled_lines=0;
 				break;
 			case COMMAND(27,70):
-				scrolled_lines=max_scroll_height-height+table.box_size+2;
+				scrolled_lines=max_scroll_height-height+table_box_size+2;
 				if (scrolled_lines<0){
 					scrolled_lines=0;
 				}
@@ -372,10 +374,10 @@ _apply_scroll_limit:
 				}
 				break;
 			case COMMAND(27,53):
-				scrolled_lines=(scrolled_lines>table.box_size+1?scrolled_lines-table.box_size-1:0);
+				scrolled_lines=(scrolled_lines>table_box_size+1?scrolled_lines-table_box_size-1:0);
 				break;
 			case COMMAND(27,54):
-				scrolled_lines+=table.box_size+1;
+				scrolled_lines+=table_box_size+1;
 				goto _apply_scroll_limit;
 			case COMMAND(87,0):
 			case COMMAND(119,0):
@@ -569,8 +571,6 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 		}
 	}
 	free(palette);
-	out->box_size=config->box_size;
-	out->flags=config->flags;
 	out->tile_count=0;
 	out->tiles=NULL;
 	wfc_color_t* buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
@@ -588,7 +588,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 					ty++;
 				}
 			}
-			if (_add_tile(out,buffer)){
+			if (_add_tile(out,config,buffer)){
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 			}
 		}
@@ -606,7 +606,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 					ptr++;
 				}
 			}
-			if (_add_tile(out,buffer)){
+			if (_add_tile(out,config,buffer)){
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 			}
 		}
@@ -623,7 +623,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 					ptr++;
 				}
 			}
-			if (_add_tile(out,buffer)){
+			if (_add_tile(out,config,buffer)){
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 			}
 		}
@@ -745,8 +745,6 @@ void wfc_free_table(wfc_table_t* table){
 	}
 	free(table->tiles);
 	table->tiles=NULL;
-	table->box_size=0;
-	table->flags=0;
 	free(table->_connection_data);
 	table->_connection_data=NULL;
 }
@@ -820,7 +818,7 @@ void wfc_print_image(const wfc_image_t* image){
 
 
 
-void wfc_print_table(const wfc_table_t* table){
+void wfc_print_table(const wfc_table_t* table,const wfc_config_t* config){
 	const char* direction_strings[4]={"N","E","S","W"};
 	printf("Tiles: (%u)\n",table->tile_count);
 	const wfc_tile_t* tile=table->tiles;
@@ -841,9 +839,9 @@ void wfc_print_table(const wfc_table_t* table){
 		}
 		printf("  Data:\n");
 		const wfc_color_t* data=tile->data;
-		for (wfc_box_size_t j=0;j<table->box_size;j++){
+		for (wfc_box_size_t j=0;j<config->box_size;j++){
 			printf("   ");
-			for (wfc_box_size_t k=0;k<table->box_size;k++){
+			for (wfc_box_size_t k=0;k<config->box_size;k++){
 				printf("\x1b[48;2;%u;%u;%um  ",(*data)>>24,((*data)>>16)&0xff,((*data)>>8)&0xff);
 				data++;
 			}
@@ -889,7 +887,7 @@ void wfc_save_image(const wfc_image_t* image,const char* path){
 float wfc_solve(const wfc_table_t* table,wfc_state_t* state,const wfc_config_t* config,wfc_callback_t callback,void* ctx){
 	wfc_size_t direction_offsets[4]={-state->width,1,state->width,-1};
 	wfc_size_t direction_offset_adjustment[4]={state->pixel_count,-state->width,-state->pixel_count,state->width};
-	uint8_t no_wrap=(!(table->flags&WFC_FLAG_WRAP_OUTPUT_Y))*5+(!(table->flags&WFC_FLAG_WRAP_OUTPUT_X))*10;
+	uint8_t no_wrap=(!(config->flags&WFC_FLAG_WRAP_OUTPUT_Y))*5+(!(config->flags&WFC_FLAG_WRAP_OUTPUT_X))*10;
 	wfc_size_t height=state->pixel_count/state->width;
 	uint64_t mult=0;
 	uint8_t shift=FIND_LAST_SET_BIT(state->width);

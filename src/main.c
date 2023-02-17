@@ -101,7 +101,7 @@ int main(int argc,const char** argv){
 	wfc_table_t table;
 	wfc_build_table(&(image_config->image),&config,&table);
 	unsigned long int table_creation_time=get_time()-time_start;
-	wfc_print_table(&table);
+	wfc_print_table(&table,&config);
 	wfc_state_t state;
 	wfc_init_state(&table,&output_image,&state);
 	fflush(stdout);
@@ -111,7 +111,7 @@ int main(int argc,const char** argv){
 	wfc_generate_image(&table,&state,&output_image);
 	putchar('\n');
 	wfc_print_image(&output_image);
-	printf("Table size: %u (%lu kB)\nTable creation time: %.3lf\nGeneration time: %.3lf\nCache hits: %.3f%%\n",table.tile_count,(table.tile_count*table.box_size*table.box_size*sizeof(wfc_color_t)+512)>>10,table_creation_time*1e-9,generation_time*1e-9,cache*100);
+	printf("Table size: %u (%lu kB)\nTable creation time: %.3lf\nGeneration time: %.3lf\nCache hits: %.3f%%\n",table.tile_count,(table.tile_count*config.box_size*config.box_size*sizeof(wfc_color_t)+512)>>10,table_creation_time*1e-9,generation_time*1e-9,cache*100);
 	wfc_free_state(&state);
 	wfc_free_table(&table);
 	wfc_save_image(&output_image,"build/export.bmp");
