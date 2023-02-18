@@ -15,7 +15,7 @@
 
 
 #define DRAW_PROGRESS_IMAGES 1
-#define PICK_PARAMETERS 1
+#define PICK_PARAMETERS 0
 #define GENERATE_IMAGE 1
 #define IMAGE_NAME "zebra"
 
