@@ -42,7 +42,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 
 #define WEIGHT_RANDOMNESS_SHIFT 3
 #define QUEUE_INDEX_COLLAPSED 0xffff
-#define MAX_ALLOWED_REMOVALS 512
+#define MAX_ALLOWED_REMOVALS 2048
 #define FAST_MASK_COUNTER_INIT 256
 #define FAST_MASK_MAX_COUNTER 1024
 
@@ -801,8 +801,7 @@ void wfc_free_table(wfc_table_t* table){
 		table->tile_count--;
 		free((table->tiles+table->tile_count)->data);
 		free((table->tiles+table->tile_count)->connections);
-	}
-	free(table->tiles);
+	}	free(table->tiles);
 	table->tiles=NULL;
 	free(table->_connection_data);
 	table->_connection_data=NULL;
