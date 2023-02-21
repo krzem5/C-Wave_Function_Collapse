@@ -578,16 +578,17 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 		return;
 	}
 	wfc_size_t downscale_factor=config->downscale_factor;
-	wfc_size_t width=(image->width)/downscale_factor;
-	wfc_size_t height=(image->height)/downscale_factor;
-	wfc_size_t image_palette_size=width*height;
+	if (!downscale_factor){
+		downscale_factor=1;
+	}
+	wfc_size_t width=(image->width+downscale_factor-1)/downscale_factor;
+	wfc_size_t height=(image->height+downscale_factor-1)/downscale_factor;
 	if (!width||!height){
 		downscale_factor=1;
 		width=image->width;
 		height=image->height;
-		image_palette_size=width*height;
 	}
-	wfc_color_t* image_palette=malloc(image_palette_size*sizeof(wfc_color_t));
+	wfc_color_t* image_palette=malloc(width*height*sizeof(wfc_color_t));
 	wfc_color_t* palette=NULL;
 	wfc_palette_size_t palette_size=0;
 	wfc_color_range_t color_range;
@@ -667,7 +668,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 		free(ranges);
 		free(indicies);
 	}
-	for (wfc_size_t i=0;i<image_palette_size;i++){
+	for (wfc_size_t i=0;i<width*height;i++){
 		image_palette[i]=palette[image_palette[i]];
 	}
 	free(palette);
