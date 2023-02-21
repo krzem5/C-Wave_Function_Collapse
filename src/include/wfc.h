@@ -77,6 +77,7 @@ typedef struct _WFC_TILE{
 	wfc_color_t* upscaled_data;
 	wfc_size_t _x;
 	wfc_size_t _y;
+	wfc_size_t _upscaled_data_count;
 } wfc_tile_t;
 
 
