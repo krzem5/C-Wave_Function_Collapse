@@ -881,11 +881,11 @@ void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,wfc_im
 
 void wfc_generate_full_scale_image(const wfc_table_t* table,const wfc_state_t* state,wfc_image_t* out){
 	const uint64_t* data=state->data;
-	for (wfc_size_t x=0;x<out->width;x+=table->downscale_factor){
-		for (wfc_size_t y=0;y<out->height;y+=table->downscale_factor){
+	for (wfc_size_t y=0;y<out->height;y+=table->downscale_factor){
+		for (wfc_size_t x=0;x<out->width;x+=table->downscale_factor){
 			const wfc_tile_t* tile=table->tiles+_find_first_bit(data);
 			data+=table->data_elem_size;
-			wfc_color_t* ptr=out->data+y+x*out->height;
+			wfc_color_t* ptr=out->data+x+y*out->width;
 			for (wfc_size_t i=0;i<table->downscale_factor;i++){
 				for (wfc_size_t j=0;j<table->downscale_factor;j++){
 					*ptr=tile->upscaled_data[i+j*table->downscale_factor];
