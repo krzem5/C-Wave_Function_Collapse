@@ -47,14 +47,10 @@ static void _progress_callback(const wfc_table_t* table,const wfc_state_t* state
 	wfc_image_t* image=ctx;
 	wfc_generate_image(table,state,image);
 	static _Bool first=1;
-	if (first){
-		printf("\x1b[?25l");
-		for (unsigned int i=0;i<image->height+3;i++){
-			putchar('\n');
-		}
-		first=0;
+	if (!first){
+		printf("\x1b[%uA",image->height);
 	}
-	printf("\x1b[H");
+	first=0;
 	wfc_print_image(image);
 }
 #endif
@@ -103,14 +99,21 @@ int main(int argc,const char** argv){
 	wfc_build_table(&(image_config->image),&config,&table);
 	unsigned long int table_creation_time=get_time()-time_start;
 	wfc_print_table(&table,&config);
+	output_image.width/=table.downscale_factor;
+	output_image.height/=table.downscale_factor;
 	wfc_state_t state;
 	wfc_init_state(&table,&output_image,&state);
 	fflush(stdout);
 	time_start=get_time();
 	float cache=wfc_solve(&table,&state,&config,_progress_callback,&output_image);
-	printf("\x1b[0m\x1b[?25h\x1b[H");
+	printf("\x1b[0m\x1b[?25h\x1b[%uA",output_image.height);
 	unsigned long int generation_time=get_time()-time_start;
 	wfc_generate_image(&table,&state,&output_image);
+	putchar('\n');
+	wfc_print_image(&output_image);
+	output_image.width*=table.downscale_factor;
+	output_image.height*=table.downscale_factor;
+	wfc_generate_full_scale_image(&table,&state,&output_image);
 	putchar('\n');
 	wfc_print_image(&output_image);
 	printf("Table size: %u (%lu kB)\nTable creation time: %.3lf\nGeneration time: %.3lf\nCache hits: %.3f%%\n",table.tile_count,(table.tile_count*config.box_size*config.box_size*sizeof(wfc_color_t)+512)>>10,table_creation_time*1e-9,generation_time*1e-9,cache*100);

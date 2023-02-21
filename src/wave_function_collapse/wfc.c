@@ -138,7 +138,7 @@ static void _quicksort_palette(const wfc_color_t* palette,uint32_t* data,wfc_pal
 
 
 
-static _Bool _add_tile(wfc_table_t* table,const wfc_config_t* config,wfc_color_t* data){
+static _Bool _add_tile(wfc_table_t* table,const wfc_config_t* config,wfc_color_t* data,wfc_size_t x,wfc_size_t y){
 	wfc_tile_hash_t hash=FNV_OFFSET_BASIS;
 	for (wfc_box_size_t i=0;i<config->box_size*config->box_size;i++){
 		hash=(hash^data[i])*FNV_PRIME;
@@ -153,6 +153,8 @@ static _Bool _add_tile(wfc_table_t* table,const wfc_config_t* config,wfc_color_t
 	wfc_tile_t* tile=table->tiles+table->tile_count-1;
 	tile->hash=hash;
 	tile->data=data;
+	tile->x=x;
+	tile->y=y;
 	return 1;
 }
 
@@ -672,7 +674,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 					ty++;
 				}
 			}
-			if (_add_tile(out,config,buffer)){
+			if (_add_tile(out,config,buffer,x*downscale_factor-downscale_factor/2,y*downscale_factor-downscale_factor/2)){
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 			}
 		}
@@ -690,7 +692,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 					ptr++;
 				}
 			}
-			if (_add_tile(out,config,buffer)){
+			if (_add_tile(out,config,buffer,-1,-1)){
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 			}
 		}
@@ -707,7 +709,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 					ptr++;
 				}
 			}
-			if (_add_tile(out,config,buffer)){
+			if (_add_tile(out,config,buffer,-1,-1)){
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 			}
 		}
@@ -746,6 +748,7 @@ _delete_tile:
 		}
 	}
 	out->data_elem_size=((out->tile_count+255)>>6)&0xfffffffc;
+	out->downscale_factor=downscale_factor;
 	out->_connection_data=malloc(4*out->tile_count*out->data_elem_size*sizeof(uint64_t));
 	__m256i zero=_mm256_setzero_si256();
 	__m256i* base_target=(__m256i*)(out->_connection_data);
@@ -851,6 +854,18 @@ void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,wfc_im
 		}
 		location++;
 		ptr++;
+	}
+}
+
+
+
+void wfc_generate_full_scale_image(const wfc_table_t* table,const wfc_state_t* state,wfc_image_t* out){
+	const uint64_t* data=state->data;
+	wfc_color_t* ptr=out->data;
+	for (wfc_size_t i=0;i<state->pixel_count;i++){
+		*ptr=(table->tiles+_find_first_bit(data))->data[0];
+		ptr++;
+		data+=table->data_elem_size;
 	}
 }
 

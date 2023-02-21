@@ -69,6 +69,8 @@ typedef struct _WFC_TILE{
 	wfc_tile_hash_t hash;
 	wfc_color_t* data;
 	uint64_t* connections;
+	wfc_size_t x;
+	wfc_size_t y;
 } wfc_tile_t;
 
 
@@ -77,6 +79,7 @@ typedef struct _WFC_TABLE{
 	wfc_tile_index_t tile_count;
 	wfc_tile_t* tiles;
 	wfc_tile_index_t data_elem_size;
+	wfc_size_t downscale_factor;
 	uint64_t* _connection_data;
 } wfc_table_t;
 
@@ -181,6 +184,10 @@ void wfc_free_table(wfc_table_t* table);
 
 
 void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,wfc_image_t* out);
+
+
+
+void wfc_generate_full_scale_image(const wfc_table_t* table,const wfc_state_t* state,wfc_image_t* out);
 
 
 
