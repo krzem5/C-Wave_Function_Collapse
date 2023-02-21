@@ -274,7 +274,7 @@ static const image_config_t images[10]={
 			300,
 			4,
 			2,
-			2
+			1
 		}
 	},
 	{

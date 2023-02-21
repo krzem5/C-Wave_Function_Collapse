@@ -710,9 +710,6 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				(out->tiles+out->tile_count-1)->_x=tile->_x+_WFC_TILE_ROTATED;
 				(out->tiles+out->tile_count-1)->_y=tile->_y;
 				wfc_color_t* upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
-				for (wfc_size_t i=0;i<downscale_factor*downscale_factor;i++){
-					upscaled_data[i]=0xff0080ff;
-				}
 				wfc_size_t ox=_WFC_TILE_GET_POS(out->tiles+out->tile_count-1);
 				wfc_size_t oy=(out->tiles+out->tile_count-1)->_y;
 				wfc_size_t k=0;
@@ -769,21 +766,49 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				(out->tiles+out->tile_count-1)->_x=tile->_x|_WFC_TILE_FLIPPED;
 				(out->tiles+out->tile_count-1)->_y=tile->_y;
 				wfc_color_t* upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
-				for (wfc_size_t i=0;i<downscale_factor*downscale_factor;i++){
-					upscaled_data[i]=0xff8000ff;
-				}
+				wfc_size_t ox=_WFC_TILE_GET_POS(out->tiles+out->tile_count-1);
+				wfc_size_t oy=(out->tiles+out->tile_count-1)->_y;
+				wfc_size_t k=0;
 				switch (_WFC_TILE_GET_ROTATION(out->tiles+out->tile_count-1)){
 					case 0:
-						//   0* clockwise
+						for (wfc_size_t i=0;i<downscale_factor;i++){
+							for (wfc_size_t j=0;j<downscale_factor;j++){
+								wfc_size_t qi=oy+i;
+								wfc_size_t qj=ox+adjusted_upscaled_data_size-j;
+								upscaled_data[k]=image->data[qi*image->width+qj];
+								k++;
+							}
+						}
 						break;
 					case 1:
-						//  90* clockwise
+						for (wfc_size_t i=0;i<downscale_factor;i++){
+							for (wfc_size_t j=0;j<downscale_factor;j++){
+								wfc_size_t qi=oy+j;
+								wfc_size_t qj=ox+i;
+								upscaled_data[k]=image->data[qi*image->width+qj];
+								k++;
+							}
+						}
 						break;
 					case 2:
-						// 180* clockwise
+						for (wfc_size_t i=0;i<downscale_factor;i++){
+							for (wfc_size_t j=0;j<downscale_factor;j++){
+								wfc_size_t qi=oy+adjusted_upscaled_data_size-i;
+								wfc_size_t qj=ox+j;
+								upscaled_data[k]=image->data[qi*image->width+qj];
+								k++;
+							}
+						}
 						break;
 					case 3:
-						// 270* clockwise
+						for (wfc_size_t i=0;i<downscale_factor;i++){
+							for (wfc_size_t j=0;j<downscale_factor;j++){
+								wfc_size_t qi=oy+adjusted_upscaled_data_size-j;
+								wfc_size_t qj=ox+adjusted_upscaled_data_size-i;
+								upscaled_data[k]=image->data[qi*image->width+qj];
+								k++;
+							}
+						}
 						break;
 				}
 				(out->tiles+out->tile_count-1)->upscaled_data=upscaled_data;
@@ -1000,8 +1025,8 @@ void wfc_print_image(const wfc_image_t* image){
 
 void wfc_print_table(const wfc_table_t* table,const wfc_config_t* config){
 	printf("Tiles: (%u)\n",table->tile_count);
-	const wfc_tile_t* tile=table->tiles+101;
-	for (wfc_tile_index_t i=101/*0*/;i<table->tile_count;i++){
+	const wfc_tile_t* tile=table->tiles;
+	for (wfc_tile_index_t i=0;i<table->tile_count;i++){
 		printf(" [%u]\n",i);
 		const uint64_t* connection_data=tile->connections;
 		for (unsigned int j=0;j<4;j++){

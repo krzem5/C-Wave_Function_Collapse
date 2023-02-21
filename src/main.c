@@ -16,7 +16,7 @@
 
 #define PICK_PARAMETERS 0
 #define GENERATE_IMAGE 1
-#define IMAGE_NAME "duck"
+#define IMAGE_NAME "hand_drawn_circle"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
@@ -98,7 +98,7 @@ int main(int argc,const char** argv){
 	wfc_table_t table;
 	wfc_build_table(&(image_config->image),&config,&table);
 	unsigned long int table_creation_time=get_time()-time_start;
-	wfc_print_table(&table,&config);return 0;
+	wfc_print_table(&table,&config);
 	output_image.width/=table.downscale_factor;
 	output_image.height/=table.downscale_factor;
 	wfc_state_t state;

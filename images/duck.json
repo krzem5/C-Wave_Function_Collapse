@@ -8,5 +8,5 @@
 	"max_color_diff": 300,
 	"propagation_distance": 4,
 	"delete_size": 2,
-	"downscale_factor": 2
+	"downscale_factor": 1
 }
