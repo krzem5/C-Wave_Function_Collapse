@@ -761,8 +761,8 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 					break;
 			}
 			if (_add_tile(out,config,buffer,upscaled_data)){
-				(out->tiles+out->tile_count-1)->_x=tile->_x+_WFC_TILE_ROTATED;
-				(out->tiles+out->tile_count-1)->_y=tile->_y;
+				(out->tiles+out->tile_count-1)->_x=(out->tiles+i)->_x+_WFC_TILE_ROTATED;
+				(out->tiles+out->tile_count-1)->_y=(out->tiles+i)->_y;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 				upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
 			}
@@ -829,8 +829,8 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 					break;
 			}
 			if (_add_tile(out,config,buffer,upscaled_data)){
-				(out->tiles+out->tile_count-1)->_x=tile->_x|_WFC_TILE_FLIPPED;
-				(out->tiles+out->tile_count-1)->_y=tile->_y;
+				(out->tiles+out->tile_count-1)->_x=(out->tiles+i)->_x|_WFC_TILE_FLIPPED;
+				(out->tiles+out->tile_count-1)->_y=(out->tiles+i)->_y;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 				upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
 			}

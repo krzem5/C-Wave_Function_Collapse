@@ -16,7 +16,7 @@
 
 #define PICK_PARAMETERS 0
 #define GENERATE_IMAGE 1
-#define IMAGE_NAME "hand_drawn_circle"
+#define IMAGE_NAME "zebra"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
