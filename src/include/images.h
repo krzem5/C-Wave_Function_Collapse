@@ -387,10 +387,10 @@ static const image_config_t images[10]={
 			_image_hand_drawn_circle_data
 		},
 		{
-			5,
+			3,
 			WFC_FLAG_FLIP|WFC_FLAG_ROTATE,
 			16,
-			900,
+			500,
 			4,
 			2,
 			1

@@ -138,7 +138,7 @@ static void _quicksort_palette(const wfc_color_t* palette,uint32_t* data,wfc_pal
 
 
 
-static _Bool _add_tile(wfc_table_t* table,const wfc_config_t* config,wfc_color_t* data,wfc_size_t x,wfc_size_t y){
+static _Bool _add_tile(wfc_table_t* table,const wfc_config_t* config,wfc_color_t* data){
 	wfc_tile_hash_t hash=FNV_OFFSET_BASIS;
 	for (wfc_box_size_t i=0;i<config->box_size*config->box_size;i++){
 		hash=(hash^data[i])*FNV_PRIME;
@@ -153,8 +153,7 @@ static _Bool _add_tile(wfc_table_t* table,const wfc_config_t* config,wfc_color_t
 	wfc_tile_t* tile=table->tiles+table->tile_count-1;
 	tile->hash=hash;
 	tile->data=data;
-	tile->x=x;
-	tile->y=y;
+	tile->upscaled_data=NULL;
 	return 1;
 }
 
@@ -564,8 +563,8 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 		return;
 	}
 	wfc_size_t downscale_factor=config->downscale_factor;
-	wfc_size_t width=(image->width-downscale_factor/2+downscale_factor-1)/downscale_factor;
-	wfc_size_t height=(image->height-downscale_factor/2+downscale_factor-1)/downscale_factor;
+	wfc_size_t width=(image->width+downscale_factor-1)/downscale_factor;
+	wfc_size_t height=(image->height+downscale_factor-1)/downscale_factor;
 	wfc_size_t image_palette_size=width*height;
 	if (downscale_factor>image->width||downscale_factor>image->height){
 		downscale_factor=1;
@@ -579,8 +578,8 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 	wfc_color_range_t color_range;
 	INIT_RANGE(&color_range);
 	wfc_size_t idx=0;
-	for (wfc_size_t x=downscale_factor/2;x<image->width;x+=downscale_factor){
-		for (wfc_size_t y=downscale_factor/2;y<image->height;y+=downscale_factor){
+	for (wfc_size_t x=0;x<image->width;x+=downscale_factor){
+		for (wfc_size_t y=0;y<image->height;y+=downscale_factor){
 			wfc_color_t color=image->data[x*image->height+y];
 			UPDATE_RANGE(&color_range,color);
 			wfc_color_t j=0;
@@ -674,7 +673,17 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 					ty++;
 				}
 			}
-			if (_add_tile(out,config,buffer,x*downscale_factor-downscale_factor/2,y*downscale_factor-downscale_factor/2)){
+			if (_add_tile(out,config,buffer)){
+				wfc_color_t* upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
+				wfc_size_t off=x*downscale_factor*image->height+y*downscale_factor;
+				wfc_size_t k=0;
+				for (wfc_size_t i=0;i<downscale_factor;i++){
+					for (wfc_size_t j=0;j<downscale_factor;j++){
+						upscaled_data[k]=image->data[i*image->height+j+off];
+						k++;
+					}
+				}
+				(out->tiles+out->tile_count-1)->upscaled_data=upscaled_data;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 			}
 		}
@@ -692,7 +701,10 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 					ptr++;
 				}
 			}
-			if (_add_tile(out,config,buffer,-1,-1)){
+			if (_add_tile(out,config,buffer)){
+				wfc_color_t* upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
+				memset(upscaled_data,0xff,downscale_factor*downscale_factor*sizeof(wfc_color_t));
+				(out->tiles+out->tile_count-1)->upscaled_data=upscaled_data;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 			}
 		}
@@ -709,7 +721,10 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 					ptr++;
 				}
 			}
-			if (_add_tile(out,config,buffer,-1,-1)){
+			if (_add_tile(out,config,buffer)){
+				wfc_color_t* upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
+				memset(upscaled_data,0xff,downscale_factor*downscale_factor*sizeof(wfc_color_t));
+				(out->tiles+out->tile_count-1)->upscaled_data=upscaled_data;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 			}
 		}
@@ -861,11 +876,19 @@ void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,wfc_im
 
 void wfc_generate_full_scale_image(const wfc_table_t* table,const wfc_state_t* state,wfc_image_t* out){
 	const uint64_t* data=state->data;
-	wfc_color_t* ptr=out->data;
-	for (wfc_size_t i=0;i<state->pixel_count;i++){
-		*ptr=(table->tiles+_find_first_bit(data))->data[0];
-		ptr++;
-		data+=table->data_elem_size;
+	for (wfc_size_t x=0;x<out->width;x+=table->downscale_factor){
+		for (wfc_size_t y=0;y<out->height;y+=table->downscale_factor){
+			const wfc_tile_t* tile=table->tiles+_find_first_bit(data);
+			data+=table->data_elem_size;
+			wfc_color_t* ptr=out->data+y+x*out->height;
+			for (wfc_size_t i=0;i<table->downscale_factor;i++){
+				for (wfc_size_t j=0;j<table->downscale_factor;j++){
+					*ptr=tile->data[0];
+					ptr++;
+				}
+				ptr+=out->width-table->downscale_factor;
+			}
+		}
 	}
 }
 

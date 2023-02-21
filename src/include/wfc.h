@@ -69,8 +69,7 @@ typedef struct _WFC_TILE{
 	wfc_tile_hash_t hash;
 	wfc_color_t* data;
 	uint64_t* connections;
-	wfc_size_t x;
-	wfc_size_t y;
+	wfc_color_t* upscaled_data;
 } wfc_tile_t;
 
 
