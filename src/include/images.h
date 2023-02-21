@@ -273,7 +273,8 @@ static const image_config_t images[10]={
 			16,
 			300,
 			4,
-			2
+			2,
+			1
 		}
 	},
 	{
@@ -289,7 +290,8 @@ static const image_config_t images[10]={
 			16,
 			0,
 			4,
-			2
+			2,
+			1
 		}
 	},
 	{
@@ -305,7 +307,8 @@ static const image_config_t images[10]={
 			16,
 			350,
 			4,
-			2
+			2,
+			1
 		}
 	},
 	{
@@ -321,7 +324,8 @@ static const image_config_t images[10]={
 			16,
 			0,
 			4,
-			2
+			2,
+			1
 		}
 	},
 	{
@@ -337,7 +341,8 @@ static const image_config_t images[10]={
 			16,
 			0,
 			4,
-			2
+			2,
+			1
 		}
 	},
 	{
@@ -353,7 +358,8 @@ static const image_config_t images[10]={
 			16,
 			200,
 			4,
-			2
+			2,
+			1
 		}
 	},
 	{
@@ -369,7 +375,8 @@ static const image_config_t images[10]={
 			16,
 			0,
 			4,
-			2
+			2,
+			1
 		}
 	},
 	{
@@ -385,7 +392,8 @@ static const image_config_t images[10]={
 			16,
 			900,
 			4,
-			2
+			2,
+			1
 		}
 	},
 	{
@@ -401,7 +409,8 @@ static const image_config_t images[10]={
 			16,
 			500,
 			4,
-			2
+			2,
+			1
 		}
 	},
 	{NULL}

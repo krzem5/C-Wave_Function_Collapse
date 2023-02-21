@@ -155,6 +155,7 @@ typedef struct _WFC_CONFIG{
 	wfc_color_diffrence_t max_color_diff;
 	wfc_box_size_t propagation_distance;
 	wfc_box_size_t delete_size;
+	wfc_size_t downscale_factor;
 } wfc_config_t;
 
 

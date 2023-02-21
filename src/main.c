@@ -14,10 +14,9 @@
 
 
 
-#define DRAW_PROGRESS_IMAGES 1
-#define PICK_PARAMETERS 0
+#define PICK_PARAMETERS 1
 #define GENERATE_IMAGE 1
-#define IMAGE_NAME "pattern2"
+#define IMAGE_NAME "duck"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
@@ -39,7 +38,6 @@ static unsigned long int get_time(void){
 
 
 static void _progress_callback(const wfc_table_t* table,const wfc_state_t* state,void* ctx){
-#if DRAW_PROGRESS_IMAGES
 	static unsigned long int _last_time=0;
 	unsigned long int current_time=get_time();
 	if (current_time-_last_time<(unsigned long int)(PROGRESS_FRAME_INTERVAL*1e9)){
@@ -58,7 +56,6 @@ static void _progress_callback(const wfc_table_t* table,const wfc_state_t* state
 	}
 	printf("\x1b[H");
 	wfc_print_image(image);
-#endif
 }
 #endif
 
