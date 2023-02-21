@@ -733,8 +733,8 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				case 1:
 					for (wfc_size_t i=0;i<downscale_factor;i++){
 						for (wfc_size_t j=0;j<downscale_factor;j++){
-							wfc_size_t qi=oy+adjusted_upscaled_data_size-j;
-							wfc_size_t qj=ox+i;
+							wfc_size_t qi=(oy+adjusted_upscaled_data_size-j)%image->height;
+							wfc_size_t qj=(ox+i)%image->width;
 							upscaled_data[k]=image->data[qi*image->width+qj];
 							k++;
 						}
@@ -743,8 +743,8 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				case 2:
 					for (wfc_size_t i=0;i<downscale_factor;i++){
 						for (wfc_size_t j=0;j<downscale_factor;j++){
-							wfc_size_t qi=oy+adjusted_upscaled_data_size-i;
-							wfc_size_t qj=ox+adjusted_upscaled_data_size-j;
+							wfc_size_t qi=(oy+adjusted_upscaled_data_size-i)%image->height;
+							wfc_size_t qj=(ox+adjusted_upscaled_data_size-j)%image->width;
 							upscaled_data[k]=image->data[qi*image->width+qj];
 							k++;
 						}
@@ -753,8 +753,8 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				case 3:
 					for (wfc_size_t i=0;i<downscale_factor;i++){
 						for (wfc_size_t j=0;j<downscale_factor;j++){
-							wfc_size_t qi=oy+j;
-							wfc_size_t qj=ox+adjusted_upscaled_data_size-i;
+							wfc_size_t qi=(oy+j)%image->height;
+							wfc_size_t qj=(ox+adjusted_upscaled_data_size-i)%image->width;
 							upscaled_data[k]=image->data[qi*image->width+qj];
 							k++;
 						}
@@ -791,8 +791,8 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				case 0:
 					for (wfc_size_t i=0;i<downscale_factor;i++){
 						for (wfc_size_t j=0;j<downscale_factor;j++){
-							wfc_size_t qi=oy+i;
-							wfc_size_t qj=ox+adjusted_upscaled_data_size-j;
+							wfc_size_t qi=(oy+i)%image->height;
+							wfc_size_t qj=(ox+adjusted_upscaled_data_size-j)%image->width;
 							upscaled_data[k]=image->data[qi*image->width+qj];
 							k++;
 						}
@@ -801,8 +801,8 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				case 1:
 					for (wfc_size_t i=0;i<downscale_factor;i++){
 						for (wfc_size_t j=0;j<downscale_factor;j++){
-							wfc_size_t qi=oy+j;
-							wfc_size_t qj=ox+i;
+							wfc_size_t qi=(oy+j)%image->height;
+							wfc_size_t qj=(ox+i)%image->width;
 							upscaled_data[k]=image->data[qi*image->width+qj];
 							k++;
 						}
@@ -811,8 +811,8 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				case 2:
 					for (wfc_size_t i=0;i<downscale_factor;i++){
 						for (wfc_size_t j=0;j<downscale_factor;j++){
-							wfc_size_t qi=oy+adjusted_upscaled_data_size-i;
-							wfc_size_t qj=ox+j;
+							wfc_size_t qi=(oy+adjusted_upscaled_data_size-i)%image->height;
+							wfc_size_t qj=(ox+j)%image->width;
 							upscaled_data[k]=image->data[qi*image->width+qj];
 							k++;
 						}
@@ -821,8 +821,8 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				case 3:
 					for (wfc_size_t i=0;i<downscale_factor;i++){
 						for (wfc_size_t j=0;j<downscale_factor;j++){
-							wfc_size_t qi=oy+adjusted_upscaled_data_size-j;
-							wfc_size_t qj=ox+adjusted_upscaled_data_size-i;
+							wfc_size_t qi=(oy+adjusted_upscaled_data_size-j)%image->height;
+							wfc_size_t qj=(ox+adjusted_upscaled_data_size-i)%image->width;
 							upscaled_data[k]=image->data[qi*image->width+qj];
 							k++;
 						}
