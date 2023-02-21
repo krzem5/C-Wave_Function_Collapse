@@ -675,7 +675,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 			}
 			if (_add_tile(out,config,buffer)){
 				wfc_color_t* upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
-				wfc_size_t off=x*downscale_factor*image->height+y*downscale_factor;
+				wfc_size_t off=y*downscale_factor*image->width+x*downscale_factor;
 				wfc_size_t k=0;
 				for (wfc_size_t i=0;i<downscale_factor;i++){
 					for (wfc_size_t j=0;j<downscale_factor;j++){
