@@ -703,7 +703,9 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 			}
 			if (_add_tile(out,config,buffer)){
 				wfc_color_t* upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
-				memset(upscaled_data,0xff,downscale_factor*downscale_factor*sizeof(wfc_color_t));
+				for (wfc_size_t i=0;i<downscale_factor*downscale_factor;i++){
+					upscaled_data[i]=buffer[0];
+				}
 				(out->tiles+out->tile_count-1)->upscaled_data=upscaled_data;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 			}
@@ -723,7 +725,9 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 			}
 			if (_add_tile(out,config,buffer)){
 				wfc_color_t* upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
-				memset(upscaled_data,0xff,downscale_factor*downscale_factor*sizeof(wfc_color_t));
+				for (wfc_size_t i=0;i<downscale_factor*downscale_factor;i++){
+					upscaled_data[i]=buffer[0];
+				}
 				(out->tiles+out->tile_count-1)->upscaled_data=upscaled_data;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 			}
@@ -842,6 +846,7 @@ void wfc_free_table(wfc_table_t* table){
 		table->tile_count--;
 		free((table->tiles+table->tile_count)->data);
 		free((table->tiles+table->tile_count)->connections);
+		free((table->tiles+table->tile_count)->upscaled_data);
 	}	free(table->tiles);
 	table->tiles=NULL;
 	free(table->_connection_data);
@@ -883,7 +888,7 @@ void wfc_generate_full_scale_image(const wfc_table_t* table,const wfc_state_t* s
 			wfc_color_t* ptr=out->data+y+x*out->height;
 			for (wfc_size_t i=0;i<table->downscale_factor;i++){
 				for (wfc_size_t j=0;j<table->downscale_factor;j++){
-					*ptr=tile->data[0];
+					*ptr=tile->upscaled_data[i+j*table->downscale_factor];
 					ptr++;
 				}
 				ptr+=out->width-table->downscale_factor;
