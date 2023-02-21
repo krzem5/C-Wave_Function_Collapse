@@ -11,6 +11,11 @@
 #define WFC_FLAG_ROTATE 16
 #define WFC_FLAG_FLIP 32
 
+#define _WFC_TILE_ROTATED 0x20000000
+#define _WFC_TILE_FLIPPED 0x80000000
+#define _WFC_TILE_GET_ROTATION(t) (((t)->_x>>29)&3)
+#define _WFC_TILE_GET_POS(t) ((t)->_x&0x1fffffff)
+
 
 
 typedef uint32_t wfc_box_size_t;
@@ -70,6 +75,8 @@ typedef struct _WFC_TILE{
 	wfc_color_t* data;
 	uint64_t* connections;
 	wfc_color_t* upscaled_data;
+	wfc_size_t _x;
+	wfc_size_t _y;
 } wfc_tile_t;
 
 

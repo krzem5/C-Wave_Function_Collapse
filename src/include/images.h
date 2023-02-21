@@ -274,7 +274,7 @@ static const image_config_t images[10]={
 			300,
 			4,
 			2,
-			1
+			2
 		}
 	},
 	{
@@ -371,7 +371,7 @@ static const image_config_t images[10]={
 		},
 		{
 			2,
-			0,
+			WFC_FLAG_ROTATE,
 			16,
 			0,
 			4,
