@@ -42,7 +42,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 
 #define WEIGHT_RANDOMNESS_SHIFT 3
 #define QUEUE_INDEX_COLLAPSED 0xffff
-#define MAX_ALLOWED_REMOVALS 2048
+#define MAX_ALLOWED_REMOVALS 1024
 #define FAST_MASK_COUNTER_INIT 256
 #define FAST_MASK_MAX_COUNTER 1024
 
@@ -552,7 +552,7 @@ _next_index:
 					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_WRAP_OUTPUT_Y);
 				}
 				changes=1;
-				if (edit_index!=1&&edit_index!=5&&edit_index<11){
+				if (edit_index!=2&&edit_index!=4&&edit_index!=8&&edit_index<15){
 					goto _next_index;
 				}
 				break;
@@ -729,8 +729,8 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 			wfc_size_t ox=_WFC_TILE_GET_POS(tile);
 			wfc_size_t oy=tile->_y;
 			wfc_size_t k=0;
-			switch (_WFC_TILE_GET_ROTATION(tile)+1){
-				case 1:
+			switch (_WFC_TILE_GET_ROTATION(tile)){
+				case 0:
 					for (wfc_size_t i=0;i<downscale_factor;i++){
 						for (wfc_size_t j=0;j<downscale_factor;j++){
 							wfc_size_t qi=(oy+adjusted_upscaled_data_size-j)%image->height;
@@ -740,7 +740,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 						}
 					}
 					break;
-				case 2:
+				case 1:
 					for (wfc_size_t i=0;i<downscale_factor;i++){
 						for (wfc_size_t j=0;j<downscale_factor;j++){
 							wfc_size_t qi=(oy+adjusted_upscaled_data_size-i)%image->height;
@@ -750,7 +750,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 						}
 					}
 					break;
-				case 3:
+				case 2:
 					for (wfc_size_t i=0;i<downscale_factor;i++){
 						for (wfc_size_t j=0;j<downscale_factor;j++){
 							wfc_size_t qi=(oy+j)%image->height;
@@ -1360,11 +1360,23 @@ _retry_from_start:;
 			if ((state->queue_indicies+offset)->delete_count==MAX_ALLOWED_REMOVALS){
 				goto _retry_from_start;
 			}
-			wfc_size_t base_x;
-			wfc_size_t base_y;
+			int32_t base_x;
+			int32_t base_y;
 			DIVMOD_WIDTH(offset,base_y,base_x);
 			base_x+=_get_random(state,(config->delete_size<<1)+1)-config->delete_size;
 			base_y+=_get_random(state,(config->delete_size<<1)+1)-config->delete_size;
+			if (base_x<0){
+				base_x=0;
+			}
+			else if (base_x>=state->width){
+				base_x=state->width-1;
+			}
+			if (base_y<0){
+				base_y=0;
+			}
+			else if (base_y>=height){
+				base_y=height-1;
+			}
 			for (int32_t y=-config->delete_size;y<=((int32_t)(config->delete_size));y++){
 				int32_t y_off=base_y+y;
 				if (y_off<0){
@@ -1416,7 +1428,7 @@ _retry_from_start:;
 				}
 			}
 			uint8_t bounds=~(((base_y<config->delete_size+1)|((base_x>=state->width-config->delete_size-1)<<1)|((base_y>=height-config->delete_size-1)<<2)|((base_x<config->delete_size+1)<<3))&no_wrap);
-			wfc_size_t boundary_tiles[8];
+			int32_t boundary_tiles[8];
 			if (bounds&1){
 				int32_t y=base_y-config->delete_size;
 				if (y<0){
