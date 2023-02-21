@@ -692,14 +692,13 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				}
 			}
 			wfc_size_t k=0;
-			wfc_size_t l=y*downscale_factor*image->width+x*downscale_factor;
 			for (wfc_size_t i=0;i<downscale_factor;i++){
 				for (wfc_size_t j=0;j<downscale_factor;j++){
-					upscaled_data[k]=image->data[l];
+					wfc_size_t qi=(y*downscale_factor+i)%image->height;
+					wfc_size_t qj=(x*downscale_factor+j)%image->width;
+					upscaled_data[k]=image->data[qi*image->width+qj];
 					k++;
-					l++;
 				}
-				l+=image->width-downscale_factor;
 			}
 			if (_add_tile(out,config,buffer,upscaled_data)){
 				(out->tiles+out->tile_count-1)->_x=x*downscale_factor;
