@@ -546,8 +546,8 @@ static const image_config_t images[13]={
 		{
 			3,
 			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y,
-			16,
-			500,
+			4,
+			200,
 			4,
 			2,
 			2

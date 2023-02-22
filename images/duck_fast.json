@@ -6,7 +6,7 @@
 		"wrap_x",
 		"wrap_y"
 	],
-	"palette_size": 16,
+	"palette_size": 4,
 	"max_color_diff": 200,
 	"propagation_distance": 4,
 	"delete_size": 2,
