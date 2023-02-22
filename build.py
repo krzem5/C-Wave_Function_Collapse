@@ -71,9 +71,9 @@ else:
 			for f in cfl:
 				if (f[-2:]==".c"):
 					fl.append(f"build/{(r+f).replace('/','$')}.o")
-					if (subprocess.run(["gcc","-Wall","-lm","-Werror","-mavx","-mavx2","-O3","-c",r+f,"-o",f"build/{(r+f).replace('/','$')}.o","-Isrc/include"]).returncode!=0):
+					if (subprocess.run(["gcc","-Wall","-lm","-Werror","-mavx","-mavx2","-g0","-O3","-c",r+f,"-o",f"build/{(r+f).replace('/','$')}.o","-Isrc/include"]).returncode!=0):
 						sys.exit(1)
-		if (subprocess.run(["gcc","-mavx","-mavx2","-o","build/wave_function_collapse"]+fl).returncode!=0):
+		if (subprocess.run(["gcc","-g0","-mavx","-mavx2","-o","build/wave_function_collapse"]+fl).returncode!=0):
 			sys.exit(1)
 	else:
 		fl=[]
