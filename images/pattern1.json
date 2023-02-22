@@ -6,7 +6,7 @@
 	],
 	"palette_size": 16,
 	"max_color_diff": 0,
-	"propagation_distance": 4,
-	"delete_size": 2,
+	"propagation_distance": 3,
+	"delete_size": 1,
 	"downscale_factor": 1
 }

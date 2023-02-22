@@ -758,8 +758,8 @@ static const image_config_t images[15]={
 			WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y,
 			16,
 			0,
-			4,
-			2,
+			3,
+			1,
 			1
 		}
 	},
