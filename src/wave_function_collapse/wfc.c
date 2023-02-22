@@ -887,11 +887,18 @@ _delete_tile:
 			for (wfc_tile_index_t k=0;k<out->tile_count;k++){
 				const wfc_color_t* tile2_data=(out->tiles+k)->data+offset;
 				wfc_color_diffrence_t diff=0;
+				wfc_box_size_t n=0;
+				wfc_box_size_t o=0;
 				for (wfc_box_size_t m=0;m<config->box_size*(config->box_size-1);m++){
-					wfc_box_size_t n=m+m/extra_div;
 					diff+=_color_diffrence(tile_data[n],tile2_data[n]);
 					if (diff>config->max_color_diff){
 						goto _skip_tile;
+					}
+					n++;
+					o++;
+					if (o==extra_div){
+						n++;
+						o=0;
 					}
 				}
 				data[k>>6]|=1ull<<(k&63);
