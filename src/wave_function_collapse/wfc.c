@@ -163,11 +163,14 @@ static _Bool _add_tile(wfc_table_t* table,const wfc_config_t* config,wfc_color_t
 	}
 	wfc_tile_t* tile=table->tiles;
 	for (wfc_tile_index_t i=0;i<table->tile_count;i++){
-		if ((config->flags&WFC_FLAG_BLEND_CORNER)&&tile->data[0]==data[0]){
+		if ((config->flags&(WFC_FLAG_BLEND_CORNER|WFC_FLAG_BLEND_PIXEL))==WFC_FLAG_BLEND_CORNER&&tile->data[0]==data[0]){
 			_blend_upscaled_data(table,tile,upscaled_data);
 		}
 		if (tile->hash==hash&&!memcmp(tile->data,data,config->box_size*config->box_size*sizeof(wfc_color_t))){
 			if (config->flags&WFC_FLAG_BLEND_PIXEL){
+				if ((config->flags&WFC_FLAG_BLEND_PIXEL)&&tile->data[0]!=data[0]){
+					return 0;
+				}
 				_blend_upscaled_data(table,tile,upscaled_data);
 			}
 			return 0;
