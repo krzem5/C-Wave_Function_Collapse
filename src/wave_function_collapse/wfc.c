@@ -88,7 +88,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 #define COMMAND(a,b) ((((unsigned int)(a))<<8)|(b))
 #define MAX_EDIT_INDEX 22
 #define ADJUST_VALUE_AT_EDIT_INDEX(var,offset,width,new_digit) \
-	unsigned int pow=powers_of_ten[edit_index-offset+8-width]; \
+	unsigned int pow=powers_of_ten[edit_index-offset+6-width]; \
 	unsigned int digit=(var/pow)%10; \
 	var+=((new_digit)-digit)*pow;
 #define ADJUST_FLAG_AT_INDEX(state,flag) \
@@ -99,7 +99,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 
 
 
-static const unsigned int powers_of_ten[8]={10000000,1000000,100000,10000,1000,100,10,1};
+static const unsigned int powers_of_ten[6]={100000,10000,1000,100,10,1};
 static const char* flag_abbreviations[8]={"F","R","WX","WY","WOX","WOY","BC","BP"};
 
 
@@ -185,78 +185,6 @@ static _Bool _add_tile(wfc_table_t* table,const wfc_config_t* config,wfc_color_t
 	tile->upscaled_data=upscaled_data;
 	tile->_upscaled_data_count=1;
 	return 1;
-}
-
-
-
-static FORCE_INLINE uint32_t _get_random(wfc_state_t* state,uint32_t n){
-	if (!state->prng.count){
-		__m256i* ptr=(__m256i*)(state->prng.data);
-		__m256i permute_a=_mm256_set_epi32(4,3,2,1,0,7,6,5);
-		__m256i permute_b=_mm256_set_epi32(2,1,0,7,6,5,4,3);
-		__m256i s0=_mm256_lddqu_si256(ptr+0);
-		__m256i s1=_mm256_lddqu_si256(ptr+1);
-		__m256i s2=_mm256_lddqu_si256(ptr+2);
-		__m256i s3=_mm256_lddqu_si256(ptr+3);
-		__m256i u0=_mm256_srli_epi64(s0,1);
-		__m256i u1=_mm256_srli_epi64(s1,3);
-		__m256i u2=_mm256_srli_epi64(s2,1);
-		__m256i u3=_mm256_srli_epi64(s3,3);
-		__m256i t0=_mm256_permutevar8x32_epi32(s0,permute_a);
-		__m256i t1=_mm256_permutevar8x32_epi32(s1,permute_b);
-		__m256i t2=_mm256_permutevar8x32_epi32(s2,permute_a);
-		__m256i t3=_mm256_permutevar8x32_epi32(s3,permute_b);
-		s0=_mm256_add_epi64(t0,u0);
-		s1=_mm256_add_epi64(t1,u1);
-		s2=_mm256_add_epi64(t2,u2);
-		s3=_mm256_add_epi64(t3,u3);
-		_mm256_storeu_si256(ptr+0,s0);
-		_mm256_storeu_si256(ptr+1,s1);
-		_mm256_storeu_si256(ptr+2,s2);
-		_mm256_storeu_si256(ptr+3,s3);
-		_mm256_storeu_si256(ptr+4,_mm256_xor_si256(u0,t1));
-		_mm256_storeu_si256(ptr+5,_mm256_xor_si256(u2,t3));
-		_mm256_storeu_si256(ptr+6,_mm256_xor_si256(s0,s3));
-		_mm256_storeu_si256(ptr+7,_mm256_xor_si256(s2,s1));
-		state->prng.count=64;
-	}
-	state->prng.count--;
-	return state->prng.data[state->prng.count]%n;
-}
-
-
-
-static FORCE_INLINE wfc_tile_index_t _find_first_bit(const uint64_t* data){
-	wfc_tile_index_t out=0;
-	while (!(*data)){
-		data++;
-		out+=64;
-	}
-	return out+FIND_FIRST_SET_BIT(*data);
-}
-
-
-
-static void _print_integer(unsigned int value,unsigned int width,unsigned int edit_index){
-	const unsigned int* powers=powers_of_ten+8-width;
-	_Bool is_leading_zero=1;
-	for (unsigned int i=0;i<width;i++){
-		unsigned int digit=(value/(*powers))%10;
-		if (digit||i==width-1){
-			is_leading_zero=0;
-		}
-		if (i==edit_index){
-			printf("\x1b[38;2;63;153;255m");
-		}
-		else if (is_leading_zero){
-			printf("\x1b[38;2;140;83;119m");
-		}
-		else{
-			printf("\x1b[38;2;240;143;219m");
-		}
-		putchar(digit+48);
-		powers++;
-	}
 }
 
 
@@ -356,6 +284,78 @@ static void _calculate_rotated_flipped_upscaled_data(const wfc_image_t* image,wf
 				}
 			}
 			break;
+	}
+}
+
+
+
+static FORCE_INLINE uint32_t _get_random(wfc_state_t* state,uint32_t n){
+	if (!state->prng.count){
+		__m256i* ptr=(__m256i*)(state->prng.data);
+		__m256i permute_a=_mm256_set_epi32(4,3,2,1,0,7,6,5);
+		__m256i permute_b=_mm256_set_epi32(2,1,0,7,6,5,4,3);
+		__m256i s0=_mm256_lddqu_si256(ptr+0);
+		__m256i s1=_mm256_lddqu_si256(ptr+1);
+		__m256i s2=_mm256_lddqu_si256(ptr+2);
+		__m256i s3=_mm256_lddqu_si256(ptr+3);
+		__m256i u0=_mm256_srli_epi64(s0,1);
+		__m256i u1=_mm256_srli_epi64(s1,3);
+		__m256i u2=_mm256_srli_epi64(s2,1);
+		__m256i u3=_mm256_srli_epi64(s3,3);
+		__m256i t0=_mm256_permutevar8x32_epi32(s0,permute_a);
+		__m256i t1=_mm256_permutevar8x32_epi32(s1,permute_b);
+		__m256i t2=_mm256_permutevar8x32_epi32(s2,permute_a);
+		__m256i t3=_mm256_permutevar8x32_epi32(s3,permute_b);
+		s0=_mm256_add_epi64(t0,u0);
+		s1=_mm256_add_epi64(t1,u1);
+		s2=_mm256_add_epi64(t2,u2);
+		s3=_mm256_add_epi64(t3,u3);
+		_mm256_storeu_si256(ptr+0,s0);
+		_mm256_storeu_si256(ptr+1,s1);
+		_mm256_storeu_si256(ptr+2,s2);
+		_mm256_storeu_si256(ptr+3,s3);
+		_mm256_storeu_si256(ptr+4,_mm256_xor_si256(u0,t1));
+		_mm256_storeu_si256(ptr+5,_mm256_xor_si256(u2,t3));
+		_mm256_storeu_si256(ptr+6,_mm256_xor_si256(s0,s3));
+		_mm256_storeu_si256(ptr+7,_mm256_xor_si256(s2,s1));
+		state->prng.count=64;
+	}
+	state->prng.count--;
+	return state->prng.data[state->prng.count]%n;
+}
+
+
+
+static FORCE_INLINE wfc_tile_index_t _find_first_bit(const uint64_t* data){
+	wfc_tile_index_t out=0;
+	while (!(*data)){
+		data++;
+		out+=64;
+	}
+	return out+FIND_FIRST_SET_BIT(*data);
+}
+
+
+
+static void _print_integer(unsigned int value,unsigned int width,unsigned int edit_index){
+	const unsigned int* powers=powers_of_ten+6-width;
+	_Bool is_leading_zero=1;
+	for (unsigned int i=0;i<width;i++){
+		unsigned int digit=(value/(*powers))%10;
+		if (digit||i==width-1){
+			is_leading_zero=0;
+		}
+		if (i==edit_index){
+			printf("\x1b[38;2;63;153;255m");
+		}
+		else if (is_leading_zero){
+			printf("\x1b[38;2;140;83;119m");
+		}
+		else{
+			printf("\x1b[38;2;240;143;219m");
+		}
+		putchar(digit+48);
+		powers++;
 	}
 }
 
