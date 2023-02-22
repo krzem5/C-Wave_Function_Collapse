@@ -771,7 +771,7 @@ static const image_config_t images[15]={
 			_image_pattern3_data
 		},
 		{
-			3,
+			2,
 			WFC_FLAG_ROTATE|WFC_FLAG_FLIP,
 			16,
 			0,
