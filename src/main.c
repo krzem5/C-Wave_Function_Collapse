@@ -16,7 +16,7 @@
 
 #define PICK_PARAMETERS 1
 #define GENERATE_IMAGE 1
-#define IMAGE_NAME "pattern3"
+#define IMAGE_NAME "pig"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
