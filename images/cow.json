@@ -1,11 +1,15 @@
 {
-	"box_size": 4,
+	"box_size": 5,
 	"flags": [
-		"flip"
+		"flip",
+		"rotate",
+		"average_scaling",
+		"wrap_x",
+		"wrap_y"
 	],
-	"palette_size": 16,
-	"max_color_diff": 350,
-	"propagation_distance": 4,
+	"palette_size": 4,
+	"max_color_diff": 700,
+	"propagation_distance": 5,
 	"delete_size": 2,
-	"downscale_factor": 1
+	"downscale_factor": 3
 }
