@@ -628,7 +628,7 @@ _next_index:
 _return:
 	wfc_free_table(&table);
 	tcsetattr(STDOUT_FILENO,TCSANOW,&old_terminal_config);
-	printf("\x1b[0m\x1b[?25h\x1b[%uA\x1b[0G\x1b[0JBox size: %u\nFlags:%s%s%s%s%s%s%s%s\nPalette size: %u\nSimilarity score: %u\nDownscale factor: %u\nPropagation distance: %u\nDelete size: %u\n",height,config->box_size,((config->flags&WFC_FLAG_FLIP)?" WFC_FLAG_FLIP":""),((config->flags&WFC_FLAG_ROTATE)?" WFC_FLAG_ROTATE":""),((config->flags&WFC_FLAG_WRAP_X)?" WFC_FLAG_WRAP_X":""),((config->flags&WFC_FLAG_WRAP_Y)?" WFC_FLAG_WRAP_Y":""),((config->flags&WFC_FLAG_WRAP_OUTPUT_X)?" WFC_FLAG_WRAP_OUTPUT_X":""),((config->flags&WFC_FLAG_WRAP_OUTPUT_Y)?" WFC_FLAG_WRAP_OUTPUT_Y":""),((config->flags&WFC_FLAG_BLEND_CORNER)?" WFC_FLAG_BLEND_CORNER":""),((config->flags&WFC_FLAG_BLEND_PIXEL)?" WFC_FLAG_BLEND_PIXEL":""),config->palette_max_size,config->max_color_diff,config->downscale_factor,config->propagation_distance,config->delete_size);
+	printf("\x1b[0m\x1b[?25h\x1b[%uA\x1b[0G\x1b[0JBox size: %u\nFlags:%s%s%s%s%s%s%s%s%s\nPalette size: %u\nSimilarity score: %u\nDownscale factor: %u\nPropagation distance: %u\nDelete size: %u\n",height,config->box_size,((config->flags&WFC_FLAG_FLIP)?" WFC_FLAG_FLIP":""),((config->flags&WFC_FLAG_ROTATE)?" WFC_FLAG_ROTATE":""),((config->flags&WFC_FLAG_WRAP_X)?" WFC_FLAG_WRAP_X":""),((config->flags&WFC_FLAG_WRAP_Y)?" WFC_FLAG_WRAP_Y":""),((config->flags&WFC_FLAG_WRAP_OUTPUT_X)?" WFC_FLAG_WRAP_OUTPUT_X":""),((config->flags&WFC_FLAG_WRAP_OUTPUT_Y)?" WFC_FLAG_WRAP_OUTPUT_Y":""),((config->flags&WFC_FLAG_BLEND_CORNER)?" WFC_FLAG_BLEND_CORNER":""),((config->flags&WFC_FLAG_BLEND_PIXEL)?" WFC_FLAG_BLEND_PIXEL":""),((config->flags&WFC_FLAG_AVERAGE_SCALING)?" WFC_FLAG_AVERAGE_SCALING":""),config->palette_max_size,config->max_color_diff,config->downscale_factor,config->propagation_distance,config->delete_size);
 #endif
 }
 
@@ -658,13 +658,13 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 	wfc_size_t downscale_factor_squared=downscale_factor*downscale_factor;
 	for (wfc_size_t y=0;y<image->height;y+=downscale_factor){
 		for (wfc_size_t x=0;x<image->width;x+=downscale_factor){
+			const wfc_color_t* src_data=image->data+y*image->width+x;
 			wfc_color_t color;
 			if (config->flags&WFC_FLAG_AVERAGE_SCALING){
 				unsigned int r=0;
 				unsigned int g=0;
 				unsigned int b=0;
 				unsigned int a=0;
-				const wfc_color_t* src_data=image->data+y*image->width+x;
 				for (wfc_size_t i=0;i<downscale_factor;i++){
 					for (wfc_size_t j=0;j<downscale_factor;j++){
 						color=*src_data;
@@ -679,7 +679,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				color=((r/downscale_factor_squared)<<24)|((g/downscale_factor_squared)<<16)|((b/downscale_factor_squared)<<8)|(a/downscale_factor_squared);
 			}
 			else{
-				color=image->data[y*image->width+x];
+				color=*src_data;
 			}
 			UPDATE_RANGE(&color_range,color);
 			wfc_color_t j=0;
