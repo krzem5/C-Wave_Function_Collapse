@@ -86,7 +86,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 #define BI_RGB 0
 
 #define COMMAND(a,b) ((((unsigned int)(a))<<8)|(b))
-#define MAX_EDIT_INDEX 22
+#define MAX_EDIT_INDEX 23
 #define ADJUST_VALUE_AT_EDIT_INDEX(var,offset,width,new_digit) \
 	unsigned int pow=powers_of_ten[edit_index-offset+6-width]; \
 	unsigned int digit=(var/pow)%10; \
@@ -100,7 +100,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 
 
 static const unsigned int powers_of_ten[6]={100000,10000,1000,100,10,1};
-static const char* flag_abbreviations[8]={"F","R","WX","WY","WOX","WOY","BC","BP"};
+static const char* flag_abbreviations[9]={"F","R","WX","WY","WOX","WOY","BC","BP","AS"};
 
 
 
@@ -420,7 +420,7 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 		printf("\x1b[38;2;245;245;245m, Ss: ");
 		_print_integer(config->max_color_diff,6,edit_index-9);
 		printf("\x1b[38;2;245;245;245m, F:");
-		for (unsigned int i=0;i<8;i++){
+		for (unsigned int i=0;i<9;i++){
 			if (edit_index==i+15){
 				printf(" \x1b[38;2;63;153;255m");
 			}
@@ -437,7 +437,7 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 				name++;
 			}
 		}
-		for (unsigned int i=63;i<width;i++){
+		for (unsigned int i=66;i<width;i++){
 			putchar(' ');
 		}
 		wfc_box_size_t row=scrolled_lines%(table_box_size+1);
@@ -655,9 +655,32 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 	wfc_color_range_t color_range;
 	INIT_RANGE(&color_range);
 	wfc_size_t idx=0;
+	wfc_size_t downscale_factor_squared=downscale_factor*downscale_factor;
 	for (wfc_size_t y=0;y<image->height;y+=downscale_factor){
 		for (wfc_size_t x=0;x<image->width;x+=downscale_factor){
-			wfc_color_t color=image->data[y*image->width+x];
+			wfc_color_t color;
+			if (config->flags&WFC_FLAG_AVERAGE_SCALING){
+				unsigned int r=0;
+				unsigned int g=0;
+				unsigned int b=0;
+				unsigned int a=0;
+				const wfc_color_t* src_data=image->data+y*image->width+x;
+				for (wfc_size_t i=0;i<downscale_factor;i++){
+					for (wfc_size_t j=0;j<downscale_factor;j++){
+						color=*src_data;
+						src_data++;
+						r+=color>>24;
+						g+=(color>>16)&0xff;
+						b+=(color>>8)&0xff;
+						a+=color&0xff;
+					}
+					src_data+=image->width-downscale_factor;
+				}
+				color=((r/downscale_factor_squared)<<24)|((g/downscale_factor_squared)<<16)|((b/downscale_factor_squared)<<8)|(a/downscale_factor_squared);
+			}
+			else{
+				color=image->data[y*image->width+x];
+			}
 			UPDATE_RANGE(&color_range,color);
 			wfc_color_t j=0;
 			while (j<palette_size&&palette[j]!=color){

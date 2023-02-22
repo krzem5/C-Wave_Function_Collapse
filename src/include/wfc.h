@@ -12,6 +12,7 @@
 #define WFC_FLAG_WRAP_OUTPUT_Y 32
 #define WFC_FLAG_BLEND_CORNER 64
 #define WFC_FLAG_BLEND_PIXEL 128
+#define WFC_FLAG_AVERAGE_SCALING 256
 
 #define _WFC_TILE_ROTATED 0x20000000
 #define _WFC_TILE_FLIPPED 0x80000000
@@ -32,7 +33,7 @@ typedef uint32_t wfc_color_diffrence_t;
 
 
 
-typedef uint8_t wfc_flags_t;
+typedef uint16_t wfc_flags_t;
 
 
 
