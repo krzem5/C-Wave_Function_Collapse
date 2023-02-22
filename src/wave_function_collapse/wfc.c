@@ -100,6 +100,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 
 
 static const unsigned int powers_of_ten[8]={10000000,1000000,100000,10000,1000,100,10,1};
+static const char* flag_abbreviations[8]={"F","R","WX","WY","WOX","WOY","BC","BP"};
 
 
 
@@ -257,24 +258,6 @@ static void _print_integer(unsigned int value,unsigned int width,unsigned int ed
 
 
 
-static void _print_flag(_Bool value,const char* name,unsigned int edit_index){
-	if (!edit_index){
-		printf("\x1b[38;2;63;153;255m");
-	}
-	else if (!value){
-		printf("\x1b[38;2;140;83;119m");
-	}
-	else{
-		printf("\x1b[38;2;240;143;219m");
-	}
-	while (*name){
-		putchar(*name+(!value)*32);
-		name++;
-	}
-}
-
-
-
 void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 #ifndef _MSC_VER
 	unsigned int edit_index=3+(config->box_size<10);
@@ -333,22 +316,24 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 		_print_integer(config->palette_max_size,4,edit_index-5);
 		printf("\x1b[38;2;245;245;245m, Ss: ");
 		_print_integer(config->max_color_diff,6,edit_index-9);
-		printf("\x1b[38;2;245;245;245m, F: ");
-		_print_flag(!!(config->flags&WFC_FLAG_FLIP),"F",edit_index-15);
-		putchar(' ');
-		_print_flag(!!(config->flags&WFC_FLAG_ROTATE),"R",edit_index-16);
-		putchar(' ');
-		_print_flag(!!(config->flags&WFC_FLAG_WRAP_X),"WX",edit_index-17);
-		putchar(' ');
-		_print_flag(!!(config->flags&WFC_FLAG_WRAP_Y),"WY",edit_index-18);
-		putchar(' ');
-		_print_flag(!!(config->flags&WFC_FLAG_WRAP_OUTPUT_X),"WOX",edit_index-19);
-		putchar(' ');
-		_print_flag(!!(config->flags&WFC_FLAG_WRAP_OUTPUT_Y),"ROY",edit_index-20);
-		putchar(' ');
-		_print_flag(!!(config->flags&WFC_FLAG_BLEND_CORNER),"BC",edit_index-21);
-		putchar(' ');
-		_print_flag(!!(config->flags&WFC_FLAG_BLEND_PIXEL),"BP",edit_index-22);
+		printf("\x1b[38;2;245;245;245m, F:");
+		for (unsigned int i=0;i<8;i++){
+			if (edit_index==i+15){
+				printf(" \x1b[38;2;63;153;255m");
+			}
+			else if (config->flags&(1<<i)){
+				printf(" \x1b[38;2;240;143;219m");
+			}
+			else{
+				printf(" \x1b[38;2;140;83;119m");
+			}
+			const char* name=flag_abbreviations[i];
+			char offset=(!(config->flags&(1<<i)))<<5;
+			while (*name){
+				putchar(*name+offset);
+				name++;
+			}
+		}
 		for (unsigned int i=63;i<width;i++){
 			putchar(' ');
 		}
@@ -473,29 +458,8 @@ _next_index:
 				else if (edit_index<15){
 					ADJUST_VALUE_AT_EDIT_INDEX(config->max_color_diff,9,6,(digit<9?digit+1:0));
 				}
-				else if (edit_index==15){
-					config->flags^=WFC_FLAG_FLIP;
-				}
-				else if (edit_index==16){
-					config->flags^=WFC_FLAG_ROTATE;
-				}
-				else if (edit_index==17){
-					config->flags^=WFC_FLAG_WRAP_X;
-				}
-				else if (edit_index==18){
-					config->flags^=WFC_FLAG_WRAP_Y;
-				}
-				else if (edit_index==19){
-					config->flags^=WFC_FLAG_WRAP_OUTPUT_X;
-				}
-				else if (edit_index==20){
-					config->flags^=WFC_FLAG_WRAP_OUTPUT_Y;
-				}
-				else if (edit_index==21){
-					config->flags^=WFC_FLAG_BLEND_CORNER;
-				}
 				else{
-					config->flags^=WFC_FLAG_BLEND_PIXEL;
+					config->flags^=1<<(edit_index-15);
 				}
 				changes=1;
 				break;
@@ -512,29 +476,8 @@ _next_index:
 				else if (edit_index<15){
 					ADJUST_VALUE_AT_EDIT_INDEX(config->max_color_diff,9,6,(digit?digit-1:9));
 				}
-				else if (edit_index==15){
-					config->flags^=WFC_FLAG_FLIP;
-				}
-				else if (edit_index==16){
-					config->flags^=WFC_FLAG_ROTATE;
-				}
-				else if (edit_index==17){
-					config->flags^=WFC_FLAG_WRAP_X;
-				}
-				else if (edit_index==18){
-					config->flags^=WFC_FLAG_WRAP_Y;
-				}
-				else if (edit_index==19){
-					config->flags^=WFC_FLAG_WRAP_OUTPUT_X;
-				}
-				else if (edit_index==20){
-					config->flags^=WFC_FLAG_WRAP_OUTPUT_Y;
-				}
-				else if (edit_index==21){
-					config->flags^=WFC_FLAG_BLEND_CORNER;
-				}
 				else{
-					config->flags^=WFC_FLAG_BLEND_PIXEL;
+					config->flags^=1<<(edit_index-15);
 				}
 				changes=1;
 				break;
@@ -560,29 +503,11 @@ _next_index:
 				else if (edit_index<15){
 					ADJUST_VALUE_AT_EDIT_INDEX(config->max_color_diff,9,6,command[0]-48);
 				}
-				else if (edit_index==15){
-					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_FLIP);
-				}
-				else if (edit_index==16){
-					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_ROTATE);
-				}
-				else if (edit_index==17){
-					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_WRAP_X);
-				}
-				else if (edit_index==18){
-					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_WRAP_Y);
-				}
-				else if (edit_index==19){
-					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_WRAP_OUTPUT_X);
-				}
-				else if (edit_index==20){
-					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_WRAP_OUTPUT_Y);
-				}
-				else if (edit_index==21){
-					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_BLEND_CORNER);
-				}
 				else{
-					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_BLEND_PIXEL);
+					config->flags&=~(1<<(edit_index-15));
+					if (command[0]!=48){
+						config->flags|=1<<(edit_index-15);
+					}
 				}
 				changes=1;
 				if (edit_index!=2&&edit_index!=4&&edit_index!=8&&edit_index<15){
