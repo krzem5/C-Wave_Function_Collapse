@@ -258,6 +258,106 @@ static void _print_integer(unsigned int value,unsigned int width,unsigned int ed
 
 
 
+static void _calculate_raw_upscaled_data(const wfc_image_t* image,wfc_size_t x,wfc_size_t y,wfc_size_t downscale_factor,wfc_color_t* upscaled_data){
+	wfc_size_t k=0;
+	for (wfc_size_t i=0;i<downscale_factor;i++){
+		for (wfc_size_t j=0;j<downscale_factor;j++){
+			wfc_size_t qi=(y*downscale_factor+i)%image->height;
+			wfc_size_t qj=(x*downscale_factor+j)%image->width;
+			upscaled_data[k]=image->data[qi*image->width+qj];
+			k++;
+		}
+	}
+}
+
+
+
+static void _calculate_rotated_upscaled_data(const wfc_image_t* image,wfc_size_t ox,wfc_size_t oy,wfc_size_t downscale_factor,wfc_size_t adjusted_upscaled_data_size,wfc_size_t rotation,wfc_color_t* upscaled_data){
+	wfc_size_t k=0;
+	switch (rotation){
+		case 0:
+			for (wfc_size_t i=0;i<downscale_factor;i++){
+				for (wfc_size_t j=0;j<downscale_factor;j++){
+					wfc_size_t qi=(oy+adjusted_upscaled_data_size-j)%image->height;
+					wfc_size_t qj=(ox+i)%image->width;
+					upscaled_data[k]=image->data[qi*image->width+qj];
+					k++;
+				}
+			}
+			break;
+		case 1:
+			for (wfc_size_t i=0;i<downscale_factor;i++){
+				for (wfc_size_t j=0;j<downscale_factor;j++){
+					wfc_size_t qi=(oy+adjusted_upscaled_data_size-i)%image->height;
+					wfc_size_t qj=(ox+adjusted_upscaled_data_size-j)%image->width;
+					upscaled_data[k]=image->data[qi*image->width+qj];
+					k++;
+				}
+			}
+			break;
+		case 2:
+			for (wfc_size_t i=0;i<downscale_factor;i++){
+				for (wfc_size_t j=0;j<downscale_factor;j++){
+					wfc_size_t qi=(oy+j)%image->height;
+					wfc_size_t qj=(ox+adjusted_upscaled_data_size-i)%image->width;
+					upscaled_data[k]=image->data[qi*image->width+qj];
+					k++;
+				}
+			}
+			break;
+	}
+}
+
+
+
+static void _calculate_rotated_flipped_upscaled_data(const wfc_image_t* image,wfc_size_t ox,wfc_size_t oy,wfc_size_t downscale_factor,wfc_size_t adjusted_upscaled_data_size,wfc_size_t rotation,wfc_color_t* upscaled_data){
+	wfc_size_t k=0;
+	switch (rotation){
+		case 0:
+			for (wfc_size_t i=0;i<downscale_factor;i++){
+				for (wfc_size_t j=0;j<downscale_factor;j++){
+					wfc_size_t qi=(oy+i)%image->height;
+					wfc_size_t qj=(ox+adjusted_upscaled_data_size-j)%image->width;
+					upscaled_data[k]=image->data[qi*image->width+qj];
+					k++;
+				}
+			}
+			break;
+		case 1:
+			for (wfc_size_t i=0;i<downscale_factor;i++){
+				for (wfc_size_t j=0;j<downscale_factor;j++){
+					wfc_size_t qi=(oy+j)%image->height;
+					wfc_size_t qj=(ox+i)%image->width;
+					upscaled_data[k]=image->data[qi*image->width+qj];
+					k++;
+				}
+			}
+			break;
+		case 2:
+			for (wfc_size_t i=0;i<downscale_factor;i++){
+				for (wfc_size_t j=0;j<downscale_factor;j++){
+					wfc_size_t qi=(oy+adjusted_upscaled_data_size-i)%image->height;
+					wfc_size_t qj=(ox+j)%image->width;
+					upscaled_data[k]=image->data[qi*image->width+qj];
+					k++;
+				}
+			}
+			break;
+		case 3:
+			for (wfc_size_t i=0;i<downscale_factor;i++){
+				for (wfc_size_t j=0;j<downscale_factor;j++){
+					wfc_size_t qi=(oy+adjusted_upscaled_data_size-j)%image->height;
+					wfc_size_t qj=(ox+adjusted_upscaled_data_size-i)%image->width;
+					upscaled_data[k]=image->data[qi*image->width+qj];
+					k++;
+				}
+			}
+			break;
+	}
+}
+
+
+
 void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 #ifndef _MSC_VER
 	unsigned int edit_index=3+(config->box_size<10);
@@ -635,6 +735,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 	out->downscale_factor=downscale_factor;
 	wfc_color_t* buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 	wfc_color_t* upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
+	_Bool precalculate_upscaled_data=!!(config->flags&(WFC_FLAG_BLEND_CORNER|WFC_FLAG_BLEND_PIXEL));
 	for (wfc_size_t x=0;x<width-((config->flags&WFC_FLAG_WRAP_X)?0:config->box_size-1);x++){
 		for (wfc_size_t y=0;y<height-((config->flags&WFC_FLAG_WRAP_Y)?0:config->box_size-1);y++){
 			wfc_color_t* ptr=buffer;
@@ -649,16 +750,13 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 					ty++;
 				}
 			}
-			wfc_size_t k=0;
-			for (wfc_size_t i=0;i<downscale_factor;i++){
-				for (wfc_size_t j=0;j<downscale_factor;j++){
-					wfc_size_t qi=(y*downscale_factor+i)%image->height;
-					wfc_size_t qj=(x*downscale_factor+j)%image->width;
-					upscaled_data[k]=image->data[qi*image->width+qj];
-					k++;
-				}
+			if (precalculate_upscaled_data){
+				_calculate_raw_upscaled_data(image,x,y,downscale_factor,upscaled_data);
 			}
 			if (_add_tile(out,config,buffer,upscaled_data)){
+				if (!precalculate_upscaled_data){
+					_calculate_raw_upscaled_data(image,x,y,downscale_factor,upscaled_data);
+				}
 				(out->tiles+out->tile_count-1)->_x=x*downscale_factor;
 				(out->tiles+out->tile_count-1)->_y=y*downscale_factor;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
@@ -685,42 +783,16 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 			}
 			wfc_size_t ox=_WFC_TILE_GET_POS(tile);
 			wfc_size_t oy=tile->_y;
-			wfc_size_t k=0;
-			switch (_WFC_TILE_GET_ROTATION(tile)){
-				case 0:
-					for (wfc_size_t i=0;i<downscale_factor;i++){
-						for (wfc_size_t j=0;j<downscale_factor;j++){
-							wfc_size_t qi=(oy+adjusted_upscaled_data_size-j)%image->height;
-							wfc_size_t qj=(ox+i)%image->width;
-							upscaled_data[k]=image->data[qi*image->width+qj];
-							k++;
-						}
-					}
-					break;
-				case 1:
-					for (wfc_size_t i=0;i<downscale_factor;i++){
-						for (wfc_size_t j=0;j<downscale_factor;j++){
-							wfc_size_t qi=(oy+adjusted_upscaled_data_size-i)%image->height;
-							wfc_size_t qj=(ox+adjusted_upscaled_data_size-j)%image->width;
-							upscaled_data[k]=image->data[qi*image->width+qj];
-							k++;
-						}
-					}
-					break;
-				case 2:
-					for (wfc_size_t i=0;i<downscale_factor;i++){
-						for (wfc_size_t j=0;j<downscale_factor;j++){
-							wfc_size_t qi=(oy+j)%image->height;
-							wfc_size_t qj=(ox+adjusted_upscaled_data_size-i)%image->width;
-							upscaled_data[k]=image->data[qi*image->width+qj];
-							k++;
-						}
-					}
-					break;
+			wfc_size_t rotation=_WFC_TILE_GET_ROTATION(tile);
+			if (precalculate_upscaled_data){
+				_calculate_rotated_upscaled_data(image,ox,oy,downscale_factor,adjusted_upscaled_data_size,rotation,upscaled_data);
 			}
 			if (_add_tile(out,config,buffer,upscaled_data)){
+				if (!precalculate_upscaled_data){
+					_calculate_rotated_upscaled_data(image,ox,oy,downscale_factor,adjusted_upscaled_data_size,rotation,upscaled_data);
+				}
 				(out->tiles+out->tile_count-1)->_x=(out->tiles+i)->_x+_WFC_TILE_ROTATED;
-				(out->tiles+out->tile_count-1)->_y=(out->tiles+i)->_y;
+				(out->tiles+out->tile_count-1)->_y=oy;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 				upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
 			}
@@ -743,52 +815,16 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 			}
 			wfc_size_t ox=_WFC_TILE_GET_POS(tile);
 			wfc_size_t oy=tile->_y;
-			wfc_size_t k=0;
-			switch (_WFC_TILE_GET_ROTATION(tile)){
-				case 0:
-					for (wfc_size_t i=0;i<downscale_factor;i++){
-						for (wfc_size_t j=0;j<downscale_factor;j++){
-							wfc_size_t qi=(oy+i)%image->height;
-							wfc_size_t qj=(ox+adjusted_upscaled_data_size-j)%image->width;
-							upscaled_data[k]=image->data[qi*image->width+qj];
-							k++;
-						}
-					}
-					break;
-				case 1:
-					for (wfc_size_t i=0;i<downscale_factor;i++){
-						for (wfc_size_t j=0;j<downscale_factor;j++){
-							wfc_size_t qi=(oy+j)%image->height;
-							wfc_size_t qj=(ox+i)%image->width;
-							upscaled_data[k]=image->data[qi*image->width+qj];
-							k++;
-						}
-					}
-					break;
-				case 2:
-					for (wfc_size_t i=0;i<downscale_factor;i++){
-						for (wfc_size_t j=0;j<downscale_factor;j++){
-							wfc_size_t qi=(oy+adjusted_upscaled_data_size-i)%image->height;
-							wfc_size_t qj=(ox+j)%image->width;
-							upscaled_data[k]=image->data[qi*image->width+qj];
-							k++;
-						}
-					}
-					break;
-				case 3:
-					for (wfc_size_t i=0;i<downscale_factor;i++){
-						for (wfc_size_t j=0;j<downscale_factor;j++){
-							wfc_size_t qi=(oy+adjusted_upscaled_data_size-j)%image->height;
-							wfc_size_t qj=(ox+adjusted_upscaled_data_size-i)%image->width;
-							upscaled_data[k]=image->data[qi*image->width+qj];
-							k++;
-						}
-					}
-					break;
+			wfc_size_t rotation=_WFC_TILE_GET_ROTATION(tile);
+			if (precalculate_upscaled_data){
+				_calculate_rotated_flipped_upscaled_data(image,ox,oy,downscale_factor,adjusted_upscaled_data_size,rotation,upscaled_data);
 			}
 			if (_add_tile(out,config,buffer,upscaled_data)){
+				if (!precalculate_upscaled_data){
+					_calculate_rotated_flipped_upscaled_data(image,ox,oy,downscale_factor,adjusted_upscaled_data_size,rotation,upscaled_data);
+				}
 				(out->tiles+out->tile_count-1)->_x=(out->tiles+i)->_x|_WFC_TILE_FLIPPED;
-				(out->tiles+out->tile_count-1)->_y=(out->tiles+i)->_y;
+				(out->tiles+out->tile_count-1)->_y=oy;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 				upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
 			}
