@@ -299,7 +299,7 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 	char command[4];
 	wfc_table_t table;
 	printf("\x1b[?25l");
-	for (unsigned int i=0;i<height;i++){
+	for (unsigned int i=0;i<height-1;i++){
 		putchar('\n');
 	}
 	while (1){
@@ -325,7 +325,7 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 			tile_rows=(table.tile_count+tile_columns-1)/tile_columns;
 			max_scroll_height=(table_box_size+1)*(tile_rows-1);
 		}
-		printf("\x1b[H\x1b[48;2;66;67;63m\x1b[38;2;245;245;245mDs: ");
+		printf("\x1b[%uA\x1b[0G\x1b[48;2;66;67;63m\x1b[38;2;245;245;245mDs: ",height);
 		_print_integer(config->downscale_factor,3,edit_index);
 		printf("\x1b[38;2;245;245;245m, B: ");
 		_print_integer(config->box_size,2,edit_index-3);
@@ -600,7 +600,7 @@ _next_index:
 _return:
 	wfc_free_table(&table);
 	tcsetattr(STDOUT_FILENO,TCSANOW,&old_terminal_config);
-	printf("\x1b[0m\x1b[?25h\x1b[H\x1b[0JBox size: %u\nFlags:%s%s%s%s%s%s%s%s\nPalette size: %u\nSimilarity score: %u\nDownscale factor: %u\nPropagation distance: %u\nDelete size: %u\n",config->box_size,((config->flags&WFC_FLAG_FLIP)?" WFC_FLAG_FLIP":""),((config->flags&WFC_FLAG_ROTATE)?" WFC_FLAG_ROTATE":""),((config->flags&WFC_FLAG_WRAP_X)?" WFC_FLAG_WRAP_X":""),((config->flags&WFC_FLAG_WRAP_Y)?" WFC_FLAG_WRAP_Y":""),((config->flags&WFC_FLAG_WRAP_OUTPUT_X)?" WFC_FLAG_WRAP_OUTPUT_X":""),((config->flags&WFC_FLAG_WRAP_OUTPUT_Y)?" WFC_FLAG_WRAP_OUTPUT_Y":""),((config->flags&WFC_FLAG_BLEND_CORNER)?" WFC_FLAG_BLEND_CORNER":""),((config->flags&WFC_FLAG_BLEND_PIXEL)?" WFC_FLAG_BLEND_PIXEL":""),config->palette_max_size,config->max_color_diff,config->downscale_factor,config->propagation_distance,config->delete_size);
+	printf("\x1b[0m\x1b[?25h\x1b[%uA\x1b[0G\x1b[0JBox size: %u\nFlags:%s%s%s%s%s%s%s%s\nPalette size: %u\nSimilarity score: %u\nDownscale factor: %u\nPropagation distance: %u\nDelete size: %u\n",height,config->box_size,((config->flags&WFC_FLAG_FLIP)?" WFC_FLAG_FLIP":""),((config->flags&WFC_FLAG_ROTATE)?" WFC_FLAG_ROTATE":""),((config->flags&WFC_FLAG_WRAP_X)?" WFC_FLAG_WRAP_X":""),((config->flags&WFC_FLAG_WRAP_Y)?" WFC_FLAG_WRAP_Y":""),((config->flags&WFC_FLAG_WRAP_OUTPUT_X)?" WFC_FLAG_WRAP_OUTPUT_X":""),((config->flags&WFC_FLAG_WRAP_OUTPUT_Y)?" WFC_FLAG_WRAP_OUTPUT_Y":""),((config->flags&WFC_FLAG_BLEND_CORNER)?" WFC_FLAG_BLEND_CORNER":""),((config->flags&WFC_FLAG_BLEND_PIXEL)?" WFC_FLAG_BLEND_PIXEL":""),config->palette_max_size,config->max_color_diff,config->downscale_factor,config->propagation_distance,config->delete_size);
 #endif
 }
 
