@@ -2,7 +2,8 @@
 	"box_size": 3,
 	"flags": [
 		"flip",
-		"rotate"
+		"rotate",
+		"blend_pixel"
 	],
 	"palette_size": 16,
 	"max_color_diff": 500,

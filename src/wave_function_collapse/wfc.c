@@ -86,7 +86,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 #define BI_RGB 0
 
 #define COMMAND(a,b) ((((unsigned int)(a))<<8)|(b))
-#define MAX_EDIT_INDEX 20
+#define MAX_EDIT_INDEX 22
 #define ADJUST_VALUE_AT_EDIT_INDEX(var,offset,width,new_digit) \
 	unsigned int pow=powers_of_ten[edit_index-offset+8-width]; \
 	unsigned int digit=(var/pow)%10; \
@@ -138,6 +138,23 @@ static void _quicksort_palette(const wfc_color_t* palette,uint32_t* data,wfc_pal
 
 
 
+static void _blend_upscaled_data(const wfc_table_t* table,wfc_tile_t* tile,wfc_color_t* upscaled_data){
+	wfc_color_t* src_a=tile->upscaled_data;
+	const wfc_color_t* src_b=upscaled_data;
+	for (wfc_size_t j=0;j<table->downscale_factor*table->downscale_factor;j++){
+		unsigned int r=(((*src_a)>>24)*tile->_upscaled_data_count+((*src_b)>>24))/(tile->_upscaled_data_count+1);
+		unsigned int g=((((*src_a)>>16)&0xff)*tile->_upscaled_data_count+(((*src_b)>>16)&0xff))/(tile->_upscaled_data_count+1);
+		unsigned int b=((((*src_a)>>8)&0xff)*tile->_upscaled_data_count+(((*src_b)>>8)&0xff))/(tile->_upscaled_data_count+1);
+		unsigned int a=(((*src_a)&0xff)*tile->_upscaled_data_count+((*src_b)&0xff))/(tile->_upscaled_data_count+1);
+		*src_a=(r<<24)|(g<<16)|(b<<8)|a;
+		src_a++;
+		src_b++;
+	}
+	tile->_upscaled_data_count++;
+}
+
+
+
 static _Bool _add_tile(wfc_table_t* table,const wfc_config_t* config,wfc_color_t* data,wfc_color_t* upscaled_data){
 	wfc_tile_hash_t hash=FNV_OFFSET_BASIS;
 	for (wfc_box_size_t i=0;i<config->box_size*config->box_size;i++){
@@ -145,19 +162,13 @@ static _Bool _add_tile(wfc_table_t* table,const wfc_config_t* config,wfc_color_t
 	}
 	wfc_tile_t* tile=table->tiles;
 	for (wfc_tile_index_t i=0;i<table->tile_count;i++){
+		if ((config->flags&WFC_FLAG_BLEND_CORNER)&&tile->data[0]==data[0]){
+			_blend_upscaled_data(table,tile,upscaled_data);
+		}
 		if (tile->hash==hash&&!memcmp(tile->data,data,config->box_size*config->box_size*sizeof(wfc_color_t))){
-			wfc_color_t* src_a=tile->upscaled_data;
-			const wfc_color_t* src_b=upscaled_data;
-			for (wfc_size_t j=0;j<table->downscale_factor*table->downscale_factor;j++){
-				unsigned int r=(((*src_a)>>24)*tile->_upscaled_data_count+((*src_b)>>24))/(tile->_upscaled_data_count+1);
-				unsigned int g=((((*src_a)>>16)&0xff)*tile->_upscaled_data_count+(((*src_b)>>16)&0xff))/(tile->_upscaled_data_count+1);
-				unsigned int b=((((*src_a)>>8)&0xff)*tile->_upscaled_data_count+(((*src_b)>>8)&0xff))/(tile->_upscaled_data_count+1);
-				unsigned int a=(((*src_a)&0xff)*tile->_upscaled_data_count+((*src_b)&0xff))/(tile->_upscaled_data_count+1);
-				*src_a=(r<<24)|(g<<16)|(b<<8)|a;
-				src_a++;
-				src_b++;
+			if (config->flags&WFC_FLAG_BLEND_PIXEL){
+				_blend_upscaled_data(table,tile,upscaled_data);
 			}
-			tile->_upscaled_data_count++;
 			return 0;
 		}
 		tile++;
@@ -334,7 +345,11 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 		_print_flag(!!(config->flags&WFC_FLAG_WRAP_OUTPUT_X),"WOX",edit_index-19);
 		putchar(' ');
 		_print_flag(!!(config->flags&WFC_FLAG_WRAP_OUTPUT_Y),"ROY",edit_index-20);
-		for (unsigned int i=57;i<width;i++){
+		putchar(' ');
+		_print_flag(!!(config->flags&WFC_FLAG_BLEND_CORNER),"BC",edit_index-21);
+		putchar(' ');
+		_print_flag(!!(config->flags&WFC_FLAG_BLEND_PIXEL),"BP",edit_index-22);
+		for (unsigned int i=63;i<width;i++){
 			putchar(' ');
 		}
 		wfc_box_size_t row=scrolled_lines%(table_box_size+1);
@@ -473,8 +488,14 @@ _next_index:
 				else if (edit_index==19){
 					config->flags^=WFC_FLAG_WRAP_OUTPUT_X;
 				}
-				else{
+				else if (edit_index==20){
 					config->flags^=WFC_FLAG_WRAP_OUTPUT_Y;
+				}
+				else if (edit_index==21){
+					config->flags^=WFC_FLAG_BLEND_CORNER;
+				}
+				else{
+					config->flags^=WFC_FLAG_BLEND_PIXEL;
 				}
 				changes=1;
 				break;
@@ -506,8 +527,14 @@ _next_index:
 				else if (edit_index==19){
 					config->flags^=WFC_FLAG_WRAP_OUTPUT_X;
 				}
-				else{
+				else if (edit_index==20){
 					config->flags^=WFC_FLAG_WRAP_OUTPUT_Y;
+				}
+				else if (edit_index==21){
+					config->flags^=WFC_FLAG_BLEND_CORNER;
+				}
+				else{
+					config->flags^=WFC_FLAG_BLEND_PIXEL;
 				}
 				changes=1;
 				break;
@@ -548,8 +575,14 @@ _next_index:
 				else if (edit_index==19){
 					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_WRAP_OUTPUT_X);
 				}
-				else{
+				else if (edit_index==20){
 					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_WRAP_OUTPUT_Y);
+				}
+				else if (edit_index==21){
+					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_BLEND_CORNER);
+				}
+				else{
+					ADJUST_FLAG_AT_INDEX(command[0]!=48,WFC_FLAG_BLEND_PIXEL);
 				}
 				changes=1;
 				if (edit_index!=2&&edit_index!=4&&edit_index!=8&&edit_index<15){
