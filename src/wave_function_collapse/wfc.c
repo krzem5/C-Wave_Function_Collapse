@@ -760,7 +760,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 	out->tiles=NULL;
 	out->downscale_factor=downscale_factor;
 	wfc_color_t* buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
-	wfc_color_t* upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
+	wfc_color_t* upscaled_data=malloc(downscale_factor_squared*sizeof(wfc_color_t));
 	_Bool precalculate_upscaled_data=!!(config->flags&(WFC_FLAG_BLEND_CORNER|WFC_FLAG_BLEND_PIXEL));
 	for (wfc_size_t x=0;x<width-((config->flags&WFC_FLAG_WRAP_X)?0:config->box_size-1);x++){
 		for (wfc_size_t y=0;y<height-((config->flags&WFC_FLAG_WRAP_Y)?0:config->box_size-1);y++){
@@ -786,7 +786,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				(out->tiles+out->tile_count-1)->_x=x*downscale_factor;
 				(out->tiles+out->tile_count-1)->_y=y*downscale_factor;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
-				upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
+				upscaled_data=malloc(downscale_factor_squared*sizeof(wfc_color_t));
 			}
 		}
 	}
@@ -820,7 +820,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				(out->tiles+out->tile_count-1)->_x=(out->tiles+i)->_x+_WFC_TILE_ROTATED;
 				(out->tiles+out->tile_count-1)->_y=oy;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
-				upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
+				upscaled_data=malloc(downscale_factor_squared*sizeof(wfc_color_t));
 			}
 		}
 	}
@@ -852,7 +852,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				(out->tiles+out->tile_count-1)->_x=(out->tiles+i)->_x|_WFC_TILE_FLIPPED;
 				(out->tiles+out->tile_count-1)->_y=oy;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
-				upscaled_data=malloc(downscale_factor*downscale_factor*sizeof(wfc_color_t));
+				upscaled_data=malloc(downscale_factor_squared*sizeof(wfc_color_t));
 			}
 		}
 	}
