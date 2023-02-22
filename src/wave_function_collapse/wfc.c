@@ -883,22 +883,26 @@ _delete_tile:
 		for (unsigned int j=0;j<4;j++){
 			wfc_box_size_t extra_div=((j&1)?config->box_size-1:0xffffffff);
 			wfc_box_size_t offset=(!j)*config->box_size+(j==3);
-			const wfc_color_t* tile_data=base_tile_data+(j==1)+(j==2)*config->box_size;
+			const wfc_color_t* adjusted_tile_data=base_tile_data+(j==1)+(j==2)*config->box_size;
+			const wfc_tile_t* tile2=out->tiles;
 			for (wfc_tile_index_t k=0;k<out->tile_count;k++){
-				const wfc_color_t* tile2_data=(out->tiles+k)->data+offset;
+				const wfc_color_t* tile_data=adjusted_tile_data;
+				const wfc_color_t* tile2_data=tile2->data+offset;
+				tile2++;
 				wfc_color_diffrence_t diff=0;
 				wfc_box_size_t n=0;
-				wfc_box_size_t o=0;
 				for (wfc_box_size_t m=0;m<config->box_size*(config->box_size-1);m++){
-					diff+=_color_diffrence(tile_data[n],tile2_data[n]);
+					diff+=_color_diffrence(*tile_data,*tile2_data);
 					if (diff>config->max_color_diff){
 						goto _skip_tile;
 					}
+					tile_data++;
+					tile2_data++;
 					n++;
-					o++;
-					if (o==extra_div){
-						n++;
-						o=0;
+					if (n==extra_div){
+						tile_data++;
+						tile2_data++;
+						n=0;
 					}
 				}
 				data[k>>6]|=1ull<<(k&63);
