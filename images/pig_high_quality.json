@@ -7,7 +7,7 @@
 		"wrap_y"
 	],
 	"palette_size": 16,
-	"max_color_diff": 500,
+	"max_color_diff": 300,
 	"propagation_distance": 4,
 	"delete_size": 2,
 	"downscale_factor": 3,

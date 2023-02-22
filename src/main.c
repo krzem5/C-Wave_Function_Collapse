@@ -14,9 +14,9 @@
 
 
 
-#define PICK_PARAMETERS 1
+#define PICK_PARAMETERS 0
 #define GENERATE_IMAGE 1
-#define IMAGE_NAME "face"
+#define IMAGE_NAME "pig_high_quality"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
@@ -86,7 +86,7 @@ int main(int argc,const char** argv){
 	unsigned int output_width=window_size.ws_col>>1;
 	unsigned int output_height=window_size.ws_row-5;
 #endif
-	srand(time(NULL));
+	srand(get_time()&0xffffffff);
 	wfc_color_t output_image_data[output_width*output_height];
 	wfc_image_t output_image={
 		output_width,
