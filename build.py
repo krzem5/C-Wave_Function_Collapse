@@ -9,11 +9,11 @@ import sys
 def generate_image_header_file(source_directory,header_file_path):
 	images={}
 	for file_path in os.listdir(source_directory):
-		if (not file_path.endswith(".png")):
+		if (not file_path.endswith(".json")):
 			continue
-		with open(source_directory+file_path[:-3]+"json","r") as rf:
+		with open(source_directory+file_path,"r") as rf:
 			data=json.loads(rf.read())
-		image=Image.open(source_directory+file_path).convert("RGBA")
+		image=Image.open(source_directory+(data["name"] if "name" in data else file_path[:-5])+".png").convert("RGBA")
 		data["width"]=image.width
 		data["height"]=image.height
 		data["data"]=image

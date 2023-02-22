@@ -1,15 +1,15 @@
 {
-	"box_size": 3,
+	"box_size": 7,
 	"flags": [
 		"flip",
 		"rotate",
 		"wrap_x",
 		"wrap_y"
 	],
-	"palette_size": 4,
-	"max_color_diff": 200,
+	"palette_size": 16,
+	"max_color_diff": 500,
 	"propagation_distance": 4,
 	"delete_size": 2,
-	"downscale_factor": 2,
-	"name": "duck"
+	"downscale_factor": 3,
+	"name": "pig"
 }
