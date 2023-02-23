@@ -853,7 +853,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 		out->data_elem_size=((out->tile_count+255)>>6)&0xfffffffc;
 		out->_connection_data=calloc(4*out->tile_count*out->data_elem_size*sizeof(uint64_t),1);
 		if (out->tile_count){
-			out->tiles->connections=out->_connection_data;
+			out->tiles->connections=calloc(4*out->data_elem_size*sizeof(uint64_t),1);
 		}
 		return;
 	}
@@ -972,7 +972,8 @@ void wfc_free_table(wfc_table_t* table){
 		free((table->tiles+table->tile_count)->data);
 		free((table->tiles+table->tile_count)->connections);
 		free((table->tiles+table->tile_count)->upscaled_data);
-	}	free(table->tiles);
+	}
+	free(table->tiles);
 	table->tiles=NULL;
 	free(table->_connection_data);
 	table->_connection_data=NULL;
