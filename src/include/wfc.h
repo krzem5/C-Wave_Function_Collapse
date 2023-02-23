@@ -154,7 +154,7 @@ typedef struct _WFC_COLOR_RANGE{
 
 
 typedef struct _WFC_PALETTE_RANGE{
-	wfc_palette_color_index_t* data;
+	wfc_palette_color_index_t* indicies;
 	wfc_palette_size_t size;
 	wfc_color_range_t range;
 } wfc_palette_range_t;

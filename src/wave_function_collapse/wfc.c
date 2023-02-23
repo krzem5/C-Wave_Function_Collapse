@@ -85,6 +85,9 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 #define DIB_HEADER_SIZE 40
 #define BI_RGB 0
 
+#define FAST_MASK_VALUE_PRIME 0x3ffffffffff8b
+#define FAST_MASK_OFFSET_PRIME 0xfffffef5
+
 #define COMMAND(a,b) ((((unsigned int)(a))<<8)|(b))
 #define MAX_EDIT_INDEX 23
 #define ADJUST_VALUE_AT_EDIT_INDEX(var,offset,width,new_digit) \
@@ -741,20 +744,20 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 			indicies[i]=i;
 		}
 		wfc_palette_range_t* ranges=malloc(config->palette_max_size*sizeof(wfc_palette_range_t));
-		ranges->data=indicies;
+		ranges->indicies=indicies;
 		ranges->size=palette_size;
 		ranges->range=color_range;
 		wfc_palette_range_t* new_range=ranges+1;
 		for (wfc_palette_size_t i=1;i<config->palette_max_size;i++){
 			wfc_palette_size_t max_index=0;
-			uint8_t max_offset=0;
-			uint8_t max_diff=0;
+			unsigned int max_offset=0;
+			unsigned int max_diff=0;
 			for (wfc_palette_size_t j=0;j<i;j++){
 				const wfc_palette_range_t* range=ranges+j;
 				if (range->size<2){
 					continue;
 				}
-				for (uint8_t offset=0;offset<4;offset++){
+				for (unsigned int offset=0;offset<4;offset++){
 					if (range->range.diff[offset]>max_diff){
 						max_index=j;
 						max_offset=offset;
@@ -764,9 +767,9 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 			}
 			wfc_palette_range_t* range=ranges+max_index;
 			wfc_palette_size_t size=range->size;
-			_quicksort_palette(palette,range->data,size-1,0xff<<(max_offset<<3));
+			_quicksort_palette(palette,range->indicies,size-1,0xff<<(max_offset<<3));
 			range->size>>=1;
-			new_range->data=range->data+range->size;
+			new_range->indicies=range->indicies+range->size;
 			new_range->size=size-range->size;
 			INIT_RANGE(&color_range);
 			for (wfc_palette_size_t j=0;j<size;j++){
@@ -775,7 +778,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 					range->range=color_range;
 					INIT_RANGE(&color_range);
 				}
-				UPDATE_RANGE(&color_range,palette[range->data[j]]);
+				UPDATE_RANGE(&color_range,palette[range->indicies[j]]);
 			}
 			FINISH_RANGE(&color_range);
 			new_range->range=color_range;
@@ -785,7 +788,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 			const wfc_palette_range_t* range=ranges+i;
 			wfc_color_t color=(*((uint32_t*)(range->range.min)))+(((*((uint32_t*)(range->range.diff)))&0xfefefefe)>>1);
 			for (wfc_palette_size_t j=0;j<range->size;j++){
-				palette[range->data[j]]=color;
+				palette[range->indicies[j]]=color;
 			}
 		}
 		free(ranges);
@@ -1346,7 +1349,8 @@ _retry_from_start:;
 							continue;
 						}
 						uint32_t fast_mask_offset=j*table->data_elem_size+k;
-						uint32_t key_wide=value^(value>>32)^fast_mask_offset;
+						uint64_t key_extra_wide=(value*FAST_MASK_VALUE_PRIME)^(fast_mask_offset*FAST_MASK_OFFSET_PRIME);
+						uint32_t key_wide=key_extra_wide^(key_extra_wide>>32);
 						wfc_fast_mask_t* fast_mask_data=state->fast_mask+((key_wide^(key_wide>>16))&0xffff)+(i<<16);
 						cache_check_count++;
 						if (fast_mask_data->offset==fast_mask_offset&&fast_mask_data->key==value){

@@ -1,5 +1,5 @@
 {
-	"box_size": 5,
+	"box_size": 4,
 	"flags": [
 		"flip",
 		"rotate",

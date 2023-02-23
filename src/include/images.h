@@ -432,10 +432,10 @@ static const image_config_t images[14]={
 			_image_pig_high_quality_data
 		},
 		{
-			7,
-			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y,
+			5,
+			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y|WFC_FLAG_AVERAGE_SCALING,
 			16,
-			300,
+			100,
 			4,
 			2,
 			3
@@ -585,10 +585,10 @@ static const image_config_t images[14]={
 			_image_pig_low_quality_data
 		},
 		{
-			4,
-			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y,
+			3,
+			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y|WFC_FLAG_AVERAGE_SCALING,
 			16,
-			500,
+			100,
 			4,
 			2,
 			3
@@ -602,7 +602,7 @@ static const image_config_t images[14]={
 			_image_pig_data
 		},
 		{
-			5,
+			4,
 			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y|WFC_FLAG_AVERAGE_SCALING,
 			16,
 			100,
