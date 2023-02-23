@@ -960,6 +960,8 @@ void wfc_free_state(const wfc_table_t* table,wfc_state_t* state){
 	state->delete_stack=NULL;
 	free(state->fast_mask);
 	state->fast_mask=NULL;
+	free(state->fast_mask_cache);
+	state->fast_mask_cache=NULL;
 	state->pixel_count=0;
 	state->width=0;
 }
@@ -1051,6 +1053,7 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_
 	out->update_stack=malloc(pixel_count*sizeof(wfc_size_t));
 	out->delete_stack=malloc(pixel_count*sizeof(wfc_size_t));
 	out->fast_mask=malloc(262144*sizeof(wfc_fast_mask_t));
+	out->fast_mask_cache=malloc(64*sizeof(wfc_fast_mask_t));
 	out->pixel_count=pixel_count;
 	out->width=image->width;
 }
@@ -1182,19 +1185,14 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state,const wfc_config_t* c
 	__m256i popcnt_table=_mm256_setr_epi8(0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4);
 	__m256i popcnt_low_mask=_mm256_set1_epi8(15);
 	__m256i* ptr=(__m256i*)(state->fast_mask);
-	for (wfc_size_t i=0;i<(sizeof(wfc_fast_mask_t)<<12);i++){
+	for (wfc_size_t i=0;i<262144*sizeof(wfc_fast_mask_t);i+=32){
 		_mm256_storeu_si256(ptr,zero);
 		ptr++;
 	}
-	wfc_fast_mask_t fast_mask_cache[64];
-	for (unsigned int i=0;i<64;i++){
-		(fast_mask_cache+i)->key=0;
-		(fast_mask_cache+i)->data[0]=0;
-		(fast_mask_cache+i)->data[1]=0;
-		(fast_mask_cache+i)->data[2]=0;
-		(fast_mask_cache+i)->data[3]=0;
-		(fast_mask_cache+i)->offset=0;
-		(fast_mask_cache+i)->counter=0;
+	ptr=(__m256i*)(state->fast_mask_cache);
+	for (wfc_size_t i=0;i<64*sizeof(wfc_fast_mask_t);i+=32){
+		_mm256_storeu_si256(ptr,zero);
+		ptr++;
 	}
 	uint64_t cache_check_count=0;
 	uint64_t cache_hit_count=0;
@@ -1340,7 +1338,7 @@ _retry_from_start:;
 						uint32_t key_wide=key_extra_wide^(key_extra_wide>>32);
 						uint16_t fast_mask_index=key_wide^(key_wide>>16);
 						uint8_t fast_mask_cache_wide_index=fast_mask_index^(fast_mask_index>>8);
-						wfc_fast_mask_t* cached_fast_mask_data=fast_mask_cache+(i<<4)+((fast_mask_cache_wide_index^(fast_mask_cache_wide_index>>4))&0xf);
+						wfc_fast_mask_t* cached_fast_mask_data=state->fast_mask_cache+(i<<4)+((fast_mask_cache_wide_index^(fast_mask_cache_wide_index>>4))&0xf);
 						cache_check_count++;
 						if (cached_fast_mask_data->offset==fast_mask_offset&&cached_fast_mask_data->key==value){
 							cache_hit_fast_count++;

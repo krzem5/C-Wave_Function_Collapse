@@ -147,6 +147,7 @@ typedef struct _WFC_STATE{
 	wfc_size_t* update_stack;
 	wfc_size_t* delete_stack;
 	wfc_fast_mask_t* fast_mask;
+	wfc_fast_mask_t* fast_mask_cache;
 	wfc_size_t pixel_count;
 	wfc_size_t width;
 } wfc_state_t;
