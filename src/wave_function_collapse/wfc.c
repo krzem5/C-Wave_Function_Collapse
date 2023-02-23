@@ -86,7 +86,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 #define BI_RGB 0
 
 #define FAST_MASK_VALUE_PRIME 0x3ffffffffff8b
-#define FAST_MASK_OFFSET_PRIME 0xfffffef5
+#define FAST_MASK_OFFSET_PRIME 0x1fffffee3
 
 #define COMMAND(a,b) ((((unsigned int)(a))<<8)|(b))
 #define MAX_EDIT_INDEX 23
