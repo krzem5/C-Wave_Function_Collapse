@@ -16,7 +16,7 @@
 
 #define PICK_PARAMETERS 1
 #define GENERATE_IMAGE 1
-#define IMAGE_NAME "duck_fast"
+#define IMAGE_NAME "cow"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
@@ -105,7 +105,8 @@ int main(int argc,const char** argv){
 	wfc_init_state(&table,&output_image,&state);
 	fflush(stdout);
 	time_start=get_time();
-	float cache=wfc_solve(&table,&state,&config,_progress_callback,&output_image);
+	wfc_stats_t stats;
+	wfc_solve(&table,&state,&config,_progress_callback,&output_image,&stats);
 	printf("\x1b[0m\x1b[?25h\x1b[%uA",output_image.height);
 	unsigned long int generation_time=get_time()-time_start;
 	wfc_generate_image(&table,&state,&output_image);
@@ -116,7 +117,7 @@ int main(int argc,const char** argv){
 	wfc_generate_full_scale_image(&table,&state,&output_image);
 	putchar('\n');
 	wfc_print_image(&output_image);
-	printf("Table size: %u (%lu kB)\nTable creation time: %.3lfs\nGeneration time: %.3lfs\nCache hits: %.3f%%\n",table.tile_count,(table.tile_count*(config.box_size*config.box_size+table.downscale_factor*table.downscale_factor)*sizeof(wfc_color_t)+512)>>10,table_creation_time*1e-9,generation_time*1e-9,cache*100);
+	printf("Table size: %u (%lu kB)\nTable creation time: %.3lfs\nGeneration time: %.3lfs\nData access:\n  Fast cache: %.3f%%\n  Cache: %.3f%%\n  Raw: %.3f%%\n",table.tile_count,(table.tile_count*(config.box_size*config.box_size+table.downscale_factor*table.downscale_factor)*sizeof(wfc_color_t)+512)>>10,table_creation_time*1e-9,generation_time*1e-9,((float)stats.fast_cache_hits)/stats.total_cache_checks*100,((float)stats.cache_hits)/stats.total_cache_checks*100,((float)(stats.total_cache_checks-stats.cache_hits-stats.fast_cache_hits))/stats.total_cache_checks*100);
 	wfc_free_table(&table);
 	wfc_free_state(&table,&state);
 	wfc_save_image(&output_image,"build/export.bmp");

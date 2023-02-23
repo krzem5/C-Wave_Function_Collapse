@@ -184,6 +184,14 @@ typedef struct _WFC_CONFIG{
 
 
 
+typedef struct _WFC_STATS{
+	uint64_t total_cache_checks;
+	uint64_t cache_hits;
+	uint64_t fast_cache_hits;
+} wfc_stats_t;
+
+
+
 typedef void (*wfc_callback_t)(const wfc_table_t*,const wfc_state_t*,void*);
 
 
@@ -228,7 +236,7 @@ void wfc_save_image(const wfc_image_t* image,const char* path);
 
 
 
-float wfc_solve(const wfc_table_t* table,wfc_state_t* state,const wfc_config_t* config,wfc_callback_t callback,void* ctx);
+void wfc_solve(const wfc_table_t* table,wfc_state_t* state,const wfc_config_t* config,wfc_callback_t callback,void* ctx,wfc_stats_t* out);
 
 
 
