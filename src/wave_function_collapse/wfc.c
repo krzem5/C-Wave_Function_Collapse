@@ -504,7 +504,7 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 		else{
 			printf("\n\x1b[48;2;66;67;63m");
 		}
-		snprintf(line_buffer,4096,"%u \x1b[38;2;245;245;245mtile%c",table.tile_count,(table.tile_count==1?' ':'s'));
+		snprintf(line_buffer,4096,"%u,%u,%u \x1b[38;2;245;245;245mtile%c",command[0],command[1],table.tile_count,(table.tile_count==1?' ':'s'));
 		printf("\x1b[38;2;143;240;164m%*s",width+19,line_buffer);
 		fflush(stdout);
 		int count=read(STDIN_FILENO,command,4);
@@ -622,6 +622,45 @@ _next_index:
 					wfc_free_table(&table);
 					changes=2;
 				}
+				break;
+			case COMMAND(33,0):
+				edit_index=2;
+				break;
+			case COMMAND(64,0):
+				edit_index=4;
+				break;
+			case COMMAND(35,0):
+				edit_index=8;
+				break;
+			case COMMAND(36,0):
+				edit_index=14;
+				break;
+			case COMMAND(37,0):
+				edit_index=15;
+				break;
+			case COMMAND(94,0):
+				edit_index=16;
+				break;
+			case COMMAND(38,0):
+				edit_index=17;
+				break;
+			case COMMAND(42,0):
+				edit_index=18;
+				break;
+			case COMMAND(40,0):
+				edit_index=19;
+				break;
+			case COMMAND(41,0):
+				edit_index=20;
+				break;
+			case COMMAND(95,0):
+				edit_index=21;
+				break;
+			case COMMAND(43,0):
+				edit_index=22;
+				break;
+			case COMMAND(127,0):
+				edit_index=23;
 				break;
 		}
 	}
