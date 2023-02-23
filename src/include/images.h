@@ -438,7 +438,7 @@ static const image_config_t images[14]={
 			_image_pig_high_quality_data
 		},
 		{
-			5,
+			6,
 			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y|WFC_FLAG_AVERAGE_SCALING,
 			16,
 			100,
@@ -558,13 +558,13 @@ static const image_config_t images[14]={
 			_image_cow_data
 		},
 		{
-			5,
-			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_AVERAGE_SCALING|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y,
 			4,
+			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_AVERAGE_SCALING|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y,
+			6,
 			700,
-			3,
+			4,
 			5,
-			2,
+			1,
 			1024,
 			256,
 			1024

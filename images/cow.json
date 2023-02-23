@@ -1,5 +1,5 @@
 {
-	"box_size": 5,
+	"box_size": 4,
 	"flags": [
 		"flip",
 		"rotate",
@@ -7,11 +7,11 @@
 		"wrap_x",
 		"wrap_y"
 	],
-	"palette_size": 4,
+	"palette_size": 6,
 	"max_color_diff": 700,
-	"downscale_factor": 3,
+	"downscale_factor": 4,
 	"propagation_distance": 5,
-	"delete_size": 2,
+	"delete_size": 1,
 	"max_delete_count": 1024,
 	"fast_mask_counter_init": 256,
 	"fast_mask_counter_max": 1024
