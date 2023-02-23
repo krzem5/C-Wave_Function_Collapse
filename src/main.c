@@ -84,7 +84,7 @@ int main(int argc,const char** argv){
 	struct winsize window_size;
 	ioctl(STDOUT_FILENO,TIOCGWINSZ,&window_size);
 	unsigned int output_width=window_size.ws_col>>1;
-	unsigned int output_height=window_size.ws_row-15;
+	unsigned int output_height=window_size.ws_row;
 #endif
 	srand((time_t)(get_time()&0xffffffff));
 	wfc_color_t* output_image_data=malloc(output_width*output_height*sizeof(wfc_color_t));
@@ -117,7 +117,7 @@ int main(int argc,const char** argv){
 	wfc_generate_full_scale_image(&table,&state,&output_image);
 	putchar('\n');
 	wfc_print_image(&output_image);
-	printf("Table size: %u (%lu kB)\nTable creation time: %.3lfs\nGeneration:\n  Updates:\n    Collapse: %lu\n    Propagation: %lu\n  Removals:\n    Pixels: %lu\n    Restarts: %lu\n  Data access:\n    Fast cache: %.3f%%\n    Cache: %.3f%%\n    Raw: %.3f%%\nGeneration time: %.3lfs\n",table.tile_count,(table.tile_count*(config.box_size*config.box_size+table.downscale_factor*table.downscale_factor)*sizeof(wfc_color_t)+512)>>10,table_creation_time*1e-9,stats.steps,stats.propagation_steps,stats.deleted_tiles,stats.restarts,((float)stats.fast_cache_hits)/stats.total_cache_checks*100,((float)stats.cache_hits)/stats.total_cache_checks*100,((float)(stats.total_cache_checks-stats.cache_hits-stats.fast_cache_hits))/stats.total_cache_checks*100,generation_time*1e-9);
+	printf("Table:\n  Tile count: %u\n  Memory use:\n    Tile data: %lu kB\n    Neighbours: %lu kB\n    Upscaled data: %lu kB\nTable creation time: %.3lfs\nSimulation:\n  Updates:\n    Collapse: %lu\n    Propagation: %lu\n  Removals:\n    Pixels: %lu\n    Restarts: %lu\n  Data access:\n    Fast cache: %.3f%%\n    Cache: %.3f%%\n    Raw: %.3f%%\nSimulation time: %.3lfs\n",table.tile_count,(table.tile_count*config.box_size*config.box_size*sizeof(wfc_color_t)+1023)>>10,(8*table.tile_count*table.data_elem_size*sizeof(uint64_t)+1023)>>10,(table.tile_count*table.downscale_factor*table.downscale_factor*sizeof(wfc_color_t)+1023)>>10,table_creation_time*1e-9,stats.steps,stats.propagation_steps,stats.deleted_tiles,stats.restarts,((float)stats.fast_cache_hits)/stats.total_cache_checks*100,((float)stats.cache_hits)/stats.total_cache_checks*100,((float)(stats.total_cache_checks-stats.cache_hits-stats.fast_cache_hits))/stats.total_cache_checks*100,generation_time*1e-9);
 	wfc_free_table(&table);
 	wfc_free_state(&table,&state);
 	wfc_save_image(&output_image,"build/export.bmp");
