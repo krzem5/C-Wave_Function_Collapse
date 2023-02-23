@@ -84,7 +84,7 @@ int main(int argc,const char** argv){
 	struct winsize window_size;
 	ioctl(STDOUT_FILENO,TIOCGWINSZ,&window_size);
 	unsigned int output_width=window_size.ws_col>>1;
-	unsigned int output_height=window_size.ws_row-5;
+	unsigned int output_height=window_size.ws_row-15;
 #endif
 	srand(get_time()&0xffffffff);
 	wfc_color_t output_image_data[output_width*output_height];
