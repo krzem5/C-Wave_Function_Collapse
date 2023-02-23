@@ -189,6 +189,10 @@ typedef struct _WFC_STATS{
 	uint64_t total_cache_checks;
 	uint64_t cache_hits;
 	uint64_t fast_cache_hits;
+	uint64_t deleted_tiles;
+	uint64_t restarts;
+	uint64_t steps;
+	uint64_t propagation_steps;
 } wfc_stats_t;
 
 

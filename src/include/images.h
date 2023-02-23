@@ -573,7 +573,7 @@ static const image_config_t images[14]={
 			4,
 			5,
 			1,
-			1024,
+			100,
 			256,
 			1024,
 			1024
