@@ -86,7 +86,7 @@ int main(int argc,const char** argv){
 	unsigned int output_width=window_size.ws_col>>1;
 	unsigned int output_height=window_size.ws_row-15;
 #endif
-	srand(get_time()&0xffffffff);
+	srand((time_t)(get_time()&0xffffffff));
 	wfc_color_t output_image_data[output_width*output_height];
 	wfc_image_t output_image={
 		output_width,
