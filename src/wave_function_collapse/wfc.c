@@ -504,7 +504,7 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 		else{
 			printf("\n\x1b[48;2;66;67;63m");
 		}
-		snprintf(line_buffer,4096,"%u,%u,%u \x1b[38;2;245;245;245mtile%c",command[0],command[1],table.tile_count,(table.tile_count==1?' ':'s'));
+		snprintf(line_buffer,4096,"%u \x1b[38;2;245;245;245mtile%c",table.tile_count,(table.tile_count==1?' ':'s'));
 		printf("\x1b[38;2;143;240;164m%*s",width+19,line_buffer);
 		fflush(stdout);
 		int count=read(STDIN_FILENO,command,4);
