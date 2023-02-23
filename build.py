@@ -31,7 +31,7 @@ def generate_image_header_file(source_directory,header_file_path):
 			wf.write("};\n\n\n\n")
 		wf.write(f"static const image_config_t images[{len(images)+1}]={{\n")
 		for name,data in images.items():
-			wf.write(f"\t{{\n\t\t\"{name}\",\n\t\t{{\n\t\t\t{data['width']},\n\t\t\t{data['height']},\n\t\t\t_image_{name}_data\n\t\t}},\n\t\t{{\n\t\t\t{data['box_size']},\n\t\t\t{'|'.join(map(lambda f:'WFC_FLAG_'+f.upper(),data['flags'])) if data['flags'] else 0},\n\t\t\t{data['palette_size']},\n\t\t\t{data['max_color_diff']},\n\t\t\t{data['propagation_distance']},\n\t\t\t{data['delete_size']},\n\t\t\t{data['downscale_factor']}\n\t\t}}\n\t}},\n")
+			wf.write(f"\t{{\n\t\t\"{name}\",\n\t\t{{\n\t\t\t{data['width']},\n\t\t\t{data['height']},\n\t\t\t_image_{name}_data\n\t\t}},\n\t\t{{\n\t\t\t{data['box_size']},\n\t\t\t{'|'.join(map(lambda f:'WFC_FLAG_'+f.upper(),data['flags'])) if data['flags'] else 0},\n\t\t\t{data['palette_size']},\n\t\t\t{data['max_color_diff']},\n\t\t\t{data['downscale_factor']},\n\t\t\t{data['propagation_distance']},\n\t\t\t{data['delete_size']},\n\t\t\t{data['max_delete_count']},\n\t\t\t{data['fast_mask_counter_init']},\n\t\t\t{data['fast_mask_counter_max']}\n\t\t}}\n\t}},\n")
 		wf.write("\t{NULL}\n};\n\n\n\n#endif\n")
 
 

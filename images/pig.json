@@ -9,7 +9,10 @@
 	],
 	"palette_size": 16,
 	"max_color_diff": 100,
+	"downscale_factor": 3,
 	"propagation_distance": 4,
 	"delete_size": 2,
-	"downscale_factor": 3
+	"max_delete_count": 1024,
+	"fast_mask_counter_init": 256,
+	"fast_mask_counter_max": 1024
 }

@@ -40,11 +40,8 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 #define FNV_OFFSET_BASIS 0xcbf29ce484222325
 #define FNV_PRIME 0x100000001b3
 
-#define WEIGHT_RANDOMNESS_SHIFT 3
+#define WEIGHT_RANDOMNESS_SHIFT 4
 #define QUEUE_INDEX_COLLAPSED 0xffff
-#define MAX_ALLOWED_REMOVALS 1024
-#define FAST_MASK_COUNTER_INIT 256
-#define FAST_MASK_MAX_COUNTER 1024
 
 #define DIVMOD_WIDTH(number,div,mod) \
 	do{ \
@@ -100,6 +97,14 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 		config->flags|=flag; \
 	}
 
+
+#define EXTRACT_UPSCALED_DATA(x,y) \
+	for (wfc_size_t i=0;i<downscale_factor;i++){ \
+		for (wfc_size_t j=0;j<downscale_factor;j++){ \
+			upscaled_data[k]=image->data[((y)%image->height)*image->width+((x)%image->width)]; \
+			k++; \
+		} \
+	}
 
 
 static const unsigned int powers_of_ten[6]={100000,10000,1000,100,10,1};
@@ -194,14 +199,7 @@ static _Bool _add_tile(wfc_table_t* table,const wfc_config_t* config,wfc_color_t
 
 static void _calculate_raw_upscaled_data(const wfc_image_t* image,wfc_size_t x,wfc_size_t y,wfc_size_t downscale_factor,wfc_color_t* upscaled_data){
 	wfc_size_t k=0;
-	for (wfc_size_t i=0;i<downscale_factor;i++){
-		for (wfc_size_t j=0;j<downscale_factor;j++){
-			wfc_size_t qi=(y*downscale_factor+i)%image->height;
-			wfc_size_t qj=(x*downscale_factor+j)%image->width;
-			upscaled_data[k]=image->data[qi*image->width+qj];
-			k++;
-		}
-	}
+	EXTRACT_UPSCALED_DATA(x*dow_calculate_raw_upscaled_datanscale_factor+j,y*downscale_factor+i);
 }
 
 
@@ -210,34 +208,13 @@ static void _calculate_rotated_upscaled_data(const wfc_image_t* image,wfc_size_t
 	wfc_size_t k=0;
 	switch (rotation){
 		case 0:
-			for (wfc_size_t i=0;i<downscale_factor;i++){
-				for (wfc_size_t j=0;j<downscale_factor;j++){
-					wfc_size_t qi=(oy+adjusted_upscaled_data_size-j)%image->height;
-					wfc_size_t qj=(ox+i)%image->width;
-					upscaled_data[k]=image->data[qi*image->width+qj];
-					k++;
-				}
-			}
+			EXTRACT_UPSCALED_DATA(ox+i,oy+adjusted_upscaled_data_size-j);
 			break;
 		case 1:
-			for (wfc_size_t i=0;i<downscale_factor;i++){
-				for (wfc_size_t j=0;j<downscale_factor;j++){
-					wfc_size_t qi=(oy+adjusted_upscaled_data_size-i)%image->height;
-					wfc_size_t qj=(ox+adjusted_upscaled_data_size-j)%image->width;
-					upscaled_data[k]=image->data[qi*image->width+qj];
-					k++;
-				}
-			}
+			EXTRACT_UPSCALED_DATA(ox+adjusted_upscaled_data_size-j,oy+adjusted_upscaled_data_size-i);
 			break;
 		case 2:
-			for (wfc_size_t i=0;i<downscale_factor;i++){
-				for (wfc_size_t j=0;j<downscale_factor;j++){
-					wfc_size_t qi=(oy+j)%image->height;
-					wfc_size_t qj=(ox+adjusted_upscaled_data_size-i)%image->width;
-					upscaled_data[k]=image->data[qi*image->width+qj];
-					k++;
-				}
-			}
+			EXTRACT_UPSCALED_DATA(ox+adjusted_upscaled_data_size-i,oy+j);
 			break;
 	}
 }
@@ -248,44 +225,16 @@ static void _calculate_rotated_flipped_upscaled_data(const wfc_image_t* image,wf
 	wfc_size_t k=0;
 	switch (rotation){
 		case 0:
-			for (wfc_size_t i=0;i<downscale_factor;i++){
-				for (wfc_size_t j=0;j<downscale_factor;j++){
-					wfc_size_t qi=(oy+i)%image->height;
-					wfc_size_t qj=(ox+adjusted_upscaled_data_size-j)%image->width;
-					upscaled_data[k]=image->data[qi*image->width+qj];
-					k++;
-				}
-			}
+			EXTRACT_UPSCALED_DATA(ox+adjusted_upscaled_data_size-j,oy+i);
 			break;
 		case 1:
-			for (wfc_size_t i=0;i<downscale_factor;i++){
-				for (wfc_size_t j=0;j<downscale_factor;j++){
-					wfc_size_t qi=(oy+j)%image->height;
-					wfc_size_t qj=(ox+i)%image->width;
-					upscaled_data[k]=image->data[qi*image->width+qj];
-					k++;
-				}
-			}
+			EXTRACT_UPSCALED_DATA(ox+i,oy+j);
 			break;
 		case 2:
-			for (wfc_size_t i=0;i<downscale_factor;i++){
-				for (wfc_size_t j=0;j<downscale_factor;j++){
-					wfc_size_t qi=(oy+adjusted_upscaled_data_size-i)%image->height;
-					wfc_size_t qj=(ox+j)%image->width;
-					upscaled_data[k]=image->data[qi*image->width+qj];
-					k++;
-				}
-			}
+			EXTRACT_UPSCALED_DATA(ox+j,oy+adjusted_upscaled_data_size-i);
 			break;
 		case 3:
-			for (wfc_size_t i=0;i<downscale_factor;i++){
-				for (wfc_size_t j=0;j<downscale_factor;j++){
-					wfc_size_t qi=(oy+adjusted_upscaled_data_size-j)%image->height;
-					wfc_size_t qj=(ox+adjusted_upscaled_data_size-i)%image->width;
-					upscaled_data[k]=image->data[qi*image->width+qj];
-					k++;
-				}
-			}
+			EXTRACT_UPSCALED_DATA(ox+adjusted_upscaled_data_size-i,oy+adjusted_upscaled_data_size-j);
 			break;
 	}
 }
@@ -825,8 +774,8 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				if (!precalculate_upscaled_data){
 					_calculate_raw_upscaled_data(image,x,y,downscale_factor,upscaled_data);
 				}
-				(out->tiles+out->tile_count-1)->_x=x*downscale_factor;
-				(out->tiles+out->tile_count-1)->_y=y*downscale_factor;
+				(out->tiles+out->tile_count-1)->x=x*downscale_factor;
+				(out->tiles+out->tile_count-1)->y=y*downscale_factor;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 				upscaled_data=malloc(downscale_factor_squared*sizeof(wfc_color_t));
 			}
@@ -837,7 +786,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 	if (config->flags&WFC_FLAG_ROTATE){
 		for (wfc_tile_index_t i=0;i<out->tile_count;i++){
 			const wfc_tile_t* tile=out->tiles+i;
-			if (_WFC_TILE_GET_ROTATION(tile)==3){
+			if (WFC_TILE_GET_ROTATION(tile)==3){
 				continue;
 			}
 			wfc_color_t* ptr=buffer;
@@ -849,9 +798,9 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 					ptr++;
 				}
 			}
-			wfc_size_t ox=_WFC_TILE_GET_POS(tile);
-			wfc_size_t oy=tile->_y;
-			wfc_size_t rotation=_WFC_TILE_GET_ROTATION(tile);
+			wfc_size_t ox=WFC_TILE_GET_X(tile);
+			wfc_size_t oy=tile->y;
+			wfc_size_t rotation=WFC_TILE_GET_ROTATION(tile);
 			if (precalculate_upscaled_data){
 				_calculate_rotated_upscaled_data(image,ox,oy,downscale_factor,adjusted_upscaled_data_size,rotation,upscaled_data);
 			}
@@ -859,8 +808,8 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				if (!precalculate_upscaled_data){
 					_calculate_rotated_upscaled_data(image,ox,oy,downscale_factor,adjusted_upscaled_data_size,rotation,upscaled_data);
 				}
-				(out->tiles+out->tile_count-1)->_x=(out->tiles+i)->_x+_WFC_TILE_ROTATED;
-				(out->tiles+out->tile_count-1)->_y=oy;
+				(out->tiles+out->tile_count-1)->x=(out->tiles+i)->x+WFC_TILE_ROTATED;
+				(out->tiles+out->tile_count-1)->y=oy;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 				upscaled_data=malloc(downscale_factor_squared*sizeof(wfc_color_t));
 			}
@@ -869,7 +818,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 	if (config->flags&WFC_FLAG_FLIP){
 		for (wfc_tile_index_t i=0;i<out->tile_count;i++){
 			const wfc_tile_t* tile=out->tiles+i;
-			if (tile->_x&_WFC_TILE_FLIPPED){
+			if (tile->x&WFC_TILE_FLIPPED){
 				continue;
 			}
 			wfc_color_t* ptr=buffer;
@@ -881,9 +830,9 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 					ptr++;
 				}
 			}
-			wfc_size_t ox=_WFC_TILE_GET_POS(tile);
-			wfc_size_t oy=tile->_y;
-			wfc_size_t rotation=_WFC_TILE_GET_ROTATION(tile);
+			wfc_size_t ox=WFC_TILE_GET_X(tile);
+			wfc_size_t oy=tile->y;
+			wfc_size_t rotation=WFC_TILE_GET_ROTATION(tile);
 			if (precalculate_upscaled_data){
 				_calculate_rotated_flipped_upscaled_data(image,ox,oy,downscale_factor,adjusted_upscaled_data_size,rotation,upscaled_data);
 			}
@@ -891,8 +840,8 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				if (!precalculate_upscaled_data){
 					_calculate_rotated_flipped_upscaled_data(image,ox,oy,downscale_factor,adjusted_upscaled_data_size,rotation,upscaled_data);
 				}
-				(out->tiles+out->tile_count-1)->_x=(out->tiles+i)->_x|_WFC_TILE_FLIPPED;
-				(out->tiles+out->tile_count-1)->_y=oy;
+				(out->tiles+out->tile_count-1)->x=(out->tiles+i)->x|WFC_TILE_FLIPPED;
+				(out->tiles+out->tile_count-1)->y=oy;
 				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
 				upscaled_data=malloc(downscale_factor_squared*sizeof(wfc_color_t));
 			}
@@ -1134,7 +1083,7 @@ void wfc_print_table(const wfc_table_t* table,const wfc_config_t* config,_Bool p
 			}
 			putchar('\n');
 		}
-		printf("  Transformation:\n    X: %u\n    Y: %u\n    Rotation: %u\n    Flip: %s\n  Data:\n",_WFC_TILE_GET_POS(tile),tile->_y,_WFC_TILE_GET_ROTATION(tile)*90,((tile->_x&_WFC_TILE_FLIPPED)?"Vertical":""));
+		printf("  Transformation:\n    X: %u\n    Y: %u\n    Rotation: %u\n    Flip: %s\n  Data:\n",WFC_TILE_GET_X(tile),tile->y,WFC_TILE_GET_ROTATION(tile)*90,((tile->x&WFC_TILE_FLIPPED)?"Vertical":""));
 		const wfc_color_t* data=tile->data;
 		for (wfc_box_size_t j=0;j<config->box_size;j++){
 			printf("   ");
@@ -1286,9 +1235,9 @@ _retry_from_start:;
 				while (value){
 					wfc_tile_index_t j=(i<<6)|FIND_FIRST_SET_BIT(value);
 					value&=value-1;
-					wfc_weight_t w=state->weights[j];
-					weight_sum+=w;
-					if ((_get_random(state,(weight_sum+1)<<WEIGHT_RANDOMNESS_SHIFT)>>WEIGHT_RANDOMNESS_SHIFT)<=w){
+					wfc_weight_t weight=state->weights[j];
+					weight_sum+=weight;
+					if ((_get_random(state,(weight_sum+1)<<WEIGHT_RANDOMNESS_SHIFT)>>WEIGHT_RANDOMNESS_SHIFT)<=weight){
 						tile_index=j;
 					}
 				}
@@ -1356,7 +1305,7 @@ _retry_from_start:;
 						if (fast_mask_data->offset==fast_mask_offset&&fast_mask_data->key==value){
 							cache_hit_count++;
 							sub_mask=_mm256_lddqu_si256((const __m256i*)(fast_mask_data->data));
-							if (fast_mask_data->counter<FAST_MASK_MAX_COUNTER){
+							if (fast_mask_data->counter<config->fast_mask_counter_max){
 								fast_mask_data->counter++;
 							}
 						}
@@ -1374,7 +1323,7 @@ _retry_from_start:;
 								fast_mask_data->key=fast_mask_data_key;
 								_mm256_storeu_si256((__m256i*)(fast_mask_data->data),sub_mask);
 								fast_mask_data->offset=fast_mask_offset;
-								fast_mask_data->counter=FAST_MASK_COUNTER_INIT;
+								fast_mask_data->counter=config->fast_mask_counter_init;
 							}
 						}
 						mask=_mm256_or_si256(mask,sub_mask);
@@ -1432,7 +1381,7 @@ _retry_from_start:;
 			delete_stack_size--;
 			offset=state->delete_stack[delete_stack_size];
 			(state->queue_indicies+offset)->delete_count++;
-			if ((state->queue_indicies+offset)->delete_count==MAX_ALLOWED_REMOVALS){
+			if ((state->queue_indicies+offset)->delete_count==config->max_delete_count){
 				goto _retry_from_start;
 			}
 			int32_t base_x;

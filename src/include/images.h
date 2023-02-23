@@ -402,9 +402,12 @@ static const image_config_t images[14]={
 			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y,
 			4,
 			200,
+			2,
 			4,
 			2,
-			2
+			1024,
+			256,
+			1024
 		}
 	},
 	{
@@ -419,9 +422,12 @@ static const image_config_t images[14]={
 			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_BLEND_PIXEL,
 			16,
 			500,
+			2,
 			4,
 			2,
-			2
+			1024,
+			256,
+			1024
 		}
 	},
 	{
@@ -436,9 +442,12 @@ static const image_config_t images[14]={
 			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y|WFC_FLAG_AVERAGE_SCALING,
 			16,
 			100,
+			3,
 			4,
 			2,
-			3
+			1024,
+			256,
+			1024
 		}
 	},
 	{
@@ -453,9 +462,12 @@ static const image_config_t images[14]={
 			WFC_FLAG_ROTATE,
 			16,
 			0,
+			1,
 			4,
 			2,
-			1
+			1024,
+			256,
+			1024
 		}
 	},
 	{
@@ -470,9 +482,12 @@ static const image_config_t images[14]={
 			WFC_FLAG_FLIP|WFC_FLAG_ROTATE,
 			16,
 			300,
+			1,
 			4,
 			2,
-			1
+			1024,
+			256,
+			1024
 		}
 	},
 	{
@@ -487,9 +502,12 @@ static const image_config_t images[14]={
 			WFC_FLAG_FLIP,
 			16,
 			200,
+			1,
 			4,
 			2,
-			1
+			1024,
+			256,
+			1024
 		}
 	},
 	{
@@ -504,9 +522,12 @@ static const image_config_t images[14]={
 			WFC_FLAG_WRAP_X,
 			16,
 			0,
+			1,
 			4,
 			2,
-			1
+			1024,
+			256,
+			1024
 		}
 	},
 	{
@@ -521,9 +542,12 @@ static const image_config_t images[14]={
 			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y,
 			16,
 			500,
+			3,
 			4,
 			2,
-			3
+			1024,
+			256,
+			1024
 		}
 	},
 	{
@@ -538,9 +562,12 @@ static const image_config_t images[14]={
 			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_AVERAGE_SCALING|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y,
 			4,
 			700,
+			3,
 			5,
 			2,
-			3
+			1024,
+			256,
+			1024
 		}
 	},
 	{
@@ -555,9 +582,12 @@ static const image_config_t images[14]={
 			WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y,
 			16,
 			0,
+			1,
 			3,
 			1,
-			1
+			1024,
+			256,
+			1024
 		}
 	},
 	{
@@ -572,9 +602,12 @@ static const image_config_t images[14]={
 			WFC_FLAG_ROTATE|WFC_FLAG_FLIP,
 			16,
 			0,
+			1,
 			4,
 			2,
-			1
+			1024,
+			256,
+			1024
 		}
 	},
 	{
@@ -589,9 +622,12 @@ static const image_config_t images[14]={
 			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y|WFC_FLAG_AVERAGE_SCALING,
 			16,
 			100,
+			3,
 			4,
 			2,
-			3
+			1024,
+			256,
+			1024
 		}
 	},
 	{
@@ -606,9 +642,12 @@ static const image_config_t images[14]={
 			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y|WFC_FLAG_AVERAGE_SCALING,
 			16,
 			100,
+			3,
 			4,
 			2,
-			3
+			1024,
+			256,
+			1024
 		}
 	},
 	{NULL}

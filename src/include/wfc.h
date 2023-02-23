@@ -14,10 +14,10 @@
 #define WFC_FLAG_BLEND_PIXEL 128
 #define WFC_FLAG_AVERAGE_SCALING 256
 
-#define _WFC_TILE_ROTATED 0x20000000
-#define _WFC_TILE_FLIPPED 0x80000000
-#define _WFC_TILE_GET_ROTATION(t) (((t)->_x>>29)&3)
-#define _WFC_TILE_GET_POS(t) ((t)->_x&0x1fffffff)
+#define WFC_TILE_ROTATED 0x20000000
+#define WFC_TILE_FLIPPED 0x80000000
+#define WFC_TILE_GET_ROTATION(t) (((t)->x>>29)&3)
+#define WFC_TILE_GET_X(t) ((t)->x&0x1fffffff)
 
 
 
@@ -65,6 +65,14 @@ typedef uint32_t wfc_weight_t;
 
 
 
+typedef uint32_t wfc_fast_mask_counter_t;
+
+
+
+typedef uint32_t wfc_delete_count_t;
+
+
+
 typedef struct _WFC_IMAGE{
 	wfc_size_t width;
 	wfc_size_t height;
@@ -78,8 +86,8 @@ typedef struct _WFC_TILE{
 	wfc_color_t* data;
 	uint64_t* connections;
 	wfc_color_t* upscaled_data;
-	wfc_size_t _x;
-	wfc_size_t _y;
+	wfc_size_t x;
+	wfc_size_t y;
 	wfc_size_t _upscaled_data_count;
 } wfc_tile_t;
 
@@ -111,7 +119,7 @@ typedef struct _WFC_QUEUE{
 
 typedef struct _WFC_QUEUE_LOCATION{
 	wfc_tile_index_t queue_index;
-	uint16_t delete_count;
+	wfc_delete_count_t delete_count;
 	wfc_size_t index;
 } wfc_queue_location_t;
 
@@ -121,7 +129,7 @@ typedef struct _WFC_FAST_MASK{
 	uint64_t key;
 	uint64_t data[4];
 	uint32_t offset;
-	uint16_t counter;
+	wfc_fast_mask_counter_t counter;
 } wfc_fast_mask_t;
 
 
@@ -166,9 +174,12 @@ typedef struct _WFC_CONFIG{
 	wfc_flags_t flags;
 	wfc_palette_size_t palette_max_size;
 	wfc_color_diffrence_t max_color_diff;
+	wfc_size_t downscale_factor;
 	wfc_box_size_t propagation_distance;
 	wfc_box_size_t delete_size;
-	wfc_size_t downscale_factor;
+	wfc_delete_count_t max_delete_count;
+	wfc_fast_mask_counter_t fast_mask_counter_init;
+	wfc_fast_mask_counter_t fast_mask_counter_max;
 } wfc_config_t;
 
 
