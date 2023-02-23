@@ -179,6 +179,7 @@ typedef struct _WFC_CONFIG{
 	wfc_box_size_t delete_size;
 	wfc_delete_count_t max_delete_count;
 	wfc_fast_mask_counter_t fast_mask_counter_init;
+	wfc_fast_mask_counter_t fast_mask_cache_counter_init;
 	wfc_fast_mask_counter_t fast_mask_counter_max;
 } wfc_config_t;
 

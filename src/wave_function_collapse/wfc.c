@@ -1352,7 +1352,7 @@ _retry_from_start:;
 								cached_fast_mask_data->key=value;
 								_mm256_storeu_si256((__m256i*)(cached_fast_mask_data->data),sub_mask);
 								cached_fast_mask_data->offset=fast_mask_offset;
-								cached_fast_mask_data->counter=1024;
+								cached_fast_mask_data->counter=config->fast_mask_cache_counter_init;
 							}
 						}
 						else{

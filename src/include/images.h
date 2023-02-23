@@ -407,6 +407,7 @@ static const image_config_t images[14]={
 			2,
 			1024,
 			256,
+			1024,
 			1024
 		}
 	},
@@ -427,6 +428,7 @@ static const image_config_t images[14]={
 			2,
 			1024,
 			256,
+			1024,
 			1024
 		}
 	},
@@ -447,6 +449,7 @@ static const image_config_t images[14]={
 			2,
 			1024,
 			256,
+			1024,
 			1024
 		}
 	},
@@ -467,6 +470,7 @@ static const image_config_t images[14]={
 			2,
 			1024,
 			256,
+			1024,
 			1024
 		}
 	},
@@ -487,6 +491,7 @@ static const image_config_t images[14]={
 			2,
 			1024,
 			256,
+			1024,
 			1024
 		}
 	},
@@ -507,6 +512,7 @@ static const image_config_t images[14]={
 			2,
 			1024,
 			256,
+			1024,
 			1024
 		}
 	},
@@ -527,6 +533,7 @@ static const image_config_t images[14]={
 			2,
 			1024,
 			256,
+			1024,
 			1024
 		}
 	},
@@ -547,6 +554,7 @@ static const image_config_t images[14]={
 			2,
 			1024,
 			256,
+			1024,
 			1024
 		}
 	},
@@ -567,6 +575,7 @@ static const image_config_t images[14]={
 			1,
 			1024,
 			256,
+			1024,
 			1024
 		}
 	},
@@ -587,6 +596,7 @@ static const image_config_t images[14]={
 			1,
 			1024,
 			256,
+			1024,
 			1024
 		}
 	},
@@ -607,6 +617,7 @@ static const image_config_t images[14]={
 			2,
 			1024,
 			256,
+			1024,
 			1024
 		}
 	},
@@ -627,6 +638,7 @@ static const image_config_t images[14]={
 			2,
 			1024,
 			256,
+			1024,
 			1024
 		}
 	},
@@ -647,6 +659,7 @@ static const image_config_t images[14]={
 			2,
 			1024,
 			256,
+			1024,
 			1024
 		}
 	},
