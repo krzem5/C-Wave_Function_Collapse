@@ -603,9 +603,9 @@ static const image_config_t images[14]={
 		},
 		{
 			5,
-			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y,
+			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_WRAP_X|WFC_FLAG_WRAP_Y|WFC_FLAG_AVERAGE_SCALING,
 			16,
-			500,
+			100,
 			4,
 			2,
 			3
