@@ -87,7 +87,7 @@ int main(int argc,const char** argv){
 	unsigned int output_height=window_size.ws_row-15;
 #endif
 	srand((time_t)(get_time()&0xffffffff));
-	wfc_color_t output_image_data[output_width*output_height];
+	wfc_color_t* output_image_data=malloc(output_width*output_height*sizeof(wfc_color_t));
 	wfc_image_t output_image={
 		output_width,
 		output_height,
@@ -121,6 +121,7 @@ int main(int argc,const char** argv){
 	wfc_free_table(&table);
 	wfc_free_state(&table,&state);
 	wfc_save_image(&output_image,"build/export.bmp");
+	free(output_image_data);
 #endif
 	return 0;
 }

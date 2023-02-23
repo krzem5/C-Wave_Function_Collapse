@@ -1240,13 +1240,15 @@ _retry_from_start:;
 			queue++;
 		}
 		if (qi==table->tile_count){
-			out->total_cache_checks=cache_check_count;
-			out->cache_hits=cache_hit_count;
-			out->fast_cache_hits=cache_hit_fast_count;
-			out->deleted_tiles=delete_count;
-			out->restarts=restart_count;
-			out->steps=step_count;
-			out->propagation_steps=propagation_step_count;
+			if (out){
+				out->total_cache_checks=cache_check_count;
+				out->cache_hits=cache_hit_count;
+				out->fast_cache_hits=cache_hit_fast_count;
+				out->deleted_tiles=delete_count;
+				out->restarts=restart_count;
+				out->steps=step_count;
+				out->propagation_steps=propagation_step_count;
+			}
 			return;
 		}
 		wfc_size_t offset;
