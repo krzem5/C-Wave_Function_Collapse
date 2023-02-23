@@ -1074,7 +1074,7 @@ void wfc_print_image(const wfc_image_t* image){
 
 
 
-void wfc_print_table(const wfc_table_t* table,const wfc_config_t* config){
+void wfc_print_table(const wfc_table_t* table,const wfc_config_t* config,_Bool print_upscaled_data){
 	printf("Tiles: (%u)\n",table->tile_count);
 	const wfc_tile_t* tile=table->tiles;
 	for (wfc_tile_index_t i=0;i<table->tile_count;i++){
@@ -1102,15 +1102,17 @@ void wfc_print_table(const wfc_table_t* table,const wfc_config_t* config){
 			}
 			printf("\x1b[0m\n");
 		}
-		printf("  Upscaled data:\n");
-		data=tile->upscaled_data;
-		for (wfc_box_size_t j=0;j<table->downscale_factor;j++){
-			printf("   ");
-			for (wfc_box_size_t k=0;k<table->downscale_factor;k++){
-				printf("\x1b[48;2;%u;%u;%um  ",(*data)>>24,((*data)>>16)&0xff,((*data)>>8)&0xff);
-				data++;
+		if (print_upscaled_data){
+			printf("  Upscaled data:\n");
+			data=tile->upscaled_data;
+			for (wfc_box_size_t j=0;j<table->downscale_factor;j++){
+				printf("   ");
+				for (wfc_box_size_t k=0;k<table->downscale_factor;k++){
+					printf("\x1b[48;2;%u;%u;%um  ",(*data)>>24,((*data)>>16)&0xff,((*data)>>8)&0xff);
+					data++;
+				}
+				printf("\x1b[0m\n");
 			}
-			printf("\x1b[0m\n");
 		}
 		tile++;
 	}

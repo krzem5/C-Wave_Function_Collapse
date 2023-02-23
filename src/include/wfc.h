@@ -209,7 +209,7 @@ void wfc_print_image(const wfc_image_t* image);
 
 
 
-void wfc_print_table(const wfc_table_t* table,const wfc_config_t* config);
+void wfc_print_table(const wfc_table_t* table,const wfc_config_t* config,_Bool print_upscaled_data);
 
 
 
