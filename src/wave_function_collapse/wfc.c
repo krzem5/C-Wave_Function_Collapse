@@ -1010,15 +1010,16 @@ void wfc_generate_full_scale_image(const wfc_table_t* table,const wfc_state_t* s
 	wfc_color_t* base_ptr=out->data;
 	for (wfc_size_t y=0;y<out->height;y+=table->downscale_factor){
 		for (wfc_size_t x=0;x<out->width;x+=table->downscale_factor){
-			const wfc_tile_t* tile=table->tiles+_find_first_bit(data);
+			const wfc_color_t* src=(table->tiles+_find_first_bit(data))->upscaled_data;
 			data+=table->data_elem_size;
-			wfc_color_t* ptr=base_ptr;
+			wfc_color_t* dst=base_ptr;
 			for (wfc_size_t i=0;i<table->downscale_factor;i++){
 				for (wfc_size_t j=0;j<table->downscale_factor;j++){
-					*ptr=tile->upscaled_data[i*table->downscale_factor+j];
-					ptr++;
+					*dst=*src;
+					dst++;
+					src++;
 				}
-				ptr+=out->width-table->downscale_factor;
+				dst+=out->width-table->downscale_factor;
 			}
 			base_ptr+=table->downscale_factor;
 		}
