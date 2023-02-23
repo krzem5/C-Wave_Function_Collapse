@@ -1055,8 +1055,15 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_
 void wfc_print_image(const wfc_image_t* image){
 	const wfc_color_t* ptr=image->data;
 	for (wfc_size_t y=0;y<image->height;y++){
+		wfc_color_t last_color=0x000000ff;
 		for (wfc_size_t x=0;x<image->width;x++){
-			printf("\x1b[48;2;%u;%u;%um  ",(*ptr)>>24,((*ptr)>>16)&0xff,((*ptr)>>8)&0xff);
+			if (*ptr==last_color){
+				printf("  ");
+			}
+			else{
+				last_color=*ptr;
+				printf("\x1b[48;2;%u;%u;%um  ",last_color>>24,(last_color>>16)&0xff,(last_color>>8)&0xff);
+			}
 			ptr++;
 		}
 		printf("\x1b[0m\n");
