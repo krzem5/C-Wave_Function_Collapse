@@ -1064,13 +1064,13 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,_Bool use_
 			const __m256i* mask_data=base_mask_data;
 			for (wfc_tile_index_t j=0;j<(table->data_elem_size>>2);j++){
 				for (wfc_tile_index_t k=0;k<(table->data_elem_size<<3);k++){
-					for (unsigned int value=1;value<256;value++){
+					for (unsigned int value=0;value<256;value++){
 						sub_mask=_mm256_xor_si256(sub_mask,sub_mask);
 						unsigned int tmp=value;
-						do{
+						while (tmp){
 							sub_mask=_mm256_or_si256(sub_mask,_mm256_lddqu_si256(mask_data+FIND_FIRST_SET_BIT(tmp)));
 							tmp&=tmp-1;
-						} while (tmp);
+						}
 						_mm256_storeu_si256((__m256i*)(out->precalculated_masks)+((((uint64_t)j)*table->data_elem_size)<<13)+(k<<10)+(i<<8)+value,sub_mask);
 					}
 					mask_data+=8;
@@ -1363,11 +1363,8 @@ _retry_from_start:;
 						precalculated_mask_access_count++;
 						const uint8_t* state_data=(const uint8_t*)state_data_base;
 						for (wfc_tile_index_t k=0;k<(table->data_elem_size<<3);k++){
-							uint8_t value=*state_data;
+							mask=_mm256_or_si256(mask,_mm256_lddqu_si256(precalculated_mask_data+(*state_data)));
 							state_data++;
-							if (value){
-								mask=_mm256_or_si256(mask,_mm256_lddqu_si256(precalculated_mask_data+value));
-							}
 							precalculated_mask_data+=1024;
 						}
 					}
