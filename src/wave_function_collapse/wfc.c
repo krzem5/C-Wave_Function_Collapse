@@ -1348,7 +1348,7 @@ _retry_from_start:;
 							}
 							goto _sub_mask_calculated;
 						}
-						else if (cached_fast_mask_data->counter){
+						if (cached_fast_mask_data->counter){
 							cached_fast_mask_data->counter--;
 						}
 						wfc_fast_mask_t* fast_mask_data=state->fast_mask+fast_mask_index+(i<<16);

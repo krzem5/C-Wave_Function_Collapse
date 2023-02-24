@@ -16,7 +16,7 @@
 
 #define PICK_PARAMETERS 1
 #define GENERATE_IMAGE 1
-#define IMAGE_NAME "duck_fast"
+#define IMAGE_NAME "cow"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
