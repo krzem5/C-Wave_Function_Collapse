@@ -1323,9 +1323,8 @@ _retry_from_start:;
 				__m256i mask=_mm256_undefined_si256();
 				__m256i sub_mask=_mm256_undefined_si256();
 				for (wfc_tile_index_t j=0;j<table->data_elem_size;j+=4){
-					mask=_mm256_xor_si256(mask,mask);
-					__m256i data=_mm256_lddqu_si256(target);
 					const uint64_t* state_data=state_data_base;
+					mask=_mm256_xor_si256(mask,mask);
 					for (wfc_tile_index_t k=0;k<table->data_elem_size;k++){
 						uint64_t value=*state_data;
 						state_data++;
@@ -1365,29 +1364,28 @@ _retry_from_start:;
 								cached_fast_mask_data->counter=config->fast_mask_cache_counter_init;
 								fast_mask_data->counter=0;
 							}
+							goto _sub_mask_calculated;
+						}
+						sub_mask=_mm256_xor_si256(sub_mask,sub_mask);
+						uint64_t fast_mask_data_key=value;
+						do{
+							sub_mask=_mm256_or_si256(sub_mask,_mm256_lddqu_si256(mask_data+FIND_FIRST_SET_BIT(value)));
+							value&=value-1;
+						} while (value);
+						if (fast_mask_data->counter){
+							fast_mask_data->counter--;
 						}
 						else{
-							sub_mask=_mm256_xor_si256(sub_mask,sub_mask);
-							uint64_t fast_mask_data_key=value;
-							do{
-								sub_mask=_mm256_or_si256(sub_mask,_mm256_lddqu_si256(mask_data+FIND_FIRST_SET_BIT(value)));
-								value&=value-1;
-							} while (value);
-							if (fast_mask_data->counter){
-								fast_mask_data->counter--;
-							}
-							else{
-								fast_mask_data->key=fast_mask_data_key;
-								_mm256_storeu_si256((__m256i*)(fast_mask_data->data),sub_mask);
-								fast_mask_data->offset=fast_mask_offset;
-								fast_mask_data->counter=config->fast_mask_counter_init;
-							}
+							fast_mask_data->key=fast_mask_data_key;
+							_mm256_storeu_si256((__m256i*)(fast_mask_data->data),sub_mask);
+							fast_mask_data->offset=fast_mask_offset;
+							fast_mask_data->counter=config->fast_mask_counter_init;
 						}
 _sub_mask_calculated:
 						mask=_mm256_or_si256(mask,sub_mask);
 						mask_data+=64;
 					}
-					data=_mm256_and_si256(data,mask);
+					__m256i data=_mm256_and_si256(_mm256_lddqu_si256(target),mask);
 					_mm256_storeu_si256(target,data);
 					sum_vector=_mm256_add_epi64(sum_vector,_mm256_sad_epu8(_mm256_add_epi8(_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(data,popcnt_low_mask)),_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(_mm256_srli_epi32(data,4),popcnt_low_mask))),zero));
 					mask_data-=(table->data_elem_size<<6)-table->tile_count;
