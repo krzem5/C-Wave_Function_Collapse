@@ -53,6 +53,30 @@ static void _progress_callback(const wfc_table_t* table,const wfc_state_t* state
 	first=0;
 	wfc_print_image(image);
 }
+
+
+
+static char _format_int_data_buffer[4096];
+static unsigned int _format_int_data_buffer_offset=0;
+
+
+
+static const char* _format_int(unsigned long int x){
+	char* out=_format_int_data_buffer+_format_int_data_buffer_offset;
+	_format_int_data_buffer_offset+=27;
+	unsigned int i=26;
+	do{
+		i--;
+		if (0x444444&(1<<i)){
+			out[i]=',';
+			i--;
+		}
+		out[i]=(x%10)+48;
+		x/=10;
+	} while (x);
+	out[26]=0;
+	return out+i;
+}
 #endif
 
 
@@ -117,7 +141,31 @@ int main(int argc,const char** argv){
 	wfc_generate_full_scale_image(&table,&state,&output_image);
 	putchar('\n');
 	wfc_print_image(&output_image);
-	printf("Table:\n  Tile count: %u\n  Memory use:\n    Tile data: %lu kB\n    Neighbours: %lu kB\n    Upscaled data: %lu kB\nTable creation time: %.3lfs\nSimulation state:\n  Bitmap: %lu kB\n  Pixel tile data: %lu kB\n  Queues: %lu kB\n  Weights: %lu kB\n  Stacks: %lu kB\n  Cache: %lu kB\nSimulation:\n  Updates:\n    Collapse: %lu\n    Propagation: %lu\n  Removals:\n    Pixels: %lu\n    Restarts: %lu\n  Data access:\n    Fast cache: %.3f%%\n    Cache: %.3f%%\n    Raw: %.3f%%\nSimulation time: %.3lfs\n",table.tile_count,(table.tile_count*config.box_size*config.box_size*sizeof(wfc_color_t)+1023)>>10,(8*table.tile_count*table.data_elem_size*sizeof(uint64_t)+1023)>>10,(table.tile_count*table.downscale_factor*table.downscale_factor*sizeof(wfc_color_t)+1023)>>10,table_creation_time*1e-9,(state.bitmap_size+31lu)>>5,(state.length*sizeof(uint64_t)+1023)>>10,(table.tile_count*sizeof(wfc_queue_t)+state.pixel_count*sizeof(wfc_queue_location_t)+1023)>>10,(table.tile_count*sizeof(wfc_weight_t)+1023)>>10,(2*state.pixel_count*sizeof(wfc_size_t)+1023)>>10,(262208*sizeof(wfc_fast_mask_t)+1023)>>10,stats.steps,stats.propagation_steps,stats.deleted_tiles,stats.restarts,((float)stats.fast_cache_hits)/stats.total_cache_checks*100,((float)stats.cache_hits)/stats.total_cache_checks*100,((float)(stats.total_cache_checks-stats.cache_hits-stats.fast_cache_hits))/stats.total_cache_checks*100,generation_time*1e-9);
+	printf("Table:\n  Tile count: %u\n  Memory use:\n    Tile data: %s kB\n    Neighbours: %s kB\n    Upscaled data: %s kB\nTable creation time: %.3lfs\nSimulation state:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\nSimulation:\n  Updates:\n    Collapse: %s\n    Propagation: %s\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n    Fast cache: %.3f%% (%s)\n    Cache: %.3f%% (%s)\n    Raw: %.3f%% (%s)\n    Total: %s\nSimulation time: %.3lfs\n",
+		table.tile_count,
+		_format_int((table.tile_count*config.box_size*config.box_size*sizeof(wfc_color_t)+1023)>>10),
+		_format_int((8*table.tile_count*table.data_elem_size*sizeof(uint64_t)+1023)>>10),
+		_format_int((table.tile_count*table.downscale_factor*table.downscale_factor*sizeof(wfc_color_t)+1023)>>10),
+		table_creation_time*1e-9,
+		_format_int((state.bitmap_size+31lu)>>5),
+		_format_int((state.length*sizeof(uint64_t)+1023)>>10),
+		_format_int((table.tile_count*sizeof(wfc_queue_t)+state.pixel_count*sizeof(wfc_queue_location_t)+1023)>>10),
+		_format_int((table.tile_count*sizeof(wfc_weight_t)+1023)>>10),
+		_format_int((2*state.pixel_count*sizeof(wfc_size_t)+1023)>>10),
+		_format_int((262208*sizeof(wfc_fast_mask_t)+1023)>>10),
+		_format_int(stats.steps),
+		_format_int(stats.propagation_steps),
+		_format_int(stats.deleted_tiles),
+		_format_int(stats.restarts),
+		((float)stats.fast_cache_hits)/stats.total_cache_checks*100,
+		_format_int(stats.fast_cache_hits),
+		((float)stats.cache_hits)/stats.total_cache_checks*100,
+		_format_int(stats.cache_hits),
+		((float)(stats.total_cache_checks-stats.cache_hits-stats.fast_cache_hits))/stats.total_cache_checks*100,
+		_format_int(stats.total_cache_checks-stats.cache_hits-stats.fast_cache_hits),
+		_format_int(stats.total_cache_checks),
+		generation_time*1e-9
+	);
 	wfc_free_table(&table);
 	wfc_free_state(&table,&state);
 	wfc_save_image(&output_image,"build/export.bmp");
