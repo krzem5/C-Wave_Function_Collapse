@@ -148,6 +148,7 @@ typedef struct _WFC_STATE{
 	wfc_size_t* delete_stack;
 	wfc_fast_mask_t* fast_mask;
 	wfc_fast_mask_t* fast_mask_cache;
+	void* precalculated_masks;
 	wfc_size_t pixel_count;
 	wfc_size_t width;
 } wfc_state_t;
@@ -190,6 +191,7 @@ typedef struct _WFC_STATS{
 	uint64_t total_cache_checks;
 	uint64_t cache_hits;
 	uint64_t fast_cache_hits;
+	uint64_t precalculated_mask_accesses;
 	uint64_t deleted_tiles;
 	uint64_t restarts;
 	uint64_t steps;
@@ -226,7 +228,7 @@ void wfc_generate_full_scale_image(const wfc_table_t* table,const wfc_state_t* s
 
 
 
-void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_t* out);
+void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,_Bool use_precalculated_masks,wfc_state_t* out);
 
 
 

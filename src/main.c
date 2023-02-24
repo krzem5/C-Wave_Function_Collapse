@@ -14,9 +14,9 @@
 
 
 
-#define PICK_PARAMETERS 1
+#define PICK_PARAMETERS 0
 #define GENERATE_IMAGE 1
-#define IMAGE_NAME "duck_fast"
+#define IMAGE_NAME "cow"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
@@ -126,7 +126,7 @@ int main(int argc,const char** argv){
 	output_image.width/=table.downscale_factor;
 	output_image.height/=table.downscale_factor;
 	wfc_state_t state;
-	wfc_init_state(&table,&output_image,&state);
+	wfc_init_state(&table,&output_image,1,&state);
 	fflush(stdout);
 	time_start=get_time();
 	wfc_stats_t stats;
@@ -141,8 +141,9 @@ int main(int argc,const char** argv){
 	wfc_generate_full_scale_image(&table,&state,&output_image);
 	putchar('\n');
 	wfc_print_image(&output_image);
-	printf("Table:\n  Tile count: %s\n  Memory use:\n    Tile data: %s kB\n    Neighbours: %s kB\n    Upscaled data: %s kB\nTable creation time: %.3lfs\nSimulation state:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\nSimulation:\n  Updates:\n    Collapse: %s\n    Propagation: %s\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n    Fast cache: %.3f%% (%s)\n    Cache: %.3f%% (%s)\n    Raw: %.3f%% (%s)\n    Total: %s\nSimulation time: %.3lfs\n",
+	printf("Table:\n  Tile count: %s\n  Tile element size: %s B\n  Memory use:\n    Tile data: %s kB\n    Neighbours: %s kB\n    Upscaled data: %s kB\nTable creation time: %.3lfs\nSimulation state:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\n  Precalculated masks: %s kB\nSimulation:\n  Updates:\n    Collapse: %s\n    Propagation: %s\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n",
 		_format_int(table.tile_count),
+		_format_int(table.data_elem_size*sizeof(uint64_t)),
 		_format_int((table.tile_count*config.box_size*config.box_size*sizeof(wfc_color_t)+1023)>>10),
 		_format_int((8*table.tile_count*table.data_elem_size*sizeof(uint64_t)+1023)>>10),
 		_format_int((table.tile_count*table.downscale_factor*table.downscale_factor*sizeof(wfc_color_t)+1023)>>10),
@@ -152,18 +153,31 @@ int main(int argc,const char** argv){
 		_format_int((table.tile_count*sizeof(wfc_queue_t)+state.pixel_count*sizeof(wfc_queue_location_t)+1023)>>10),
 		_format_int((table.tile_count*sizeof(wfc_weight_t)+1023)>>10),
 		_format_int((2*state.pixel_count*sizeof(wfc_size_t)+1023)>>10),
-		_format_int((262208*sizeof(wfc_fast_mask_t)+1023)>>10),
+		(!state.precalculated_masks?_format_int((262208*sizeof(wfc_fast_mask_t)+1023)>>10):"0"),
+		(state.precalculated_masks?_format_int((((table.data_elem_size-1)*(table.data_elem_size-1)*8192ul+(table.data_elem_size-1)*1024+3*256+256)*32+1023)>>10):"0"),
 		_format_int(stats.steps),
 		_format_int(stats.propagation_steps),
 		_format_int(stats.deleted_tiles),
-		_format_int(stats.restarts),
-		((float)stats.fast_cache_hits)/stats.total_cache_checks*100,
-		_format_int(stats.fast_cache_hits),
-		((float)stats.cache_hits)/stats.total_cache_checks*100,
-		_format_int(stats.cache_hits),
-		((float)(stats.total_cache_checks-stats.cache_hits-stats.fast_cache_hits))/stats.total_cache_checks*100,
-		_format_int(stats.total_cache_checks-stats.cache_hits-stats.fast_cache_hits),
-		_format_int(stats.total_cache_checks),
+		_format_int(stats.restarts)
+	);
+	if (state.precalculated_masks){
+		printf("    Precalculated masks: %s\n    Fast cache: N/A\n    Cache: N/A\n    Raw: N/A\n    Total: %s\n",
+			_format_int(stats.precalculated_mask_accesses),
+			_format_int(stats.precalculated_mask_accesses)
+		);
+	}
+	else{
+		printf("    Precalculated masks: N/A\n    Fast cache: %.3f%% (%s)\n    Cache: %.3f%% (%s)\n    Raw: %.3f%% (%s)\n    Total: %s\n",
+			((float)stats.fast_cache_hits)/stats.total_cache_checks*100,
+			_format_int(stats.fast_cache_hits),
+			((float)stats.cache_hits)/stats.total_cache_checks*100,
+			_format_int(stats.cache_hits),
+			((float)(stats.total_cache_checks-stats.cache_hits-stats.fast_cache_hits))/stats.total_cache_checks*100,
+			_format_int(stats.total_cache_checks-stats.cache_hits-stats.fast_cache_hits),
+			_format_int(stats.total_cache_checks)
+		);
+	}
+	printf("Simulation time: %.3lfs\n",
 		generation_time*1e-9
 	);
 	wfc_free_table(&table);

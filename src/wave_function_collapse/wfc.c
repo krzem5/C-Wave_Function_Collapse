@@ -962,6 +962,8 @@ void wfc_free_state(const wfc_table_t* table,wfc_state_t* state){
 	state->fast_mask=NULL;
 	free(state->fast_mask_cache);
 	state->fast_mask_cache=NULL;
+	free(state->precalculated_masks);
+	state->precalculated_masks=NULL;
 	state->pixel_count=0;
 	state->width=0;
 }
@@ -1031,7 +1033,7 @@ void wfc_generate_full_scale_image(const wfc_table_t* table,const wfc_state_t* s
 
 
 
-void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_t* out){
+void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,_Bool use_precalculated_masks,wfc_state_t* out){
 	wfc_size_t pixel_count=image->width*image->height;
 	uint8_t* prng_data=(uint8_t*)(out->prng.data);
 	for (unsigned int i=0;i<256;i++){
@@ -1052,8 +1054,48 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,wfc_state_
 	out->queue_indicies=malloc((pixel_count*sizeof(wfc_queue_location_t)+31)&0xffffffffffffffe0ull);
 	out->update_stack=malloc(pixel_count*sizeof(wfc_size_t));
 	out->delete_stack=malloc(pixel_count*sizeof(wfc_size_t));
-	out->fast_mask=malloc(262144*sizeof(wfc_fast_mask_t));
-	out->fast_mask_cache=malloc(64*sizeof(wfc_fast_mask_t));
+	if (use_precalculated_masks){
+		out->fast_mask=NULL;
+		out->fast_mask_cache=NULL;
+		out->precalculated_masks=malloc(((table->data_elem_size-1)*(table->data_elem_size-1)*8192ul+(table->data_elem_size-1)*1024+3*256+256)*sizeof(__m256i));
+		const __m256i* base_mask_data=(const __m256i*)(table->_connection_data);
+		__m256i sub_mask=_mm256_undefined_si256();
+		for (unsigned int i=0;i<4;i++){
+			const __m256i* mask_data=base_mask_data;
+			for (wfc_tile_index_t j=0;j<(table->data_elem_size>>2);j++){
+				for (wfc_tile_index_t k=0;k<(table->data_elem_size<<3);k++){
+					for (unsigned int value=1;value<256;value++){
+						sub_mask=_mm256_xor_si256(sub_mask,sub_mask);
+						unsigned int tmp=value;
+						do{
+							sub_mask=_mm256_or_si256(sub_mask,_mm256_lddqu_si256(mask_data+FIND_FIRST_SET_BIT(tmp)));
+							tmp&=tmp-1;
+						} while (tmp);
+						_mm256_storeu_si256((__m256i*)(out->precalculated_masks)+((((uint64_t)j)*table->data_elem_size)<<13)+(k<<10)+(i<<8)+value,sub_mask);
+					}
+					mask_data+=8;
+				}
+				mask_data-=(table->data_elem_size<<6)-table->tile_count;
+			}
+			base_mask_data+=(table->data_elem_size*table->tile_count)>>2;
+		}
+	}
+	else{
+		out->fast_mask=malloc(262144*sizeof(wfc_fast_mask_t));
+		out->fast_mask_cache=malloc(64*sizeof(wfc_fast_mask_t));
+		out->precalculated_masks=NULL;
+		__m256i zero=_mm256_setzero_si256();
+		__m256i* ptr=(__m256i*)(out->fast_mask);
+		for (wfc_size_t i=0;i<262144*sizeof(wfc_fast_mask_t);i+=32){
+			_mm256_storeu_si256(ptr,zero);
+			ptr++;
+		}
+		ptr=(__m256i*)(out->fast_mask_cache);
+		for (wfc_size_t i=0;i<64*sizeof(wfc_fast_mask_t);i+=32){
+			_mm256_storeu_si256(ptr,zero);
+			ptr++;
+		}
+	}
 	out->pixel_count=pixel_count;
 	out->width=image->width;
 }
@@ -1184,25 +1226,16 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state,const wfc_config_t* c
 	__m256i increment=_mm256_set1_epi32(8);
 	__m256i popcnt_table=_mm256_setr_epi8(0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4);
 	__m256i popcnt_low_mask=_mm256_set1_epi8(15);
-	__m256i* ptr=(__m256i*)(state->fast_mask);
-	for (wfc_size_t i=0;i<262144*sizeof(wfc_fast_mask_t);i+=32){
-		_mm256_storeu_si256(ptr,zero);
-		ptr++;
-	}
-	ptr=(__m256i*)(state->fast_mask_cache);
-	for (wfc_size_t i=0;i<64*sizeof(wfc_fast_mask_t);i+=32){
-		_mm256_storeu_si256(ptr,zero);
-		ptr++;
-	}
 	uint64_t cache_check_count=0;
 	uint64_t cache_hit_count=0;
 	uint64_t cache_hit_fast_count=0;
+	uint64_t precalculated_mask_access_count=0;
 	uint64_t delete_count=0;
 	uint64_t restart_count=0;
 	uint64_t step_count=0;
 	uint64_t propagation_step_count=0;
 _retry_from_start:;
-	ptr=(__m256i*)(state->data);
+	__m256i* ptr=(__m256i*)(state->data);
 	for (wfc_size_t i=0;i<state->pixel_count;i++){
 		for (wfc_tile_index_t j=0;j<(table->data_elem_size>>2)-1;j++){
 			_mm256_storeu_si256(ptr,ones);
@@ -1242,6 +1275,7 @@ _retry_from_start:;
 				out->total_cache_checks=cache_check_count;
 				out->cache_hits=cache_hit_count;
 				out->fast_cache_hits=cache_hit_fast_count;
+				out->precalculated_mask_accesses=precalculated_mask_access_count;
 				out->deleted_tiles=delete_count;
 				out->restarts=restart_count;
 				out->steps=step_count;
@@ -1322,68 +1356,83 @@ _retry_from_start:;
 				__m256i sum_vector=_mm256_setzero_si256();
 				__m256i mask=_mm256_undefined_si256();
 				__m256i sub_mask=_mm256_undefined_si256();
-				for (wfc_tile_index_t j=0;j<table->data_elem_size;j+=4){
-					const uint64_t* state_data=state_data_base;
+				const __m256i* precalculated_mask_data=(const __m256i*)(state->precalculated_masks)+(i<<8);
+				for (wfc_tile_index_t j=0;j<(table->data_elem_size>>2);j++){
 					mask=_mm256_xor_si256(mask,mask);
-					for (wfc_tile_index_t k=0;k<table->data_elem_size;k++){
-						uint64_t value=*state_data;
-						state_data++;
-						if (!value){
-							mask_data+=64;
-							continue;
-						}
-						uint32_t fast_mask_offset=j*table->data_elem_size+k;
-						uint64_t key_extra_wide=(value*FAST_MASK_VALUE_PRIME)^(fast_mask_offset*FAST_MASK_OFFSET_PRIME);
-						uint32_t key_wide=key_extra_wide^(key_extra_wide>>32);
-						uint16_t fast_mask_index=key_wide^(key_wide>>16);
-						uint8_t fast_mask_cache_wide_index=fast_mask_index^(fast_mask_index>>8);
-						wfc_fast_mask_t* cached_fast_mask_data=state->fast_mask_cache+(i<<4)+((fast_mask_cache_wide_index^(fast_mask_cache_wide_index>>4))&0xf);
-						cache_check_count++;
-						if (cached_fast_mask_data->offset==fast_mask_offset&&cached_fast_mask_data->key==value){
-							cache_hit_fast_count++;
-							sub_mask=_mm256_lddqu_si256((const __m256i*)(cached_fast_mask_data->data));
-							if (cached_fast_mask_data->counter<config->fast_mask_counter_max){
-								cached_fast_mask_data->counter++;
+					if (state->precalculated_masks){
+						precalculated_mask_access_count++;
+						const uint8_t* state_data=(const uint8_t*)state_data_base;
+						for (wfc_tile_index_t k=0;k<(table->data_elem_size<<3);k++){
+							uint8_t value=*state_data;
+							state_data++;
+							if (value){
+								mask=_mm256_or_si256(mask,_mm256_lddqu_si256(precalculated_mask_data+value));
 							}
-							goto _sub_mask_calculated;
+							precalculated_mask_data+=1024;
 						}
-						if (cached_fast_mask_data->counter){
-							cached_fast_mask_data->counter--;
-						}
-						wfc_fast_mask_t* fast_mask_data=state->fast_mask+fast_mask_index+(i<<16);
-						if (fast_mask_data->offset==fast_mask_offset&&fast_mask_data->key==value){
-							cache_hit_count++;
-							sub_mask=_mm256_lddqu_si256((const __m256i*)(fast_mask_data->data));
-							if (fast_mask_data->counter<config->fast_mask_counter_max){
-								fast_mask_data->counter++;
+					}
+					else{
+						const uint64_t* state_data=state_data_base;
+						for (wfc_tile_index_t k=0;k<table->data_elem_size;k++){
+							uint64_t value=*state_data;
+							state_data++;
+							if (!value){
+								mask_data+=64;
+								continue;
 							}
-							else if (!cached_fast_mask_data->counter){
-								cached_fast_mask_data->key=value;
-								_mm256_storeu_si256((__m256i*)(cached_fast_mask_data->data),sub_mask);
-								cached_fast_mask_data->offset=fast_mask_offset;
-								cached_fast_mask_data->counter=config->fast_mask_cache_counter_init;
-								fast_mask_data->counter=0;
+							uint32_t fast_mask_offset=j*table->data_elem_size+k;
+							uint64_t key_extra_wide=(value*FAST_MASK_VALUE_PRIME)^(fast_mask_offset*FAST_MASK_OFFSET_PRIME);
+							uint32_t key_wide=key_extra_wide^(key_extra_wide>>32);
+							uint16_t fast_mask_index=key_wide^(key_wide>>16);
+							uint8_t fast_mask_cache_wide_index=fast_mask_index^(fast_mask_index>>8);
+							wfc_fast_mask_t* cached_fast_mask_data=state->fast_mask_cache+(i<<4)+((fast_mask_cache_wide_index^(fast_mask_cache_wide_index>>4))&0xf);
+							cache_check_count++;
+							if (cached_fast_mask_data->offset==fast_mask_offset&&cached_fast_mask_data->key==value){
+								cache_hit_fast_count++;
+								sub_mask=_mm256_lddqu_si256((const __m256i*)(cached_fast_mask_data->data));
+								if (cached_fast_mask_data->counter<config->fast_mask_counter_max){
+									cached_fast_mask_data->counter++;
+								}
+								goto _sub_mask_calculated;
 							}
-							goto _sub_mask_calculated;
-						}
-						sub_mask=_mm256_xor_si256(sub_mask,sub_mask);
-						uint64_t fast_mask_data_key=value;
-						do{
-							sub_mask=_mm256_or_si256(sub_mask,_mm256_lddqu_si256(mask_data+FIND_FIRST_SET_BIT(value)));
-							value&=value-1;
-						} while (value);
-						if (fast_mask_data->counter){
-							fast_mask_data->counter--;
-						}
-						else{
-							fast_mask_data->key=fast_mask_data_key;
-							_mm256_storeu_si256((__m256i*)(fast_mask_data->data),sub_mask);
-							fast_mask_data->offset=fast_mask_offset;
-							fast_mask_data->counter=config->fast_mask_counter_init;
-						}
+							if (cached_fast_mask_data->counter){
+								cached_fast_mask_data->counter--;
+							}
+							wfc_fast_mask_t* fast_mask_data=state->fast_mask+fast_mask_index+(i<<16);
+							if (fast_mask_data->offset==fast_mask_offset&&fast_mask_data->key==value){
+								cache_hit_count++;
+								sub_mask=_mm256_lddqu_si256((const __m256i*)(fast_mask_data->data));
+								if (fast_mask_data->counter<config->fast_mask_counter_max){
+									fast_mask_data->counter++;
+								}
+								else if (!cached_fast_mask_data->counter){
+									cached_fast_mask_data->key=value;
+									_mm256_storeu_si256((__m256i*)(cached_fast_mask_data->data),sub_mask);
+									cached_fast_mask_data->offset=fast_mask_offset;
+									cached_fast_mask_data->counter=config->fast_mask_cache_counter_init;
+									fast_mask_data->counter=0;
+								}
+								goto _sub_mask_calculated;
+							}
+							sub_mask=_mm256_xor_si256(sub_mask,sub_mask);
+							uint64_t fast_mask_data_key=value;
+							do{
+								sub_mask=_mm256_or_si256(sub_mask,_mm256_lddqu_si256(mask_data+FIND_FIRST_SET_BIT(value)));
+								value&=value-1;
+							} while (value);
+							if (fast_mask_data->counter){
+								fast_mask_data->counter--;
+							}
+							else{
+								fast_mask_data->key=fast_mask_data_key;
+								_mm256_storeu_si256((__m256i*)(fast_mask_data->data),sub_mask);
+								fast_mask_data->offset=fast_mask_offset;
+								fast_mask_data->counter=config->fast_mask_counter_init;
+							}
 _sub_mask_calculated:
-						mask=_mm256_or_si256(mask,sub_mask);
-						mask_data+=64;
+							mask=_mm256_or_si256(mask,sub_mask);
+							mask_data+=64;
+						}
 					}
 					__m256i data=_mm256_and_si256(_mm256_lddqu_si256(target),mask);
 					_mm256_storeu_si256(target,data);
