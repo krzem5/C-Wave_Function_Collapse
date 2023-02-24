@@ -141,8 +141,8 @@ int main(int argc,const char** argv){
 	wfc_generate_full_scale_image(&table,&state,&output_image);
 	putchar('\n');
 	wfc_print_image(&output_image);
-	printf("Table:\n  Tile count: %u\n  Memory use:\n    Tile data: %s kB\n    Neighbours: %s kB\n    Upscaled data: %s kB\nTable creation time: %.3lfs\nSimulation state:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\nSimulation:\n  Updates:\n    Collapse: %s\n    Propagation: %s\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n    Fast cache: %.3f%% (%s)\n    Cache: %.3f%% (%s)\n    Raw: %.3f%% (%s)\n    Total: %s\nSimulation time: %.3lfs\n",
-		table.tile_count,
+	printf("Table:\n  Tile count: %s\n  Memory use:\n    Tile data: %s kB\n    Neighbours: %s kB\n    Upscaled data: %s kB\nTable creation time: %.3lfs\nSimulation state:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\nSimulation:\n  Updates:\n    Collapse: %s\n    Propagation: %s\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n    Fast cache: %.3f%% (%s)\n    Cache: %.3f%% (%s)\n    Raw: %.3f%% (%s)\n    Total: %s\nSimulation time: %.3lfs\n",
+		_format_int(table.tile_count),
 		_format_int((table.tile_count*config.box_size*config.box_size*sizeof(wfc_color_t)+1023)>>10),
 		_format_int((8*table.tile_count*table.data_elem_size*sizeof(uint64_t)+1023)>>10),
 		_format_int((table.tile_count*table.downscale_factor*table.downscale_factor*sizeof(wfc_color_t)+1023)>>10),
