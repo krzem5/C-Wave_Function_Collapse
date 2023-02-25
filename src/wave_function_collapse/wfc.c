@@ -851,7 +851,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 	free(upscaled_data);
 	if (out->tile_count<2){
 		out->data_elem_size=((out->tile_count+255)>>6)&0xfffffffc;
-		out->_connection_data=calloc(4*out->tile_count*out->data_elem_size*sizeof(uint64_t),1);
+		out->_merged_connection_data=calloc(4*out->tile_count*out->data_elem_size*sizeof(uint64_t),1);
 		if (out->tile_count){
 			out->tiles->connections=calloc(4*out->data_elem_size*sizeof(uint64_t),1);
 		}
@@ -882,9 +882,9 @@ _delete_tile:
 		}
 	}
 	out->data_elem_size=((out->tile_count+255)>>6)&0xfffffffc;
-	out->_connection_data=malloc(4*out->tile_count*out->data_elem_size*sizeof(uint64_t));
+	out->_merged_connection_data=malloc(4*out->tile_count*out->data_elem_size*sizeof(uint64_t));
 	__m256i zero=_mm256_setzero_si256();
-	__m256i* base_target=(__m256i*)(out->_connection_data);
+	__m256i* base_target=(__m256i*)(out->_merged_connection_data);
 	for (wfc_tile_index_t i=0;i<out->tile_count;i++){
 		uint64_t* data=malloc(4*out->data_elem_size*sizeof(uint64_t));
 		__m256i* ptr=(__m256i*)data;
@@ -979,8 +979,8 @@ void wfc_free_table(wfc_table_t* table){
 	}
 	free(table->tiles);
 	table->tiles=NULL;
-	free(table->_connection_data);
-	table->_connection_data=NULL;
+	free(table->_merged_connection_data);
+	table->_merged_connection_data=NULL;
 }
 
 
@@ -1058,7 +1058,7 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,_Bool use_
 		out->fast_mask=NULL;
 		out->fast_mask_cache=NULL;
 		out->precalculated_masks=malloc(((table->data_elem_size-1)*(table->data_elem_size-1)*8192ul+(table->data_elem_size-1)*1024+3*256+256)*sizeof(__m256i));
-		const __m256i* base_mask_data=(const __m256i*)(table->_connection_data);
+		const __m256i* base_mask_data=(const __m256i*)(table->_merged_connection_data);
 		__m256i sub_mask=_mm256_undefined_si256();
 		for (unsigned int i=0;i<4;i++){
 			const __m256i* mask_data=base_mask_data;
@@ -1337,7 +1337,7 @@ _retry_from_start:;
 			DIVMOD_WIDTH(offset,y,x);
 			uint8_t bounds=((!y)<<1)|((x==state->width-1)<<2)|((y==height-1)<<3)|((!x)<<4);
 			const uint64_t* state_data_base=state->data+offset*table->data_elem_size;
-			const __m256i* base_mask_data=(const __m256i*)(table->_connection_data);
+			const __m256i* base_mask_data=(const __m256i*)(table->_merged_connection_data);
 			for (unsigned int i=0;i<4;i++){
 				const __m256i* mask_data=base_mask_data;
 				base_mask_data+=(table->data_elem_size*table->tile_count)>>2;

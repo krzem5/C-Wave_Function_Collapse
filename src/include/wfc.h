@@ -98,7 +98,7 @@ typedef struct _WFC_TABLE{
 	wfc_tile_t* tiles;
 	wfc_tile_index_t data_elem_size;
 	wfc_size_t downscale_factor;
-	uint64_t* _connection_data;
+	void* _merged_connection_data;
 } wfc_table_t;
 
 
