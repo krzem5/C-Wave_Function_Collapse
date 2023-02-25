@@ -1106,6 +1106,7 @@ void wfc_print_image(const wfc_image_t* image){
 	const wfc_color_t* ptr=image->data;
 	for (wfc_size_t y=0;y<image->height;y++){
 		wfc_color_t last_color=0x000000ff;
+		printf("\x1b[48;2;0;0;0m");
 		for (wfc_size_t x=0;x<image->width;x++){
 			if (*ptr==last_color){
 				printf("  ");
