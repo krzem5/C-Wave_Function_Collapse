@@ -1057,7 +1057,8 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,_Bool use_
 	if (use_precalculated_masks){
 		out->fast_mask=NULL;
 		out->fast_mask_cache=NULL;
-		out->precalculated_masks=malloc(((table->data_elem_size-1)*(table->data_elem_size-1)*8192ul+(table->data_elem_size-1)*1024+3*256+256)*sizeof(__m256i));
+		// (table->data_elem_size-1)*(table->data_elem_size-1)*8192ul+(table->data_elem_size-1)*1024+3*256+256
+		out->precalculated_masks=malloc((((uint64_t)table->data_elem_size)*table->data_elem_size*8192-15360*table->data_elem_size+8192)*sizeof(__m256i));
 		const __m256i* base_mask_data=(const __m256i*)(table->_merged_connection_data);
 		__m256i sub_mask=_mm256_undefined_si256();
 		for (unsigned int i=0;i<4;i++){
