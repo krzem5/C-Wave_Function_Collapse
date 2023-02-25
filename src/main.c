@@ -185,8 +185,8 @@ int main(int argc,const char** argv){
 	printf("Simulation time: %.3lfs\n",
 		generation_time*1e-9
 	);
-	wfc_free_table(&table);
 	wfc_free_state(&table,&state);
+	wfc_free_table(&table);
 	wfc_save_image(&output_image,"build/export.bmp");
 	free(output_image_data);
 #endif
