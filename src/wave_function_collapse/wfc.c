@@ -241,39 +241,45 @@ static void _calculate_rotated_flipped_upscaled_data(const wfc_image_t* image,wf
 
 
 
-static FORCE_INLINE uint32_t _get_random(wfc_state_t* state,uint32_t n){
+static void _update_prng(wfc_state_t* state){
+	__m256i* ptr=(__m256i*)(state->prng.data);
+	__m256i permute_a=_mm256_set_epi32(4,3,2,1,0,7,6,5);
+	__m256i permute_b=_mm256_set_epi32(2,1,0,7,6,5,4,3);
+	__m256i s0=_mm256_lddqu_si256(ptr+0);
+	__m256i s1=_mm256_lddqu_si256(ptr+1);
+	__m256i s2=_mm256_lddqu_si256(ptr+2);
+	__m256i s3=_mm256_lddqu_si256(ptr+3);
+	__m256i u0=_mm256_srli_epi64(s0,1);
+	__m256i u1=_mm256_srli_epi64(s1,3);
+	__m256i u2=_mm256_srli_epi64(s2,1);
+	__m256i u3=_mm256_srli_epi64(s3,3);
+	__m256i t0=_mm256_permutevar8x32_epi32(s0,permute_a);
+	__m256i t1=_mm256_permutevar8x32_epi32(s1,permute_b);
+	__m256i t2=_mm256_permutevar8x32_epi32(s2,permute_a);
+	__m256i t3=_mm256_permutevar8x32_epi32(s3,permute_b);
+	s0=_mm256_add_epi64(t0,u0);
+	s1=_mm256_add_epi64(t1,u1);
+	s2=_mm256_add_epi64(t2,u2);
+	s3=_mm256_add_epi64(t3,u3);
+	_mm256_storeu_si256(ptr+0,s0);
+	_mm256_storeu_si256(ptr+1,s1);
+	_mm256_storeu_si256(ptr+2,s2);
+	_mm256_storeu_si256(ptr+3,s3);
+	_mm256_storeu_si256(ptr+4,_mm256_xor_si256(u0,t1));
+	_mm256_storeu_si256(ptr+5,_mm256_xor_si256(u2,t3));
+	_mm256_storeu_si256(ptr+6,_mm256_xor_si256(s0,s3));
+	_mm256_storeu_si256(ptr+7,_mm256_xor_si256(s2,s1));
+	state->prng.count=64;
+}
+
+
+
+static FORCE_INLINE uint32_t _get_random(wfc_state_t* state,uint32_t max){
 	if (!state->prng.count){
-		__m256i* ptr=(__m256i*)(state->prng.data);
-		__m256i permute_a=_mm256_set_epi32(4,3,2,1,0,7,6,5);
-		__m256i permute_b=_mm256_set_epi32(2,1,0,7,6,5,4,3);
-		__m256i s0=_mm256_lddqu_si256(ptr+0);
-		__m256i s1=_mm256_lddqu_si256(ptr+1);
-		__m256i s2=_mm256_lddqu_si256(ptr+2);
-		__m256i s3=_mm256_lddqu_si256(ptr+3);
-		__m256i u0=_mm256_srli_epi64(s0,1);
-		__m256i u1=_mm256_srli_epi64(s1,3);
-		__m256i u2=_mm256_srli_epi64(s2,1);
-		__m256i u3=_mm256_srli_epi64(s3,3);
-		__m256i t0=_mm256_permutevar8x32_epi32(s0,permute_a);
-		__m256i t1=_mm256_permutevar8x32_epi32(s1,permute_b);
-		__m256i t2=_mm256_permutevar8x32_epi32(s2,permute_a);
-		__m256i t3=_mm256_permutevar8x32_epi32(s3,permute_b);
-		s0=_mm256_add_epi64(t0,u0);
-		s1=_mm256_add_epi64(t1,u1);
-		s2=_mm256_add_epi64(t2,u2);
-		s3=_mm256_add_epi64(t3,u3);
-		_mm256_storeu_si256(ptr+0,s0);
-		_mm256_storeu_si256(ptr+1,s1);
-		_mm256_storeu_si256(ptr+2,s2);
-		_mm256_storeu_si256(ptr+3,s3);
-		_mm256_storeu_si256(ptr+4,_mm256_xor_si256(u0,t1));
-		_mm256_storeu_si256(ptr+5,_mm256_xor_si256(u2,t3));
-		_mm256_storeu_si256(ptr+6,_mm256_xor_si256(s0,s3));
-		_mm256_storeu_si256(ptr+7,_mm256_xor_si256(s2,s1));
-		state->prng.count=64;
+		_update_prng(state);
 	}
 	state->prng.count--;
-	return state->prng.data[state->prng.count]%n;
+	return state->prng.data[state->prng.count]%max;
 }
 
 

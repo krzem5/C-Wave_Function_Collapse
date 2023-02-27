@@ -18,7 +18,7 @@
 
 #define PICK_PARAMETERS 0
 #define GENERATE_IMAGE 1
-#define IMAGE_NAME "duck_fast"
+#define IMAGE_NAME "cow"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
@@ -112,7 +112,8 @@ int main(int argc,const char** argv){
 	unsigned int output_width=window_size.ws_col>>1;
 	unsigned int output_height=window_size.ws_row;
 #endif
-	srand((time_t)(get_time()&0xffffffff));
+	unsigned int seed=get_time()&0xffffffff;
+	srand(seed);
 	wfc_color_t* output_image_data=malloc(output_width*output_height*sizeof(wfc_color_t));
 	wfc_image_t output_image={
 		output_width,
@@ -145,7 +146,8 @@ int main(int argc,const char** argv){
 	wfc_generate_full_scale_image(&table,&state,&output_image);
 	putchar('\n');
 	wfc_print_image(&output_image);
-	printf("Table:\n  Tile count: %s\n  Tile element size: %s B\n  Tile data: %s kB\n  Neighbours: %s kB\n  Upscaled data: %s kB\nTable creation time: %.3lfs\nState:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\n  Precalculated masks: %s kB\nState creation time: %.3lfs\nSimulation:\n  Updates:\n    Collapse: %s\n    Propagation: %s\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n",
+	printf("Seed: %.8x\nTable:\n  Tile count: %s\n  Tile element size: %s B\n  Tile data: %s kB\n  Neighbours: %s kB\n  Upscaled data: %s kB\nTable creation time: %.3lfs\nState:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\n  Precalculated masks: %s kB\nState creation time: %.3lfs\nSimulation:\n  Updates:\n    Collapse: %s\n    Propagation: %s\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n",
+		seed,
 		_format_int(table.tile_count),
 		_format_int(table.data_elem_size*sizeof(uint64_t)),
 		_format_int((table.tile_count*config.box_size*config.box_size*sizeof(wfc_color_t)+1023)>>10),
