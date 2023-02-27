@@ -154,7 +154,7 @@ int main(int argc,const char** argv){
 		_format_int((8*table.tile_count*table.data_elem_size*sizeof(uint64_t)+1023)>>10),
 		_format_int((table.tile_count*table.downscale_factor*table.downscale_factor*sizeof(wfc_color_t)+1023)>>10),
 		table_creation_time*1e-9,
-		_format_int((state.bitmap_size+31lu)>>5),
+		_format_int((state.bitmap_size+31)>>5),
 		_format_int((state.length*sizeof(uint64_t)+1023)>>10),
 		_format_int((table.tile_count*(sizeof(wfc_queue_t)+state.queue_size*32)+1023)>>10),
 		_format_int((table.tile_count*sizeof(wfc_weight_t)+1023)>>10),
