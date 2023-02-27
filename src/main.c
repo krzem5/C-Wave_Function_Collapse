@@ -18,7 +18,7 @@
 
 #define PICK_PARAMETERS 0
 #define GENERATE_IMAGE 1
-#define IMAGE_NAME "cow"
+#define IMAGE_NAME "duck_fast"
 
 #define PROGRESS_FRAME_INTERVAL 0.05f
 
@@ -154,7 +154,7 @@ int main(int argc,const char** argv){
 		table_creation_time*1e-9,
 		_format_int((state.bitmap_size+31lu)>>5),
 		_format_int((state.length*sizeof(uint64_t)+1023)>>10),
-		_format_int((table.tile_count*sizeof(wfc_queue_t)+state.pixel_count*sizeof(wfc_queue_location_t)+1023)>>10),
+		_format_int((table.tile_count*(sizeof(wfc_queue_t)+state.queue_size*32)+1023)>>10),
 		_format_int((table.tile_count*sizeof(wfc_weight_t)+1023)>>10),
 		_format_int((2*state.pixel_count*sizeof(wfc_size_t)+1023)>>10),
 		(!state.precalculated_masks?_format_int((262208*sizeof(wfc_fast_mask_t)+1023)>>10):"0"),

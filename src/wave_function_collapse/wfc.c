@@ -97,6 +97,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 		config->flags|=flag; \
 	}
 
+
 #define EXTRACT_UPSCALED_DATA(x,y) \
 	for (wfc_size_t i=0;i<downscale_factor;i++){ \
 		for (wfc_size_t j=0;j<downscale_factor;j++){ \
@@ -104,7 +105,6 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 			k++; \
 		} \
 	}
-
 
 
 static const unsigned int powers_of_ten[6]={100000,10000,1000,100,10,1};
@@ -1012,6 +1012,8 @@ void wfc_generate_image(const wfc_table_t* table,const wfc_state_t* state,wfc_im
 void wfc_generate_full_scale_image(const wfc_table_t* table,const wfc_state_t* state,wfc_image_t* out){
 	const uint64_t* data=state->data;
 	wfc_color_t* base_ptr=out->data;
+	wfc_size_t tile_row_stride=out->width-table->downscale_factor;
+	wfc_size_t row_stride=out->width*(table->downscale_factor-1);
 	for (wfc_size_t y=0;y<out->height;y+=table->downscale_factor){
 		for (wfc_size_t x=0;x<out->width;x+=table->downscale_factor){
 			const wfc_color_t* src=(table->tiles+_find_first_bit(data))->upscaled_data;
@@ -1023,11 +1025,11 @@ void wfc_generate_full_scale_image(const wfc_table_t* table,const wfc_state_t* s
 					dst++;
 					src++;
 				}
-				dst+=out->width-table->downscale_factor;
+				dst+=tile_row_stride;
 			}
 			base_ptr+=table->downscale_factor;
 		}
-		base_ptr+=out->width*(table->downscale_factor-1);
+		base_ptr+=row_stride;
 	}
 }
 
@@ -1307,7 +1309,7 @@ _retry_from_start:;
 					value&=value-1;
 					wfc_weight_t weight=state->weights[j];
 					weight_sum+=weight;
-					if ((_get_random(state,(weight_sum+1)<<WEIGHT_RANDOMNESS_SHIFT)>>WEIGHT_RANDOMNESS_SHIFT)<=weight){
+					if (((_get_random(state,(weight_sum+1)<<WEIGHT_RANDOMNESS_SHIFT)+(1<<(WEIGHT_RANDOMNESS_SHIFT-1)))>>WEIGHT_RANDOMNESS_SHIFT)<=weight){
 						tile_index=j;
 					}
 				}
