@@ -339,12 +339,12 @@ static __m256i _data_access_fast_mask(const wfc_state_t* state,const wfc_table_t
 				fast_mask_offset++;
 				continue;
 			}
+			stats->access_count++;
 			uint64_t key_extra_wide=(value*FAST_MASK_VALUE_PRIME)^(fast_mask_offset*FAST_MASK_OFFSET_PRIME);
 			uint32_t key_wide=key_extra_wide^(key_extra_wide>>32);
 			uint16_t fast_mask_index=key_wide^(key_wide>>16);
 			uint8_t fast_mask_cache_wide_index=fast_mask_index^(fast_mask_index>>8);
 			wfc_fast_mask_t* cached_fast_mask_data=state->data_access.fast_mask.data_cache+(i<<4)+((fast_mask_cache_wide_index^(fast_mask_cache_wide_index>>4))&0xf);
-			stats->access_count++;
 			if (cached_fast_mask_data->offset==fast_mask_offset&&cached_fast_mask_data->key==value){
 				stats->cache_hit_fast_count++;
 				mask=_mm256_or_si256(mask,_mm256_lddqu_si256((const __m256i*)(cached_fast_mask_data->data)));

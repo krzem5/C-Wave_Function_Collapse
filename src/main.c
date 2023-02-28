@@ -169,10 +169,10 @@ int main(int argc,const char** argv){
 	);
 	if (state.data_access_strategy==WFC_STATE_DATA_ACCESS_STRATEGY_FAST_MASK){
 		printf("    Precalculated masks: N/A\n    Fast cache: %.3f%% (%s)\n    Cache: %.3f%% (%s)\n    Raw: %.3f%% (%s)\n    Total: %s\n",
-			((float)stats.cache_hit_count)/stats.access_count*100,
-			_format_int(stats.cache_hit_count),
 			((float)stats.cache_hit_fast_count)/stats.access_count*100,
 			_format_int(stats.cache_hit_fast_count),
+			((float)stats.cache_hit_count)/stats.access_count*100,
+			_format_int(stats.cache_hit_count),
 			((float)(stats.access_count-stats.cache_hit_count-stats.cache_hit_fast_count))/stats.access_count*100,
 			_format_int(stats.access_count-stats.cache_hit_count-stats.cache_hit_fast_count),
 			_format_int(stats.access_count)
