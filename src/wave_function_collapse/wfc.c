@@ -298,13 +298,13 @@ static FORCE_INLINE __m256i _popcnt256(__m256i data){
 
 
 static __m256i _data_access_raw(const wfc_table_t* table,const uint64_t* state_data_base,const __m256i* mask_data,__m256i* target,wfc_stats_t* stats){
+	stats->access_count+=((uint64_t)(table->data_elem_size>>2))*table->data_elem_size;
 	__m256i out=_mm256_setzero_si256();
 	__m256i mask=_mm256_undefined_si256();
 	for (wfc_tile_index_t j=0;j<(table->data_elem_size>>2);j++){
 		mask=_mm256_xor_si256(mask,mask);
 		const uint64_t* state_data=state_data_base;
 		for (wfc_tile_index_t k=0;k<table->data_elem_size;k++){
-			stats->access_count++;
 			uint64_t value=*state_data;
 			state_data++;
 			while (value){
@@ -405,6 +405,7 @@ _sub_mask_calculated:
 
 
 static __m256i _data_access_precalculated_mask(const wfc_state_t* state,const wfc_table_t* table,const uint64_t* state_data_base,unsigned int i,__m256i* target,wfc_stats_t* stats){
+	stats->access_count+=2ul*table->data_elem_size*table->data_elem_size;
 	__m256i out=_mm256_setzero_si256();
 	__m256i mask=_mm256_undefined_si256();
 	const __m256i* precalculated_mask_data=(const __m256i*)(state->data_access.precalculated_mask.data)+(i<<8);
@@ -412,7 +413,6 @@ static __m256i _data_access_precalculated_mask(const wfc_state_t* state,const wf
 		mask=_mm256_xor_si256(mask,mask);
 		const uint8_t* state_data=(const uint8_t*)state_data_base;
 		for (wfc_tile_index_t k=0;k<(table->data_elem_size<<3);k++){
-			stats->access_count++;
 			mask=_mm256_or_si256(mask,_mm256_lddqu_si256(precalculated_mask_data+(*state_data)));
 			state_data++;
 			precalculated_mask_data+=1024;
