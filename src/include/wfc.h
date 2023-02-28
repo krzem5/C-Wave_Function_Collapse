@@ -19,6 +19,9 @@
 #define WFC_TILE_GET_ROTATION(t) (((t)->x>>29)&3)
 #define WFC_TILE_GET_X(t) ((t)->x&0x1fffffff)
 
+#define WFC_STATE_DATA_ACCESS_TYPE_FAST_MASK 0
+#define WFC_STATE_DATA_ACCESS_TYPE_PRECALCULATED_MASK 1
+
 
 
 typedef uint32_t wfc_box_size_t;
@@ -70,6 +73,10 @@ typedef uint32_t wfc_fast_mask_counter_t;
 
 
 typedef uint32_t wfc_delete_count_t;
+
+
+
+typedef uint8_t wfc_state_data_access_type_t;
 
 
 
@@ -134,6 +141,26 @@ typedef struct _WFC_FAST_MASK{
 
 
 
+typedef struct _WFC_STATE_DATA_ACCESS_FAST_MASK{
+	wfc_fast_mask_t* data;
+	wfc_fast_mask_t* data_cache;
+} wfc_state_data_access_fast_mask_t;
+
+
+
+typedef struct _WFC_STATE_DATA_ACCESS_PRECALCULATED_MASK{
+	void* data;
+} wfc_state_data_access_precalculated_mask_t;
+
+
+
+typedef union _WFC_STATE_DATA_ACCESS{
+	wfc_state_data_access_fast_mask_t fast_mask;
+	wfc_state_data_access_precalculated_mask_t precalculated_mask;
+} wfc_state_data_access_t;
+
+
+
 typedef struct _WFC_STATE{
 	wfc_prng_t prng;
 	uint64_t* data;
@@ -146,11 +173,10 @@ typedef struct _WFC_STATE{
 	wfc_queue_location_t* queue_indicies;
 	wfc_size_t* update_stack;
 	wfc_size_t* delete_stack;
-	wfc_fast_mask_t* fast_mask;
-	wfc_fast_mask_t* fast_mask_cache;
-	void* precalculated_masks;
 	wfc_size_t pixel_count;
 	wfc_size_t width;
+	wfc_state_data_access_type_t data_access_type;
+	wfc_state_data_access_t data_access;
 } wfc_state_t;
 
 
@@ -228,7 +254,7 @@ void wfc_generate_full_scale_image(const wfc_table_t* table,const wfc_state_t* s
 
 
 
-void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,const unsigned char* seed,_Bool use_precalculated_masks,wfc_state_t* out);
+void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,const unsigned char* seed,wfc_state_data_access_type_t data_access_type,wfc_state_t* out);
 
 
 

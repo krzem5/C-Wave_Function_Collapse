@@ -112,7 +112,7 @@ int main(int argc,const char** argv){
 	unsigned int output_width=window_size.ws_col>>1;
 	unsigned int output_height=window_size.ws_row;
 #endif
-	unsigned int seed=get_time()&0xffffffff;
+	unsigned int seed=0/*get_time()&0xffffffff*/;
 	srand(seed);
 	wfc_color_t* output_image_data=malloc(output_width*output_height*sizeof(wfc_color_t));
 	wfc_image_t output_image={
@@ -159,21 +159,15 @@ int main(int argc,const char** argv){
 		_format_int((table.tile_count*(sizeof(wfc_queue_t)+state.queue_size*32)+1023)>>10),
 		_format_int((table.tile_count*sizeof(wfc_weight_t)+1023)>>10),
 		_format_int((2*state.pixel_count*sizeof(wfc_size_t)+1023)>>10),
-		(!state.precalculated_masks?_format_int((262208*sizeof(wfc_fast_mask_t)+1023)>>10):"0"),
-		(state.precalculated_masks?_format_int((((table.data_elem_size-1)*(table.data_elem_size-1)*8192ul+(table.data_elem_size-1)*1024+3*256+256)*4*sizeof(uint64_t)+1023)>>10):"0"),
+		(state.data_access_type==WFC_STATE_DATA_ACCESS_TYPE_FAST_MASK?_format_int((262208*sizeof(wfc_fast_mask_t)+1023)>>10):"0"),
+		(state.data_access_type==WFC_STATE_DATA_ACCESS_TYPE_PRECALCULATED_MASK?_format_int((((table.data_elem_size-1)*(table.data_elem_size-1)*8192ul+(table.data_elem_size-1)*1024+3*256+256)*4*sizeof(uint64_t)+1023)>>10):"0"),
 		state_creation_time*1e-9,
 		_format_int(stats.steps),
 		_format_int(stats.propagation_steps),
 		_format_int(stats.deleted_tiles),
 		_format_int(stats.restarts)
 	);
-	if (state.precalculated_masks){
-		printf("    Precalculated masks: %s\n    Fast cache: N/A\n    Cache: N/A\n    Raw: N/A\n    Total: %s\n",
-			_format_int(stats.precalculated_mask_accesses),
-			_format_int(stats.precalculated_mask_accesses)
-		);
-	}
-	else{
+	if (state.data_access_type==WFC_STATE_DATA_ACCESS_TYPE_FAST_MASK){
 		printf("    Precalculated masks: N/A\n    Fast cache: %.3f%% (%s)\n    Cache: %.3f%% (%s)\n    Raw: %.3f%% (%s)\n    Total: %s\n",
 			((float)stats.fast_cache_hits)/stats.total_cache_checks*100,
 			_format_int(stats.fast_cache_hits),
@@ -182,6 +176,12 @@ int main(int argc,const char** argv){
 			((float)(stats.total_cache_checks-stats.cache_hits-stats.fast_cache_hits))/stats.total_cache_checks*100,
 			_format_int(stats.total_cache_checks-stats.cache_hits-stats.fast_cache_hits),
 			_format_int(stats.total_cache_checks)
+		);
+	}
+	else{
+		printf("    Precalculated masks: %s\n    Fast cache: N/A\n    Cache: N/A\n    Raw: N/A\n    Total: %s\n",
+			_format_int(stats.precalculated_mask_accesses),
+			_format_int(stats.precalculated_mask_accesses)
 		);
 	}
 	printf("Simulation time: %.3lfs\n",

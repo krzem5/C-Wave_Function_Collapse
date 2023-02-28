@@ -289,6 +289,14 @@ static FORCE_INLINE wfc_tile_index_t _find_first_bit(const uint64_t* data){
 
 
 
+static FORCE_INLINE __m256i _popcnt256(__m256i data){
+	__m256i popcnt_table=_mm256_setr_epi8(0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4);
+	__m256i popcnt_low_mask=_mm256_set1_epi8(15);
+	return _mm256_sad_epu8(_mm256_add_epi8(_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(data,popcnt_low_mask)),_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(_mm256_srli_epi32(data,4),popcnt_low_mask))),_mm256_setzero_si256());
+}
+
+
+
 static void _print_integer(unsigned int value,unsigned int width,unsigned int edit_index){
 	const unsigned int* powers=powers_of_ten+6-width;
 	_Bool is_leading_zero=1;
@@ -958,12 +966,14 @@ void wfc_free_state(const wfc_table_t* table,wfc_state_t* state){
 	state->update_stack=NULL;
 	free(state->delete_stack);
 	state->delete_stack=NULL;
-	free(state->fast_mask);
-	state->fast_mask=NULL;
-	free(state->fast_mask_cache);
-	state->fast_mask_cache=NULL;
-	free(state->precalculated_masks);
-	state->precalculated_masks=NULL;
+	if (state->data_access_type==WFC_STATE_DATA_ACCESS_TYPE_FAST_MASK){
+		free(state->data_access.fast_mask.data);
+		free(state->data_access.fast_mask.data_cache);
+	}
+	else if (state->data_access_type==WFC_STATE_DATA_ACCESS_TYPE_PRECALCULATED_MASK){
+		free(state->data_access.precalculated_mask.data);
+	}
+	state->data_access_type=0;
 	state->pixel_count=0;
 	state->width=0;
 }
@@ -1035,7 +1045,7 @@ void wfc_generate_full_scale_image(const wfc_table_t* table,const wfc_state_t* s
 
 
 
-void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,const unsigned char* seed,_Bool use_precalculated_masks,wfc_state_t* out){
+void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,const unsigned char* seed,wfc_state_data_access_type_t data_access_type,wfc_state_t* out){
 	wfc_size_t pixel_count=image->width*image->height;
 	uint8_t* prng_data=(uint8_t*)(out->prng.data);
 	for (unsigned int i=0;i<256;i++){
@@ -1056,10 +1066,24 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,const unsi
 	out->queue_indicies=malloc((pixel_count*sizeof(wfc_queue_location_t)+31)&0xffffffffffffffe0ull);
 	out->update_stack=malloc(pixel_count*sizeof(wfc_size_t));
 	out->delete_stack=malloc(pixel_count*sizeof(wfc_size_t));
-	if (use_precalculated_masks){
-		out->fast_mask=NULL;
-		out->fast_mask_cache=NULL;
-		out->precalculated_masks=malloc((((uint64_t)table->data_elem_size)*table->data_elem_size*8192-15360*table->data_elem_size+8192)*sizeof(__m256i));
+	out->data_access_type=data_access_type;
+	if (data_access_type==WFC_STATE_DATA_ACCESS_TYPE_FAST_MASK){
+		out->data_access.fast_mask.data=malloc(262144*sizeof(wfc_fast_mask_t));
+		out->data_access.fast_mask.data_cache=malloc(64*sizeof(wfc_fast_mask_t));
+		__m256i zero=_mm256_setzero_si256();
+		__m256i* ptr=(__m256i*)(out->data_access.fast_mask.data);
+		for (wfc_size_t i=0;i<262144*sizeof(wfc_fast_mask_t);i+=32){
+			_mm256_storeu_si256(ptr,zero);
+			ptr++;
+		}
+		ptr=(__m256i*)(out->data_access.fast_mask.data_cache);
+		for (wfc_size_t i=0;i<64*sizeof(wfc_fast_mask_t);i+=32){
+			_mm256_storeu_si256(ptr,zero);
+			ptr++;
+		}
+	}
+	else if (data_access_type==WFC_STATE_DATA_ACCESS_TYPE_PRECALCULATED_MASK){
+		out->data_access.precalculated_mask.data=malloc((((uint64_t)table->data_elem_size)*table->data_elem_size*8192-15360*table->data_elem_size+8192)*sizeof(__m256i));
 		const __m256i* base_mask_data=(const __m256i*)(table->_merged_connection_data);
 		__m256i sub_mask=_mm256_undefined_si256();
 		for (unsigned int i=0;i<4;i++){
@@ -1073,7 +1097,7 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,const unsi
 							sub_mask=_mm256_or_si256(sub_mask,_mm256_lddqu_si256(mask_data+FIND_FIRST_SET_BIT(tmp)));
 							tmp&=tmp-1;
 						}
-						_mm256_storeu_si256((__m256i*)(out->precalculated_masks)+((((uint64_t)j)*table->data_elem_size)<<13)+(k<<10)+(i<<8)+value,sub_mask);
+						_mm256_storeu_si256((__m256i*)(out->data_access.precalculated_mask.data)+((((uint64_t)j)*table->data_elem_size)<<13)+(k<<10)+(i<<8)+value,sub_mask);
 					}
 					mask_data+=8;
 				}
@@ -1083,20 +1107,6 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,const unsi
 		}
 	}
 	else{
-		out->fast_mask=malloc(262144*sizeof(wfc_fast_mask_t));
-		out->fast_mask_cache=malloc(64*sizeof(wfc_fast_mask_t));
-		out->precalculated_masks=NULL;
-		__m256i zero=_mm256_setzero_si256();
-		__m256i* ptr=(__m256i*)(out->fast_mask);
-		for (wfc_size_t i=0;i<262144*sizeof(wfc_fast_mask_t);i+=32){
-			_mm256_storeu_si256(ptr,zero);
-			ptr++;
-		}
-		ptr=(__m256i*)(out->fast_mask_cache);
-		for (wfc_size_t i=0;i<64*sizeof(wfc_fast_mask_t);i+=32){
-			_mm256_storeu_si256(ptr,zero);
-			ptr++;
-		}
 	}
 	out->pixel_count=pixel_count;
 	out->width=image->width;
@@ -1227,8 +1237,6 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state,const wfc_config_t* c
 	__m256i data_mask=_mm256_srlv_epi32(ones,_mm256_subs_epu16(_mm256_set_epi32(256,224,192,160,128,96,64,32),_mm256_set1_epi32(table->tile_count&255)));
 	__m256i zero=_mm256_setzero_si256();
 	__m256i increment=_mm256_set1_epi32(8);
-	__m256i popcnt_table=_mm256_setr_epi8(0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4);
-	__m256i popcnt_low_mask=_mm256_set1_epi8(15);
 	uint64_t cache_check_count=0;
 	uint64_t cache_hit_count=0;
 	uint64_t cache_hit_fast_count=0;
@@ -1357,13 +1365,13 @@ _retry_from_start:;
 					continue;
 				}
 				__m256i* target=(__m256i*)(state->data+neightbour_offset*table->data_elem_size);
-				__m256i sum_vector=_mm256_setzero_si256();
+				__m256i popcnt_sum_vector=_mm256_setzero_si256();
 				__m256i mask=_mm256_undefined_si256();
-				const __m256i* precalculated_mask_data=(const __m256i*)(state->precalculated_masks)+(i<<8);
+				const __m256i* precalculated_mask_data=(const __m256i*)(state->data_access.precalculated_mask.data)+(i<<8);
 				uint32_t fast_mask_offset=0;
 				for (wfc_tile_index_t j=0;j<(table->data_elem_size>>2);j++){
 					mask=_mm256_xor_si256(mask,mask);
-					if (state->precalculated_masks){
+					if (state->data_access_type==WFC_STATE_DATA_ACCESS_TYPE_PRECALCULATED_MASK){
 						precalculated_mask_access_count++;
 						const uint8_t* state_data=(const uint8_t*)state_data_base;
 						for (wfc_tile_index_t k=0;k<(table->data_elem_size<<3);k++){
@@ -1386,7 +1394,7 @@ _retry_from_start:;
 							uint32_t key_wide=key_extra_wide^(key_extra_wide>>32);
 							uint16_t fast_mask_index=key_wide^(key_wide>>16);
 							uint8_t fast_mask_cache_wide_index=fast_mask_index^(fast_mask_index>>8);
-							wfc_fast_mask_t* cached_fast_mask_data=state->fast_mask_cache+(i<<4)+((fast_mask_cache_wide_index^(fast_mask_cache_wide_index>>4))&0xf);
+							wfc_fast_mask_t* cached_fast_mask_data=state->data_access.fast_mask.data_cache+(i<<4)+((fast_mask_cache_wide_index^(fast_mask_cache_wide_index>>4))&0xf);
 							cache_check_count++;
 							if (cached_fast_mask_data->offset==fast_mask_offset&&cached_fast_mask_data->key==value){
 								cache_hit_fast_count++;
@@ -1399,7 +1407,7 @@ _retry_from_start:;
 							if (cached_fast_mask_data->counter){
 								cached_fast_mask_data->counter--;
 							}
-							wfc_fast_mask_t* fast_mask_data=state->fast_mask+fast_mask_index+(i<<16);
+							wfc_fast_mask_t* fast_mask_data=state->data_access.fast_mask.data+fast_mask_index+(i<<16);
 							if (fast_mask_data->offset==fast_mask_offset&&fast_mask_data->key==value){
 								cache_hit_count++;
 								__m256i sub_mask=_mm256_lddqu_si256((const __m256i*)(fast_mask_data->data));
@@ -1440,11 +1448,11 @@ _sub_mask_calculated:
 					}
 					__m256i data=_mm256_and_si256(_mm256_lddqu_si256(target),mask);
 					_mm256_storeu_si256(target,data);
-					sum_vector=_mm256_add_epi64(sum_vector,_mm256_sad_epu8(_mm256_add_epi8(_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(data,popcnt_low_mask)),_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(_mm256_srli_epi32(data,4),popcnt_low_mask))),zero));
+					popcnt_sum_vector=_mm256_add_epi64(popcnt_sum_vector,_popcnt256(data));
 					target++;
 				}
-				__m128i sum_vector_half=_mm_add_epi32(_mm256_castsi256_si128(sum_vector),_mm256_extractf128_si256(sum_vector,1));
-				wfc_tile_index_t sum=_mm_cvtsi128_si32(_mm_add_epi64(sum_vector_half,_mm_unpackhi_epi64(sum_vector_half,sum_vector_half)));
+				__m128i popcnt_sum_vector_half=_mm_add_epi32(_mm256_castsi256_si128(popcnt_sum_vector),_mm256_extractf128_si256(popcnt_sum_vector,1));
+				wfc_tile_index_t sum=_mm_cvtsi128_si32(_mm_add_epi64(popcnt_sum_vector_half,_mm_unpackhi_epi64(popcnt_sum_vector_half,popcnt_sum_vector_half)));
 				if (!sum){
 					state->delete_stack[delete_stack_size]=neightbour_offset;
 					delete_stack_size++;
