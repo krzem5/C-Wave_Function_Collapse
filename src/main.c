@@ -20,7 +20,7 @@
 #define GENERATE_IMAGE 1
 #define IMAGE_NAME "cow"
 
-#define PROGRESS_FRAME_INTERVAL 0.05f
+#define PROGRESS_FRAME_INTERVAL 0.05
 
 
 
