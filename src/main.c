@@ -130,7 +130,7 @@ int main(int argc,const char** argv){
 	output_image.height/=table.downscale_factor;
 	wfc_state_t state;
 	time_start=get_time();
-	wfc_init_state(&table,&output_image,USE_PRECALCULATED_MASKS,&state);
+	wfc_init_state(&table,&output_image,NULL,USE_PRECALCULATED_MASKS,&state);
 	unsigned long int state_creation_time=get_time()-time_start;
 	time_start=get_time();
 	wfc_stats_t stats;

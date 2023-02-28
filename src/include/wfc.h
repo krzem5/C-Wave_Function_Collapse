@@ -228,7 +228,7 @@ void wfc_generate_full_scale_image(const wfc_table_t* table,const wfc_state_t* s
 
 
 
-void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,_Bool use_precalculated_masks,wfc_state_t* out);
+void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,const unsigned char* seed,_Bool use_precalculated_masks,wfc_state_t* out);
 
 
 
