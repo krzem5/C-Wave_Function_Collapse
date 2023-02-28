@@ -42,7 +42,7 @@ static void _get_terminal_size(wfc_size_t* width,wfc_size_t* height){
 
 
 #if GENERATE_IMAGE
-static unsigned long int get_time(void){
+static unsigned long int _current_time(void){
 #ifdef _MSC_VER
 	FILETIME ft;
 	GetSystemTimeAsFileTime(&ft);
@@ -58,7 +58,7 @@ static unsigned long int get_time(void){
 
 static void _progress_callback(const wfc_table_t* table,const wfc_state_t* state,void* ctx){
 	static unsigned long int _last_time=0;
-	unsigned long int current_time=get_time();
+	unsigned long int current_time=_current_time();
 	if (current_time-_last_time<(unsigned long int)(PROGRESS_FRAME_INTERVAL*1e9)){
 		return;
 	}
@@ -137,7 +137,7 @@ int main(int argc,const char** argv){
 	unsigned int output_height;
 	_get_terminal_size(&output_width,&output_height);
 	output_width>>=1;
-	unsigned int seed=get_time()&0xffffffff;
+	unsigned int seed=_current_time()&0xffffffff;
 	srand(seed);
 	wfc_color_t* output_image_data=malloc(output_width*output_height*sizeof(wfc_color_t));
 	wfc_image_t output_image={
@@ -146,23 +146,23 @@ int main(int argc,const char** argv){
 		output_image_data
 	};
 	wfc_print_image(&(image_config->image));
-	unsigned long int time_start=get_time();
+	unsigned long int time_start=_current_time();
 	wfc_table_t table;
 	wfc_build_table(&(image_config->image),&config,&table);
-	unsigned long int table_creation_time=get_time()-time_start;
+	unsigned long int table_creation_time=_current_time()-time_start;
 	wfc_print_table(&table,&config,1);
 	output_image.width/=table.downscale_factor;
 	output_image.height/=table.downscale_factor;
 	wfc_state_t state;
-	time_start=get_time();
+	time_start=_current_time();
 	wfc_init_state(&table,&output_image,NULL,STRATEGY,&state);
-	unsigned long int state_creation_time=get_time()-time_start;
-	time_start=get_time();
+	unsigned long int state_creation_time=_current_time()-time_start;
+	time_start=_current_time();
 	wfc_stats_t stats;
 	fflush(stdout);
 	wfc_solve(&table,&state,&config,_progress_callback,&output_image,&stats);
 	printf("\x1b[0m\x1b[?25h\x1b[%uA",output_image.height);
-	unsigned long int generation_time=get_time()-time_start;
+	unsigned long int generation_time=_current_time()-time_start;
 	wfc_generate_image(&table,&state,&output_image);
 	putchar('\n');
 	wfc_print_image(&output_image);
