@@ -3,8 +3,6 @@
 #else
 #include <immintrin.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
-#include <termios.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -451,19 +449,11 @@ static void _print_integer(unsigned int value,unsigned int width,unsigned int ed
 
 
 
-void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
-#ifndef _MSC_VER
+void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config,wfc_terminal_size_inquiry_t terminal_size_inquiry){
+	unsigned int width;
+	unsigned int height;
+	terminal_size_inquiry(&width,&height);
 	unsigned int edit_index=3+(config->box_size<10);
-	struct winsize window_size;
-	ioctl(STDOUT_FILENO,TIOCGWINSZ,&window_size);
-	unsigned int width=window_size.ws_col;
-	unsigned int height=window_size.ws_row;
-	struct termios old_terminal_config;
-	tcgetattr(STDOUT_FILENO,&old_terminal_config);
-	struct termios terminal_config=old_terminal_config;
-	terminal_config.c_iflag=(terminal_config.c_iflag&(~(INLCR|IGNBRK)))|ICRNL;
-	terminal_config.c_lflag=(terminal_config.c_lflag&(~(ICANON|ECHO)))|ISIG|IEXTEN;
-	tcsetattr(STDIN_FILENO,TCSANOW,&terminal_config);
 	int scrolled_lines=0;
 	unsigned int tile_columns=0;
 	unsigned int tile_column_buffer=0;
@@ -489,12 +479,11 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config){
 			table_box_size=config->box_size;
 			update_grid=1;
 		}
-		ioctl(STDOUT_FILENO,TIOCGWINSZ,&window_size);
-		if (window_size.ws_col!=width){
-			width=window_size.ws_col;
+		wfc_size_t old_width=width;
+		terminal_size_inquiry(&width,&height);
+		if (width!=old_width){
 			update_grid=1;
 		}
-		height=window_size.ws_row;
 		if (update_grid){
 			tile_columns=width/(2*config->box_size+2);
 			tile_column_buffer=width-tile_columns*(2*config->box_size+2)+2;
@@ -756,9 +745,7 @@ _next_index:
 	}
 _return:
 	wfc_free_table(&table);
-	tcsetattr(STDOUT_FILENO,TCSANOW,&old_terminal_config);
 	printf("\x1b[0m\x1b[?25h\x1b[%uA\x1b[0G\x1b[0JBox size: %u\nFlags:%s%s%s%s%s%s%s%s%s\nPalette size: %u\nSimilarity score: %u\nDownscale factor: %u\nPropagation distance: %u\nDelete size: %u\nMax delete count: %u\nFast mask counter initial value: %u\nFast mask counter maximal value: %u\n",height,config->box_size,((config->flags&WFC_FLAG_FLIP)?" WFC_FLAG_FLIP":""),((config->flags&WFC_FLAG_ROTATE)?" WFC_FLAG_ROTATE":""),((config->flags&WFC_FLAG_WRAP_X)?" WFC_FLAG_WRAP_X":""),((config->flags&WFC_FLAG_WRAP_Y)?" WFC_FLAG_WRAP_Y":""),((config->flags&WFC_FLAG_WRAP_OUTPUT_X)?" WFC_FLAG_WRAP_OUTPUT_X":""),((config->flags&WFC_FLAG_WRAP_OUTPUT_Y)?" WFC_FLAG_WRAP_OUTPUT_Y":""),((config->flags&WFC_FLAG_BLEND_CORNER)?" WFC_FLAG_BLEND_CORNER":""),((config->flags&WFC_FLAG_BLEND_PIXEL)?" WFC_FLAG_BLEND_PIXEL":""),((config->flags&WFC_FLAG_AVERAGE_SCALING)?" WFC_FLAG_AVERAGE_SCALING":""),config->palette_max_size,config->max_color_diff,config->downscale_factor,config->propagation_distance,config->delete_size,config->max_delete_count,config->fast_mask_counter_init,config->fast_mask_counter_max);
-#endif
 }
 
 

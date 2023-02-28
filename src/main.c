@@ -2,8 +2,9 @@
 #define WIN32_LEAN_AND_MEAN 1
 #include <windows.h>
 #else
-#include <unistd.h>
 #include <sys/ioctl.h>
+#include <termios.h>
+#include <unistd.h>
 #endif
 #include <preloaded_images.h>
 #include <stdio.h>
@@ -21,6 +22,22 @@
 #define IMAGE_NAME "cow"
 
 #define PROGRESS_FRAME_INTERVAL 0.05
+
+
+
+#if PICK_PARAMETERS
+static void _get_terminal_size(wfc_size_t* width,wfc_size_t* height){
+#ifdef _MSC_VER
+	*width=92;
+	*height=32;
+#else
+	struct winsize window_size;
+	ioctl(STDOUT_FILENO,TIOCGWINSZ,&window_size);
+	*width=window_size.ws_col;
+	*height=window_size.ws_row;
+#endif
+}
+#endif
 
 
 
@@ -100,7 +117,22 @@ int main(int argc,const char** argv){
 	wfc_config_t config=image_config->config;
 #endif
 #if PICK_PARAMETERS
-	wfc_pick_parameters(&(image_config->image),&config);
+#ifdef _MSC_VER
+	// Init console [Windows]
+#else
+	struct termios old_terminal_config;
+	tcgetattr(STDOUT_FILENO,&old_terminal_config);
+	struct termios terminal_config=old_terminal_config;
+	terminal_config.c_iflag=(terminal_config.c_iflag&(~(INLCR|IGNBRK)))|ICRNL;
+	terminal_config.c_lflag=(terminal_config.c_lflag&(~(ICANON|ECHO)))|ISIG|IEXTEN;
+	tcsetattr(STDIN_FILENO,TCSANOW,&terminal_config);
+#endif
+	wfc_pick_parameters(&(image_config->image),&config,_get_terminal_size);
+#ifdef _MSC_VER
+	// Deinit console [Windows]
+#else
+	tcsetattr(STDOUT_FILENO,TCSANOW,&old_terminal_config);
+#endif
 #endif
 #if GENERATE_IMAGE
 #ifdef _MSC_VER

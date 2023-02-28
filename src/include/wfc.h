@@ -230,7 +230,11 @@ typedef void (*wfc_callback_t)(const wfc_table_t*,const wfc_state_t*,void*);
 
 
 
-void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config);
+typedef void (*wfc_terminal_size_inquiry_t)(wfc_size_t* width,wfc_size_t* height);
+
+
+
+void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config,wfc_terminal_size_inquiry_t terminal_size_inquiry);
 
 
 
