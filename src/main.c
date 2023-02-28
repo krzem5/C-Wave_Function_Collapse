@@ -112,7 +112,7 @@ int main(int argc,const char** argv){
 	unsigned int output_width=window_size.ws_col>>1;
 	unsigned int output_height=window_size.ws_row;
 #endif
-	unsigned int seed=0/*get_time()&0xffffffff*/;
+	unsigned int seed=get_time()&0xffffffff;
 	srand(seed);
 	wfc_color_t* output_image_data=malloc(output_width*output_height*sizeof(wfc_color_t));
 	wfc_image_t output_image={
