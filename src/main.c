@@ -17,8 +17,8 @@
 
 #define STRATEGY WFC_STATE_DATA_ACCESS_STRATEGY_RAW
 
-#define PICK_PARAMETERS 1
-#define GENERATE_IMAGE 0
+#define PICK_PARAMETERS 0
+#define GENERATE_IMAGE 1
 #define IMAGE_NAME "cow"
 
 #define PROGRESS_FRAME_INTERVAL 0.05
@@ -101,7 +101,9 @@ static const char* _format_int(unsigned long int x){
 int main(int argc,const char** argv){
 #ifdef _MSC_VER
 	SetConsoleOutputCP(CP_UTF8);
-	SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE),7);
+	HANDLE stdout_handle=GetStdHandle(STD_OUTPUT_HANDLE);
+	DWORD old_stdout_mode=GetConsoleMode(stdout_handle);
+	SetConsoleMode(stdout_handle,ENABLE_PROCESSED_OUTPUT|ENABLE_WRAP_AT_EOL_OUTPUT|ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 #endif
 	const image_config_t* image_config=preloaded_images;
 	while (image_config->name&&strcmp(image_config->name,IMAGE_NAME)){
@@ -114,7 +116,9 @@ int main(int argc,const char** argv){
 	wfc_config_t config=image_config->config;
 	if (PICK_PARAMETERS){
 #ifdef _MSC_VER
-		// Init console [Windows]
+		HANDLE stdin_handle=GetStdHandle(STD_INPUT_HANDLE);
+		DWORD old_stdin_mode=GetConsoleMode(stdin_handle);
+		SetConsoleMode(stdin_handle,ENABLE_VIRTUAL_TERMINAL_INPUT);
 #else
 		struct termios old_terminal_config;
 		tcgetattr(STDOUT_FILENO,&old_terminal_config);
@@ -125,7 +129,7 @@ int main(int argc,const char** argv){
 #endif
 		wfc_pick_parameters(&(image_config->image),&config,_get_terminal_size);
 #ifdef _MSC_VER
-		// Deinit console [Windows]
+		SetConsoleMode(stdin_handle,old_stdin_mode);
 #else
 		tcsetattr(STDOUT_FILENO,TCSANOW,&old_terminal_config);
 #endif
@@ -221,5 +225,8 @@ int main(int argc,const char** argv){
 		wfc_save_image(&output_image,"build/export.bmp");
 		free(output_image_data);
 	}
+#ifdef _MSC_VER
+	SetConsoleMode(stdout_handle,old_stdout_mode);
+#endif
 	return 0;
 }
