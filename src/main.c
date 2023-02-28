@@ -25,11 +25,12 @@
 
 
 
-#if PICK_PARAMETERS
 static void _get_terminal_size(wfc_size_t* width,wfc_size_t* height){
 #ifdef _MSC_VER
-	*width=92;
-	*height=32;
+	CONSOLE_SCREEN_BUFFER_INFO cbsi;
+	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE),&csbi);
+	*width=csbi.srWindow.Right-csbi.srWindow.Left+1;
+	*height=csbi.srWindow.Bottom-csbi.srWindow.Top+1;
 #else
 	struct winsize window_size;
 	ioctl(STDOUT_FILENO,TIOCGWINSZ,&window_size);
@@ -37,7 +38,6 @@ static void _get_terminal_size(wfc_size_t* width,wfc_size_t* height){
 	*height=window_size.ws_row;
 #endif
 }
-#endif
 
 
 
@@ -103,7 +103,7 @@ static const char* _format_int(unsigned long int x){
 int main(int argc,const char** argv){
 #ifdef _MSC_VER
 	SetConsoleOutputCP(CP_UTF8);
-	SetConsoleMode(GetStdHandle(-11),7);
+	SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE),7);
 #endif
 	const image_config_t* image_config=preloaded_images;
 	while (image_config->name&&strcmp(image_config->name,IMAGE_NAME)){
@@ -113,9 +113,7 @@ int main(int argc,const char** argv){
 		printf("Image '"IMAGE_NAME"' not found\n");
 		return 1;
 	}
-#if PICK_PARAMETERS||GENERATE_IMAGE
 	wfc_config_t config=image_config->config;
-#endif
 #if PICK_PARAMETERS
 #ifdef _MSC_VER
 	// Init console [Windows]
@@ -135,15 +133,10 @@ int main(int argc,const char** argv){
 #endif
 #endif
 #if GENERATE_IMAGE
-#ifdef _MSC_VER
-	unsigned int output_width=90;
-	unsigned int output_height=32;
-#else
-	struct winsize window_size;
-	ioctl(STDOUT_FILENO,TIOCGWINSZ,&window_size);
-	unsigned int output_width=window_size.ws_col>>1;
-	unsigned int output_height=window_size.ws_row;
-#endif
+	unsigned int output_width;
+	unsigned int output_height;
+	_get_terminal_size(&output_width,&output_height);
+	output_width>>=1;
 	unsigned int seed=get_time()&0xffffffff;
 	srand(seed);
 	wfc_color_t* output_image_data=malloc(output_width*output_height*sizeof(wfc_color_t));
