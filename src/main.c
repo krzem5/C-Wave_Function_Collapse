@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #endif
-#include <images.h>
+#include <preloaded_images.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -88,7 +88,7 @@ int main(int argc,const char** argv){
 	SetConsoleOutputCP(CP_UTF8);
 	SetConsoleMode(GetStdHandle(-11),7);
 #endif
-	const image_config_t* image_config=images;
+	const image_config_t* image_config=preloaded_images;
 	while (image_config->name&&strcmp(image_config->name,IMAGE_NAME)){
 		image_config++;
 	}
