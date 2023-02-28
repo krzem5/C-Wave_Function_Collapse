@@ -297,7 +297,7 @@ static FORCE_INLINE __m256i _popcnt256(__m256i data){
 
 
 
-static __m256i _data_access_raw(const wfc_table_t* table,const uint64_t* state_data_base,const __m256i* mask_data,__m256i* target,wfc_stats_t* stats){
+static FORCE_INLINE __m256i _data_access_raw(const wfc_table_t* table,const uint64_t* state_data_base,const __m256i* mask_data,__m256i* target,wfc_stats_t* stats){
 	stats->access_count+=((uint64_t)(table->data_elem_size>>2))*table->data_elem_size;
 	__m256i out=_mm256_setzero_si256();
 	__m256i mask=_mm256_undefined_si256();
@@ -324,7 +324,7 @@ static __m256i _data_access_raw(const wfc_table_t* table,const uint64_t* state_d
 
 
 
-static __m256i _data_access_fast_mask(const wfc_state_t* state,const wfc_table_t* table,const wfc_config_t* config,const uint64_t* state_data_base,const __m256i* mask_data,unsigned int i,__m256i* target,wfc_stats_t* stats){
+static FORCE_INLINE __m256i _data_access_fast_mask(const wfc_state_t* state,const wfc_table_t* table,const wfc_config_t* config,const uint64_t* state_data_base,const __m256i* mask_data,unsigned int i,__m256i* target,wfc_stats_t* stats){
 	__m256i out=_mm256_setzero_si256();
 	__m256i mask=_mm256_undefined_si256();
 	uint32_t fast_mask_offset=0;
@@ -404,7 +404,7 @@ _sub_mask_calculated:
 
 
 
-static __m256i _data_access_precalculated_mask(const wfc_state_t* state,const wfc_table_t* table,const uint64_t* state_data_base,unsigned int i,__m256i* target,wfc_stats_t* stats){
+static FORCE_INLINE __m256i _data_access_precalculated_mask(const wfc_state_t* state,const wfc_table_t* table,const uint64_t* state_data_base,unsigned int i,__m256i* target,wfc_stats_t* stats){
 	stats->access_count+=2ul*table->data_elem_size*table->data_elem_size;
 	__m256i out=_mm256_setzero_si256();
 	__m256i mask=_mm256_undefined_si256();
