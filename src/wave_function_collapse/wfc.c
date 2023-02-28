@@ -1361,6 +1361,7 @@ _retry_from_start:;
 				__m256i mask=_mm256_undefined_si256();
 				__m256i sub_mask=_mm256_undefined_si256();
 				const __m256i* precalculated_mask_data=(const __m256i*)(state->precalculated_masks)+(i<<8);
+				uint32_t fast_mask_offset=0;
 				for (wfc_tile_index_t j=0;j<(table->data_elem_size>>2);j++){
 					mask=_mm256_xor_si256(mask,mask);
 					if (state->precalculated_masks){
@@ -1379,9 +1380,9 @@ _retry_from_start:;
 							state_data++;
 							if (!value){
 								mask_data+=64;
+								fast_mask_offset++;
 								continue;
 							}
-							uint32_t fast_mask_offset=j*table->data_elem_size+k;
 							uint64_t key_extra_wide=(value*FAST_MASK_VALUE_PRIME)^(fast_mask_offset*FAST_MASK_OFFSET_PRIME);
 							uint32_t key_wide=key_extra_wide^(key_extra_wide>>32);
 							uint16_t fast_mask_index=key_wide^(key_wide>>16);
@@ -1433,12 +1434,13 @@ _retry_from_start:;
 _sub_mask_calculated:
 							mask=_mm256_or_si256(mask,sub_mask);
 							mask_data+=64;
+							fast_mask_offset++;
 						}
+						mask_data-=(table->data_elem_size<<6)-table->tile_count;
 					}
 					__m256i data=_mm256_and_si256(_mm256_lddqu_si256(target),mask);
 					_mm256_storeu_si256(target,data);
 					sum_vector=_mm256_add_epi64(sum_vector,_mm256_sad_epu8(_mm256_add_epi8(_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(data,popcnt_low_mask)),_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(_mm256_srli_epi32(data,4),popcnt_low_mask))),zero));
-					mask_data-=(table->data_elem_size<<6)-table->tile_count;
 					target++;
 				}
 				__m128i sum_vector_half=_mm_add_epi32(_mm256_castsi256_si128(sum_vector),_mm256_extractf128_si256(sum_vector,1));
