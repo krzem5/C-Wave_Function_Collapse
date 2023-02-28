@@ -1359,7 +1359,6 @@ _retry_from_start:;
 				__m256i* target=(__m256i*)(state->data+neightbour_offset*table->data_elem_size);
 				__m256i sum_vector=_mm256_setzero_si256();
 				__m256i mask=_mm256_undefined_si256();
-				__m256i sub_mask=_mm256_undefined_si256();
 				const __m256i* precalculated_mask_data=(const __m256i*)(state->precalculated_masks)+(i<<8);
 				uint32_t fast_mask_offset=0;
 				for (wfc_tile_index_t j=0;j<(table->data_elem_size>>2);j++){
@@ -1391,7 +1390,7 @@ _retry_from_start:;
 							cache_check_count++;
 							if (cached_fast_mask_data->offset==fast_mask_offset&&cached_fast_mask_data->key==value){
 								cache_hit_fast_count++;
-								sub_mask=_mm256_lddqu_si256((const __m256i*)(cached_fast_mask_data->data));
+								mask=_mm256_or_si256(mask,_mm256_lddqu_si256((const __m256i*)(cached_fast_mask_data->data)));
 								if (cached_fast_mask_data->counter<config->fast_mask_counter_max){
 									cached_fast_mask_data->counter++;
 								}
@@ -1403,7 +1402,8 @@ _retry_from_start:;
 							wfc_fast_mask_t* fast_mask_data=state->fast_mask+fast_mask_index+(i<<16);
 							if (fast_mask_data->offset==fast_mask_offset&&fast_mask_data->key==value){
 								cache_hit_count++;
-								sub_mask=_mm256_lddqu_si256((const __m256i*)(fast_mask_data->data));
+								__m256i sub_mask=_mm256_lddqu_si256((const __m256i*)(fast_mask_data->data));
+								mask=_mm256_or_si256(mask,sub_mask);
 								if (fast_mask_data->counter<config->fast_mask_counter_max){
 									fast_mask_data->counter++;
 								}
@@ -1416,7 +1416,7 @@ _retry_from_start:;
 								}
 								goto _sub_mask_calculated;
 							}
-							sub_mask=_mm256_xor_si256(sub_mask,sub_mask);
+							__m256i sub_mask=_mm256_setzero_si256();
 							uint64_t fast_mask_data_key=value;
 							do{
 								sub_mask=_mm256_or_si256(sub_mask,_mm256_lddqu_si256(mask_data+FIND_FIRST_SET_BIT(value)));
@@ -1431,8 +1431,8 @@ _retry_from_start:;
 								fast_mask_data->offset=fast_mask_offset;
 								fast_mask_data->counter=config->fast_mask_counter_init;
 							}
-_sub_mask_calculated:
 							mask=_mm256_or_si256(mask,sub_mask);
+_sub_mask_calculated:
 							mask_data+=64;
 							fast_mask_offset++;
 						}
