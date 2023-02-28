@@ -14,7 +14,7 @@
 
 
 
-#define USE_PRECALCULATED_MASKS 1
+#define STRATEGY WFC_STATE_DATA_ACCESS_STRATEGY_RAW
 
 #define PICK_PARAMETERS 0
 #define GENERATE_IMAGE 1
@@ -130,7 +130,7 @@ int main(int argc,const char** argv){
 	output_image.height/=table.downscale_factor;
 	wfc_state_t state;
 	time_start=get_time();
-	wfc_init_state(&table,&output_image,NULL,USE_PRECALCULATED_MASKS,&state);
+	wfc_init_state(&table,&output_image,NULL,STRATEGY,&state);
 	unsigned long int state_creation_time=get_time()-time_start;
 	time_start=get_time();
 	wfc_stats_t stats;
@@ -159,29 +159,35 @@ int main(int argc,const char** argv){
 		_format_int((table.tile_count*(sizeof(wfc_queue_t)+state.queue_size*32)+1023)>>10),
 		_format_int((table.tile_count*sizeof(wfc_weight_t)+1023)>>10),
 		_format_int((2*state.pixel_count*sizeof(wfc_size_t)+1023)>>10),
-		(state.data_access_type==WFC_STATE_DATA_ACCESS_TYPE_FAST_MASK?_format_int((262208*sizeof(wfc_fast_mask_t)+1023)>>10):"0"),
-		(state.data_access_type==WFC_STATE_DATA_ACCESS_TYPE_PRECALCULATED_MASK?_format_int((((table.data_elem_size-1)*(table.data_elem_size-1)*8192ul+(table.data_elem_size-1)*1024+3*256+256)*4*sizeof(uint64_t)+1023)>>10):"0"),
+		(state.data_access_strategy==WFC_STATE_DATA_ACCESS_STRATEGY_FAST_MASK?_format_int((262208*sizeof(wfc_fast_mask_t)+1023)>>10):"0"),
+		(state.data_access_strategy==WFC_STATE_DATA_ACCESS_STRATEGY_PRECALCULATED_MASK?_format_int((((table.data_elem_size-1)*(table.data_elem_size-1)*8192ul+(table.data_elem_size-1)*1024+3*256+256)*4*sizeof(uint64_t)+1023)>>10):"0"),
 		state_creation_time*1e-9,
-		_format_int(stats.steps),
-		_format_int(stats.propagation_steps),
-		_format_int(stats.deleted_tiles),
-		_format_int(stats.restarts)
+		_format_int(stats.step_count),
+		_format_int(stats.propagation_step_count),
+		_format_int(stats.delete_count),
+		_format_int(stats.restart_count)
 	);
-	if (state.data_access_type==WFC_STATE_DATA_ACCESS_TYPE_FAST_MASK){
+	if (state.data_access_strategy==WFC_STATE_DATA_ACCESS_STRATEGY_FAST_MASK){
 		printf("    Precalculated masks: N/A\n    Fast cache: %.3f%% (%s)\n    Cache: %.3f%% (%s)\n    Raw: %.3f%% (%s)\n    Total: %s\n",
-			((float)stats.fast_cache_hits)/stats.total_cache_checks*100,
-			_format_int(stats.fast_cache_hits),
-			((float)stats.cache_hits)/stats.total_cache_checks*100,
-			_format_int(stats.cache_hits),
-			((float)(stats.total_cache_checks-stats.cache_hits-stats.fast_cache_hits))/stats.total_cache_checks*100,
-			_format_int(stats.total_cache_checks-stats.cache_hits-stats.fast_cache_hits),
-			_format_int(stats.total_cache_checks)
+			((float)stats.cache_hit_count)/stats.access_count*100,
+			_format_int(stats.cache_hit_count),
+			((float)stats.cache_hit_fast_count)/stats.access_count*100,
+			_format_int(stats.cache_hit_fast_count),
+			((float)(stats.access_count-stats.cache_hit_count-stats.cache_hit_fast_count))/stats.access_count*100,
+			_format_int(stats.access_count-stats.cache_hit_count-stats.cache_hit_fast_count),
+			_format_int(stats.access_count)
+		);
+	}
+	else if (state.data_access_strategy==WFC_STATE_DATA_ACCESS_STRATEGY_PRECALCULATED_MASK){
+		printf("    Precalculated masks: %s\n    Fast cache: N/A\n    Cache: N/A\n    Raw: N/A\n    Total: %s\n",
+			_format_int(stats.access_count),
+			_format_int(stats.access_count)
 		);
 	}
 	else{
-		printf("    Precalculated masks: %s\n    Fast cache: N/A\n    Cache: N/A\n    Raw: N/A\n    Total: %s\n",
-			_format_int(stats.precalculated_mask_accesses),
-			_format_int(stats.precalculated_mask_accesses)
+		printf("    Precalculated masks: N/A\n    Fast cache: N/A\n    Cache: N/A\n    Raw: %s\n    Total: %s\n",
+			_format_int(stats.access_count),
+			_format_int(stats.access_count)
 		);
 	}
 	printf("Simulation time: %.3lfs\n",

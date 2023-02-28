@@ -19,8 +19,9 @@
 #define WFC_TILE_GET_ROTATION(t) (((t)->x>>29)&3)
 #define WFC_TILE_GET_X(t) ((t)->x&0x1fffffff)
 
-#define WFC_STATE_DATA_ACCESS_TYPE_FAST_MASK 0
-#define WFC_STATE_DATA_ACCESS_TYPE_PRECALCULATED_MASK 1
+#define WFC_STATE_DATA_ACCESS_STRATEGY_RAW 0
+#define WFC_STATE_DATA_ACCESS_STRATEGY_FAST_MASK 1
+#define WFC_STATE_DATA_ACCESS_STRATEGY_PRECALCULATED_MASK 2
 
 
 
@@ -76,7 +77,7 @@ typedef uint32_t wfc_delete_count_t;
 
 
 
-typedef uint8_t wfc_state_data_access_type_t;
+typedef uint8_t wfc_state_data_access_strategy_t;
 
 
 
@@ -175,7 +176,7 @@ typedef struct _WFC_STATE{
 	wfc_size_t* delete_stack;
 	wfc_size_t pixel_count;
 	wfc_size_t width;
-	wfc_state_data_access_type_t data_access_type;
+	wfc_state_data_access_strategy_t data_access_strategy;
 	wfc_state_data_access_t data_access;
 } wfc_state_t;
 
@@ -214,14 +215,13 @@ typedef struct _WFC_CONFIG{
 
 
 typedef struct _WFC_STATS{
-	uint64_t total_cache_checks;
-	uint64_t cache_hits;
-	uint64_t fast_cache_hits;
-	uint64_t precalculated_mask_accesses;
-	uint64_t deleted_tiles;
-	uint64_t restarts;
-	uint64_t steps;
-	uint64_t propagation_steps;
+	uint64_t access_count;
+	uint64_t cache_hit_count;
+	uint64_t cache_hit_fast_count;
+	uint64_t delete_count;
+	uint64_t restart_count;
+	uint64_t step_count;
+	uint64_t propagation_step_count;
 } wfc_stats_t;
 
 
@@ -254,7 +254,7 @@ void wfc_generate_full_scale_image(const wfc_table_t* table,const wfc_state_t* s
 
 
 
-void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,const unsigned char* seed,wfc_state_data_access_type_t data_access_type,wfc_state_t* out);
+void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,const unsigned char* seed,wfc_state_data_access_strategy_t data_access_strategy,wfc_state_t* out);
 
 
 
