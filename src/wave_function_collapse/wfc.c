@@ -311,7 +311,7 @@ static FORCE_INLINE __m256i _data_access_raw(const wfc_table_t* table,const uint
 			}
 			mask_data+=64;
 		}
-		mask_data-=(table->data_elem_size<<6)-table->tile_count;
+		mask_data-=(((uint64_t)table->data_elem_size)<<6)-table->tile_count;
 		__m256i data=_mm256_and_si256(_mm256_lddqu_si256(target),mask);
 		_mm256_storeu_si256(target,data);
 		out=_mm256_add_epi64(out,_popcnt256(data));
@@ -391,7 +391,7 @@ _sub_mask_calculated:
 			mask_data+=64;
 			fast_mask_offset++;
 		}
-		mask_data-=(table->data_elem_size<<6)-table->tile_count;
+		mask_data-=(((uint64_t)table->data_elem_size)<<6)-table->tile_count;
 		__m256i data=_mm256_and_si256(_mm256_lddqu_si256(target),mask);
 		_mm256_storeu_si256(target,data);
 		out=_mm256_add_epi64(out,_popcnt256(data));

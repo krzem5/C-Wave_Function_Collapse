@@ -20,7 +20,8 @@ def generate_image_header_file(source_directory,header_file_path):
 		images[file_path.split(".")[0].lower()]=data
 	with open(header_file_path,"w") as wf:
 		wf.write("#ifndef _PRELOADED_IMAGES_H_\n#define _PRELOADED_IMAGES_H_ 1\n#include <wfc.h>\n\n\n\ntypedef struct _IMAGE_CONFIG{\n\tconst char* name;\n\twfc_image_t image;\n\twfc_config_t config;\n} image_config_t;\n\n\n\n")
-		for name,data in images.items():
+		images=sorted(images.items(),key=lambda e:e[0])
+		for name,data in images:
 			wf.write(f"static wfc_color_t _preloaded_image_{name}_data[{data['width']*data['height']}]={{\n")
 			for y in range(0,data["height"]):
 				wf.write("\t")
@@ -30,7 +31,7 @@ def generate_image_header_file(source_directory,header_file_path):
 				wf.write("\n")
 			wf.write("};\n\n\n\n")
 		wf.write(f"static const image_config_t preloaded_images[{len(images)+1}]={{\n")
-		for name,data in images.items():
+		for name,data in images:
 			wf.write(f"\t{{\n\t\t\"{name}\",\n\t\t{{\n\t\t\t{data['width']},\n\t\t\t{data['height']},\n\t\t\t_preloaded_image_{name}_data\n\t\t}},\n\t\t{{\n\t\t\t{data['box_size']},\n\t\t\t{'|'.join(map(lambda f:'WFC_FLAG_'+f.upper(),data['flags'])) if data['flags'] else 0},\n\t\t\t{data['palette_size']},\n\t\t\t{data['max_color_diff']},\n\t\t\t{data['downscale_factor']},\n\t\t\t{data['propagation_distance']},\n\t\t\t{data['delete_size']},\n\t\t\t{data['max_delete_count']},\n\t\t\t{data['fast_mask_counter_init']},\n\t\t\t{data['fast_mask_cache_counter_init']},\n\t\t\t{data['fast_mask_counter_max']}\n\t\t}}\n\t}},\n")
 		wf.write("\t{NULL}\n};\n\n\n\n#endif\n")
 
