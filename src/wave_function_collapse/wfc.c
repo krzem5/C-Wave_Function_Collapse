@@ -95,7 +95,6 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 		config->flags|=flag; \
 	}
 
-
 #define EXTRACT_UPSCALED_DATA(x,y) \
 	for (wfc_size_t i=0;i<downscale_factor;i++){ \
 		for (wfc_size_t j=0;j<downscale_factor;j++){ \
@@ -103,6 +102,7 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 			k++; \
 		} \
 	}
+
 
 
 static const unsigned int powers_of_ten[6]={100000,10000,1000,100,10,1};
