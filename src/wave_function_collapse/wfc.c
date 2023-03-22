@@ -288,7 +288,7 @@ static FORCE_INLINE wfc_tile_index_t _find_first_bit(const uint64_t* data){
 
 
 static FORCE_INLINE __m256i _popcnt256(__m256i data){
-	__m256i popcnt_table=_mm256_setr_epi8(0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4);
+	__m256i popcnt_table=_mm256_setr_epi8(0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 	__m256i popcnt_low_mask=_mm256_set1_epi8(15);
 	return _mm256_sad_epu8(_mm256_add_epi8(_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(data,popcnt_low_mask)),_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(_mm256_srli_epi32(data,4),popcnt_low_mask))),_mm256_setzero_si256());
 }
@@ -408,10 +408,15 @@ static FORCE_INLINE __m256i _data_access_precalculated_mask(const wfc_state_t* s
 	const __m256i* precalculated_mask_data=(const __m256i*)(state->data_access.precalculated_mask.data)+(i<<8);
 	for (wfc_tile_index_t j=0;j<(table->data_elem_size>>2);j++){
 		mask=_mm256_xor_si256(mask,mask);
-		const uint8_t* state_data=(const uint8_t*)state_data_base;
+		const uint64_t* state_data=state_data_base;
+		uint64_t value=0;
 		for (wfc_tile_index_t k=0;k<(table->data_elem_size<<3);k++){
-			mask=_mm256_or_si256(mask,_mm256_lddqu_si256(precalculated_mask_data+(*state_data)));
-			state_data++;
+			if (!(k&7)){
+				value=*state_data;
+				state_data++;
+			}
+			mask=_mm256_or_si256(mask,_mm256_lddqu_si256(precalculated_mask_data+(value&0xff)));
+			value>>=8;
 			precalculated_mask_data+=1024;
 		}
 		__m256i data=_mm256_and_si256(_mm256_lddqu_si256(target),mask);
