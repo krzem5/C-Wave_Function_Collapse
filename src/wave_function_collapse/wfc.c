@@ -111,11 +111,7 @@ static const char* flag_abbreviations[9]={"F","R","WX","WY","WOX","WOY","BC","BP
 
 
 static FORCE_INLINE unsigned int _color_diffrence(wfc_color_t x,wfc_color_t y){
-	int r=(x>>24)-(y>>24);
-	int g=((x>>16)&0xff)-((y>>16)&0xff);
-	int b=((x>>8)&0xff)-((y>>8)&0xff);
-	int a=(x&0xff)-(y&0xff);
-	return (r<0?-r:r)+(g<0?-g:g)+(b<0?-b:b)+(a<0?-a:a);
+	return (unsigned int)(unsigned long long int)_mm_sad_pu8((__m64)(unsigned long long int)x,(__m64)(unsigned long long int)y);
 }
 
 
