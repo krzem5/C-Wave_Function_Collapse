@@ -284,7 +284,7 @@ static FORCE_INLINE wfc_tile_index_t _find_first_bit(const uint64_t* data){
 
 
 static FORCE_INLINE __m256i _popcnt256(__m256i data){
-	__m256i popcnt_table=_mm256_setr_epi8(0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+	__m256i popcnt_table=_mm256_setr_epi8(0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4);
 	__m256i popcnt_low_mask=_mm256_set1_epi8(15);
 	return _mm256_sad_epu8(_mm256_add_epi8(_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(data,popcnt_low_mask)),_mm256_shuffle_epi8(popcnt_table,_mm256_and_si256(_mm256_srli_epi32(data,4),popcnt_low_mask))),_mm256_setzero_si256());
 }

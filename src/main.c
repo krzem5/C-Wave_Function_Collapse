@@ -19,7 +19,7 @@
 
 #define PICK_PARAMETERS 0
 #define GENERATE_IMAGE 1
-#define IMAGE_NAME "pattern3"
+#define IMAGE_NAME "sample"
 
 #define PROGRESS_FRAME_INTERVAL 0.05
 
