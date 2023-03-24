@@ -19,7 +19,7 @@
 
 #define PICK_PARAMETERS 0
 #define GENERATE_IMAGE 1
-#define IMAGE_NAME "cow"
+#define IMAGE_NAME "sample"
 
 #define PROGRESS_FRAME_INTERVAL 0.05
 
@@ -46,11 +46,11 @@ static void _get_terminal_size(wfc_size_t* width,wfc_size_t* height){
 
 
 
-static unsigned long int _current_time(void){
+static unsigned long long int _current_time(void){
 #ifdef _MSC_VER
 	FILETIME ft;
 	GetSystemTimeAsFileTime(&ft);
-	return ((((unsigned long int)ft.dwHighDateTime)<<32)|ft.dwLowDateTime)*100-11644473600000000000;
+	return ((((unsigned long long int)ft.dwHighDateTime)<<32)|ft.dwLowDateTime)*100-11644473600000000000;
 #else
 	struct timespec tm;
 	clock_gettime(CLOCK_REALTIME,&tm);
@@ -61,9 +61,9 @@ static unsigned long int _current_time(void){
 
 
 static void _progress_callback(const wfc_table_t* table,const wfc_state_t* state,void* ctx){
-	static unsigned long int _last_time=0;
-	unsigned long int current_time=_current_time();
-	if (current_time-_last_time<(unsigned long int)(PROGRESS_FRAME_INTERVAL*1e9)){
+	static unsigned long long int _last_time=0;
+	unsigned long long int current_time=_current_time();
+	if (current_time-_last_time<(unsigned long long int)(PROGRESS_FRAME_INTERVAL*1e9)){
 		return;
 	}
 	_last_time=current_time;
@@ -82,6 +82,9 @@ static void _progress_callback(const wfc_table_t* table,const wfc_state_t* state
 static const char* _format_int(unsigned long int x){
 	char* out=_format_int_data_buffer+_format_int_data_buffer_offset;
 	_format_int_data_buffer_offset+=27;
+	if (_format_int_data_buffer_offset>=4096){
+		return "<out of memory>";
+	}
 	unsigned int i=26;
 	do{
 		i--;
@@ -173,8 +176,27 @@ int main(int argc,const char** argv){
 		wfc_generate_full_scale_image(&table,&state,&output_image);
 		putchar('\n');
 		wfc_print_image(&output_image);
-		printf("Seed: %.8x\nTable:\n  Tile count: %s\n  Tile element size: %s B\n  Tile data: %s kB\n  Neighbours: %s kB\n  Upscaled data: %s kB\nTable creation time: %.3lfs\nState:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\n  Precalculated masks: %s kB\nState creation time: %.3lfs\nSimulation:\n  Updates:\n    Collapse: %s\n    Propagation: %s\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n",
+		printf("Seed: %.8x\nConfig:\n  Box size: %s\n  Flags:%s%s%s%s%s%s%s%s%s\n  Palette size: %s\n  Similarity score: %s\n  Downscale factor: %s\n  Propagation distance: %s\n  Delete size: %s\n  Max delete count: %s\n  Fast mask counter initial value: %s\n  Fast mask counter cache initial value: %s\n  Fast mask counter maximal value: %s\nTable:\n  Tile count: %s\n  Tile element size: %s B\n  Tile data: %s kB\n  Neighbours: %s kB\n  Upscaled data: %s kB\nTable creation time: %.3lfs\nState:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\n  Precalculated masks: %s kB\nState creation time: %.3lfs\nSimulation:\n  Updates:\n    Collapse: %s\n    Propagation: %s\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n",
 			seed,
+			_format_int(config.box_size),
+			((config.flags&WFC_FLAG_FLIP)?" Flip":""),
+			((config.flags&WFC_FLAG_ROTATE)?" Rotate":""),
+			((config.flags&WFC_FLAG_WRAP_X)?" Wrap X":""),
+			((config.flags&WFC_FLAG_WRAP_Y)?" Wrap Y":""),
+			((config.flags&WFC_FLAG_WRAP_OUTPUT_X)?" Wrap output X":""),
+			((config.flags&WFC_FLAG_WRAP_OUTPUT_Y)?" Wrap output Y":""),
+			((config.flags&WFC_FLAG_BLEND_CORNER)?" Blend (corner)":""),
+			((config.flags&WFC_FLAG_BLEND_PIXEL)?" Blend (pixel)":""),
+			((config.flags&WFC_FLAG_AVERAGE_SCALING)?" Average scaling":""),
+			_format_int(config.palette_max_size),
+			_format_int(config.max_color_diff),
+			_format_int(config.downscale_factor),
+			_format_int(config.propagation_distance),
+			_format_int(config.delete_size),
+			_format_int(config.max_delete_count),
+			_format_int(config.fast_mask_counter_init),
+			_format_int(config.fast_mask_cache_counter_init),
+			_format_int(config.fast_mask_counter_max),
 			_format_int(table.tile_count),
 			_format_int(table.data_elem_size*sizeof(uint64_t)),
 			_format_int((table.tile_count*config.box_size*config.box_size*sizeof(wfc_color_t)+1023)>>10),
