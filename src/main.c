@@ -19,7 +19,8 @@
 
 #define PICK_PARAMETERS 0
 #define GENERATE_IMAGE 1
-#define IMAGE_NAME "hand_drawn_circle"
+#define GENERATION_LOOP 1
+#define IMAGE_NAME "sample"
 
 #define PROGRESS_FRAME_INTERVAL 0.05
 
@@ -142,11 +143,6 @@ int main(int argc,const char** argv){
 #endif
 	}
 	if (GENERATE_IMAGE){
-		srand(_current_time()&0xffffffff);
-		unsigned char seed[256];
-		for (unsigned int i=0;i<256;i++){
-			seed[i]=rand()&255;
-		}
 		unsigned int output_width;
 		unsigned int output_height;
 		_get_terminal_size(&output_width,&output_height);
@@ -163,6 +159,12 @@ int main(int argc,const char** argv){
 		wfc_build_table(&(image_config->image),&config,&table);
 		unsigned long int table_creation_time=_current_time()-time_start;
 		wfc_print_table(&table,&config,1);
+_regenerate_image:
+		srand(_current_time()&0xffffffff);
+		unsigned char seed[256];
+		for (unsigned int i=0;i<256;i++){
+			seed[i]=rand()&255;
+		}
 		output_image.width/=table.downscale_factor;
 		output_image.height/=table.downscale_factor;
 		wfc_state_t state;
@@ -183,6 +185,12 @@ int main(int argc,const char** argv){
 		wfc_generate_full_scale_image(&table,&state,&output_image);
 		putchar('\n');
 		wfc_print_image(&output_image);
+		if (GENERATION_LOOP){
+			wfc_free_state(&table,&state);
+			while (getchar()!='\n');
+			printf("\x1b[0H\x1b[0J");
+			goto _regenerate_image;
+		}
 		const unsigned long long int* seed64=(unsigned long long int*)seed;
 		printf("Seed:\n  %.16llx%.16llx%.16llx%.16llx\n  %.16llx%.16llx%.16llx%.16llx\n  %.16llx%.16llx%.16llx%.16llx\n  %.16llx%.16llx%.16llx%.16llx\nConfig:\n  Box size: %s\n  Flags:",
 			seed64[0],

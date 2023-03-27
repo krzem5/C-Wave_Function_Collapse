@@ -1,16 +1,19 @@
 {
 	"box_size": 3,
 	"flags": [
+		"wrap_x",
+		"rotate",
 		"flip",
-		"rotate"
+		"wrap_y"
 	],
 	"palette_size": 16,
-	"max_color_diff": 300,
+	"max_color_diff": 0,
 	"downscale_factor": 1,
 	"propagation_distance": 4,
 	"delete_size": 2,
-	"max_delete_count": 2048,
+	"max_delete_count": 1024,
 	"fast_mask_counter_init": 256,
 	"fast_mask_counter_max": 1024,
-	"fast_mask_cache_counter_init": 1024
+	"fast_mask_cache_counter_init": 1024,
+	"name": "platformer"
 }
