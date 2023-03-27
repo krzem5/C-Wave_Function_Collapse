@@ -1,9 +1,10 @@
 {
-	"box_size": 3,
+	"box_size": 4,
 	"flags": [
 		"flip",
 		"rotate",
-		"blend_pixel"
+		"blend_pixel",
+		"average_scaling"
 	],
 	"palette_size": 16,
 	"max_color_diff": 500,

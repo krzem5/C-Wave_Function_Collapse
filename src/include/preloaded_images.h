@@ -499,8 +499,8 @@ static const image_config_t preloaded_images[15]={
 			_preloaded_image_hand_drawn_circle_data
 		},
 		{
-			3,
-			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_BLEND_PIXEL,
+			4,
+			WFC_FLAG_FLIP|WFC_FLAG_ROTATE|WFC_FLAG_BLEND_PIXEL|WFC_FLAG_AVERAGE_SCALING,
 			16,
 			500,
 			2,

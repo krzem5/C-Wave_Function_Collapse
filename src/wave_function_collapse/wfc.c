@@ -1505,7 +1505,7 @@ _retry_from_start:;
 				(state->queue_indicies+queue->data[location->index])->index=location->index;
 				queue=state->queues+sum;
 				queue->data[queue->length]=neightbour_offset;
-				location->queue_index=sum;
+			 	location->queue_index=sum;
 				location->index=queue->length;
 				queue->length++;
 				if (!(state->bitmap[neightbour_offset>>6]&(1ull<<(neightbour_offset&63)))){

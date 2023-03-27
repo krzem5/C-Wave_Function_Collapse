@@ -19,9 +19,13 @@
 
 #define PICK_PARAMETERS 0
 #define GENERATE_IMAGE 1
-#define IMAGE_NAME "sample"
+#define IMAGE_NAME "hand_drawn_circle"
 
 #define PROGRESS_FRAME_INTERVAL 0.05
+
+
+
+static const char* _flag_strings[]={"Flip","Rotate","Wrap X","Wrap Y","Wrap output X","Wrap output Y","Blend (corner)","Blend (pixel)","Average scaling"};
 
 
 
@@ -138,8 +142,11 @@ int main(int argc,const char** argv){
 #endif
 	}
 	if (GENERATE_IMAGE){
-		unsigned int seed=_current_time()&0xffffffff;
-		srand(seed);
+		srand(_current_time()&0xffffffff);
+		unsigned char seed[256];
+		for (unsigned int i=0;i<256;i++){
+			seed[i]=rand()&255;
+		}
 		unsigned int output_width;
 		unsigned int output_height;
 		_get_terminal_size(&output_width,&output_height);
@@ -176,18 +183,38 @@ int main(int argc,const char** argv){
 		wfc_generate_full_scale_image(&table,&state,&output_image);
 		putchar('\n');
 		wfc_print_image(&output_image);
-		printf("Seed: %.8x\nConfig:\n  Box size: %s\n  Flags:%s%s%s%s%s%s%s%s%s\n  Palette size: %s\n  Similarity score: %s\n  Downscale factor: %s\n  Propagation distance: %s\n  Delete size: %s\n  Max delete count: %s\n  Fast mask counter initial value: %s\n  Fast mask counter cache initial value: %s\n  Fast mask counter maximal value: %s\nTable:\n  Tile count: %s\n  Tile element size: %s B\n  Tile data: %s kB\n  Neighbours: %s kB\n  Upscaled data: %s kB\nTable creation time: %.3lfs\nState:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\n  Precalculated masks: %s kB\nState creation time: %.3lfs\nSimulation:\n  Updates:\n    Collapse: %s\n    Propagation: %s\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n",
-			seed,
-			_format_int(config.box_size),
-			((config.flags&WFC_FLAG_FLIP)?" Flip":""),
-			((config.flags&WFC_FLAG_ROTATE)?" Rotate":""),
-			((config.flags&WFC_FLAG_WRAP_X)?" Wrap X":""),
-			((config.flags&WFC_FLAG_WRAP_Y)?" Wrap Y":""),
-			((config.flags&WFC_FLAG_WRAP_OUTPUT_X)?" Wrap output X":""),
-			((config.flags&WFC_FLAG_WRAP_OUTPUT_Y)?" Wrap output Y":""),
-			((config.flags&WFC_FLAG_BLEND_CORNER)?" Blend (corner)":""),
-			((config.flags&WFC_FLAG_BLEND_PIXEL)?" Blend (pixel)":""),
-			((config.flags&WFC_FLAG_AVERAGE_SCALING)?" Average scaling":""),
+		const unsigned long long int* seed64=(unsigned long long int*)seed;
+		printf("Seed:\n  %.16llx%.16llx%.16llx%.16llx\n  %.16llx%.16llx%.16llx%.16llx\n  %.16llx%.16llx%.16llx%.16llx\n  %.16llx%.16llx%.16llx%.16llx\nConfig:\n  Box size: %s\n  Flags:",
+			seed64[0],
+			seed64[1],
+			seed64[2],
+			seed64[3],
+			seed64[4],
+			seed64[5],
+			seed64[6],
+			seed64[7],
+			seed64[8],
+			seed64[9],
+			seed64[10],
+			seed64[11],
+			seed64[12],
+			seed64[13],
+			seed64[14],
+			seed64[15],
+			_format_int(config.box_size)
+		);
+		_Bool first=1;
+		for (unsigned int i=1,j=0;i<=WFC_FLAG_AVERAGE_SCALING;i<<=1,j++){
+			if (!(config.flags&i)){
+				continue;
+			}
+			if (!first){
+				putchar(',');
+			}
+			first=0;
+			printf(" %s",_flag_strings[j]);
+		}
+		printf("\n  Palette size: %s\n  Similarity score: %s\n  Downscale factor: %s\n  Propagation distance: %s\n  Delete size: %s\n  Max delete count: %s\n  Fast mask counter initial value: %s\n  Fast mask counter cache initial value: %s\n  Fast mask counter maximal value: %s\nTable:\n  Tile count: %s\n  Tile element size: %s B\n  Tile data: %s kB\n  Neighbours: %s kB\n  Upscaled data: %s kB\nTable creation time: %.3lfs\nState:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\n  Precalculated masks: %s kB\nState creation time: %.3lfs\nSimulation:\n  Updates:\n    Collapse: %s\n    Propagation: %s\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n",
 			_format_int(config.palette_max_size),
 			_format_int(config.max_color_diff),
 			_format_int(config.downscale_factor),
@@ -217,7 +244,7 @@ int main(int argc,const char** argv){
 			_format_int(stats.restart_count)
 		);
 		if (state.data_access_strategy==WFC_STATE_DATA_ACCESS_STRATEGY_FAST_MASK){
-			printf("    Precalculated masks: N/A\n    Fast cache: %.3f%% (%s)\n    Cache: %.3f%% (%s)\n    Raw: %.3f%% (%s)\n    Total: %s\n",
+			printf("    Precalculated masks: 0\n    Fast cache: %.3f%% (%s)\n    Cache: %.3f%% (%s)\n    Raw: %.3f%% (%s)\n    Total: %s\n",
 				((float)stats.cache_hit_fast_count)/stats.access_count*100,
 				_format_int(stats.cache_hit_fast_count),
 				((float)stats.cache_hit_count)/stats.access_count*100,
@@ -228,13 +255,13 @@ int main(int argc,const char** argv){
 			);
 		}
 		else if (state.data_access_strategy==WFC_STATE_DATA_ACCESS_STRATEGY_PRECALCULATED_MASK){
-			printf("    Precalculated masks: %s\n    Fast cache: N/A\n    Cache: N/A\n    Raw: N/A\n    Total: %s\n",
+			printf("    Precalculated masks: %s\n    Fast cache: 0\n    Cache: 0\n    Raw: 0\n    Total: %s\n",
 				_format_int(stats.access_count),
 				_format_int(stats.access_count)
 			);
 		}
 		else{
-			printf("    Precalculated masks: N/A\n    Fast cache: N/A\n    Cache: N/A\n    Raw: %s\n    Total: %s\n",
+			printf("    Precalculated masks: 0\n    Fast cache: 0\n    Cache: 0\n    Raw: %s\n    Total: %s\n",
 				_format_int(stats.access_count),
 				_format_int(stats.access_count)
 			);
