@@ -1164,9 +1164,9 @@ void wfc_generate_full_scale_image(const wfc_table_t* table,const wfc_state_t* s
 
 void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,const unsigned char* seed,wfc_state_data_access_strategy_t data_access_strategy,wfc_state_t* out){
 	wfc_size_t pixel_count=image->width*image->height;
-	uint8_t* prng_data=(uint8_t*)(out->prng.data);
-	for (unsigned int i=0;i<256;i++){
-		prng_data[i]=seed[i];
+	const uint32_t* seed32=(const uint32_t*)(seed);
+	for (unsigned int i=0;i<64;i++){
+		out->prng.data[i]=seed32[i];
 	}
 	out->prng.count=64;
 	out->length=pixel_count*table->data_elem_size;
