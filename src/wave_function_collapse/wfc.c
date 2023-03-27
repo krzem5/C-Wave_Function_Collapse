@@ -1166,8 +1166,7 @@ void wfc_init_state(const wfc_table_t* table,const wfc_image_t* image,const unsi
 	wfc_size_t pixel_count=image->width*image->height;
 	uint8_t* prng_data=(uint8_t*)(out->prng.data);
 	for (unsigned int i=0;i<256;i++){
-		*prng_data=(seed?seed[i]:rand()&255);
-		prng_data++;
+		prng_data[i]=seed[i];
 	}
 	out->prng.count=64;
 	out->length=pixel_count*table->data_elem_size;

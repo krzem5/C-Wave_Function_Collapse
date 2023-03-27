@@ -167,7 +167,7 @@ int main(int argc,const char** argv){
 		output_image.height/=table.downscale_factor;
 		wfc_state_t state;
 		time_start=_current_time();
-		wfc_init_state(&table,&output_image,NULL,STRATEGY,&state);
+		wfc_init_state(&table,&output_image,seed,STRATEGY,&state);
 		unsigned long int state_creation_time=_current_time()-time_start;
 		time_start=_current_time();
 		wfc_stats_t stats;
