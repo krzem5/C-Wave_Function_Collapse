@@ -20,7 +20,7 @@
 #define PICK_PARAMETERS 0
 #define GENERATE_IMAGE 1
 #define GENERATION_LOOP 1
-#define IMAGE_NAME "sample"
+#define IMAGE_NAME "duck"
 
 #define PROGRESS_FRAME_INTERVAL 0.05
 

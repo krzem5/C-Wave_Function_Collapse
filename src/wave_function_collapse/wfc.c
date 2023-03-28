@@ -771,6 +771,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 	wfc_color_range_t color_range;
 	INIT_RANGE(&color_range);
 	wfc_size_t idx=0;
+	wfc_size_t box_size_squared=config->box_size*config->box_size;
 	wfc_size_t downscale_factor_squared=downscale_factor*downscale_factor;
 	for (wfc_size_t y=0;y<image->height;y+=downscale_factor){
 		for (wfc_size_t x=0;x<image->width;x+=downscale_factor){
@@ -875,7 +876,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 	out->tile_count=0;
 	out->tiles=NULL;
 	out->downscale_factor=downscale_factor;
-	wfc_color_t* buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
+	wfc_color_t* buffer=malloc(box_size_squared*sizeof(wfc_color_t));
 	wfc_color_t* upscaled_data=malloc(downscale_factor_squared*sizeof(wfc_color_t));
 	_Bool precalculate_upscaled_data=!!(config->flags&(WFC_FLAG_BLEND_CORNER|WFC_FLAG_BLEND_PIXEL));
 	for (wfc_size_t x=0;x<width-((config->flags&WFC_FLAG_WRAP_X)?0:config->box_size-1);x++){
@@ -883,7 +884,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 			wfc_color_t* ptr=buffer;
 			wfc_size_t tx=x;
 			wfc_size_t ty=y;
-			for (wfc_box_size_t i=0;i<config->box_size*config->box_size;i++){
+			for (wfc_box_size_t i=0;i<box_size_squared;i++){
 				*ptr=image_palette[(tx%width)+(ty%height)*width];
 				ptr++;
 				tx++;
@@ -901,7 +902,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				}
 				(out->tiles+out->tile_count-1)->x=x*downscale_factor;
 				(out->tiles+out->tile_count-1)->y=y*downscale_factor;
-				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
+				buffer=malloc(box_size_squared*sizeof(wfc_color_t));
 				upscaled_data=malloc(downscale_factor_squared*sizeof(wfc_color_t));
 			}
 		}
@@ -916,7 +917,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 			}
 			wfc_color_t* ptr=buffer;
 			for (wfc_box_size_t y=0;y<config->box_size;y++){
-				wfc_box_size_t x=config->box_size*config->box_size;
+				wfc_box_size_t x=box_size_squared;
 				while (x){
 					x-=config->box_size;
 					*ptr=tile->data[x+y];
@@ -933,9 +934,9 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				if (!precalculate_upscaled_data){
 					_calculate_rotated_upscaled_data(image,ox,oy,downscale_factor,adjusted_upscaled_data_size,rotation,upscaled_data);
 				}
-				(out->tiles+out->tile_count-1)->x=(out->tiles+i)->x+WFC_TILE_ROTATED;
+				(out->tiles+out->tile_count-1)->x=(out->tiles+i)->x+WFC_TILE_ROTATED;// has to be addition due to multi-bit bitfield
 				(out->tiles+out->tile_count-1)->y=oy;
-				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
+				buffer=malloc(box_size_squared*sizeof(wfc_color_t));
 				upscaled_data=malloc(downscale_factor_squared*sizeof(wfc_color_t));
 			}
 		}
@@ -947,7 +948,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				continue;
 			}
 			wfc_color_t* ptr=buffer;
-			for (wfc_box_size_t y=0;y<config->box_size*config->box_size;y+=config->box_size){
+			for (wfc_box_size_t y=0;y<box_size_squared;y+=config->box_size){
 				wfc_box_size_t x=config->box_size;
 				while (x){
 					x--;
@@ -967,7 +968,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 				}
 				(out->tiles+out->tile_count-1)->x=(out->tiles+i)->x|WFC_TILE_FLIPPED;
 				(out->tiles+out->tile_count-1)->y=oy;
-				buffer=malloc(config->box_size*config->box_size*sizeof(wfc_color_t));
+				buffer=malloc(box_size_squared*sizeof(wfc_color_t));
 				upscaled_data=malloc(downscale_factor_squared*sizeof(wfc_color_t));
 			}
 		}
@@ -992,7 +993,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 			for (wfc_tile_index_t j=0;j<i;j++){
 				const wfc_color_t* tile2_data=(out->tiles+j)->data;
 				wfc_color_diffrence_t diff=0;
-				for (wfc_box_size_t k=0;k<config->box_size*config->box_size;k++){
+				for (wfc_box_size_t k=0;k<box_size_squared;k++){
 					diff+=_color_diffrence(tile_data[k],tile2_data[k]);
 				}
 				if (diff<config->max_color_diff){

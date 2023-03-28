@@ -520,9 +520,9 @@ static const image_config_t preloaded_images[16]={
 			16,
 			300,
 			1,
-			4,
-			2,
-			2048,
+			5,
+			3,
+			1024,
 			256,
 			1024,
 			1024
