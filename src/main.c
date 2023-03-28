@@ -197,9 +197,8 @@ _regenerate_image:
 			wfc_free_shapes(&shapes);
 		}
 		else{
-			printf("\x1b[0m\x1b[?25h\x1b[%uA",output_image.height);
+			printf("\x1b[0m\x1b[?25h\x1b[%uA\n",output_image.height);
 			wfc_generate_image(&table,&state,&output_image);
-			putchar('\n');
 			wfc_print_image(&output_image);
 			output_image.width*=table.downscale_factor;
 			output_image.height*=table.downscale_factor;

@@ -1104,13 +1104,13 @@ void wfc_extract_shapes(const wfc_image_t* image,wfc_color_t background_color,wf
 					if (y>shape->bbox[3]){
 						shape->bbox[3]=y;
 					}
-					uint64_t l=((uint64_t)(y))*image->width+(x-1ull);
+					uint64_t l=((uint64_t)(y))*image->width+x-1;
 					if (x&&!(bitmap[l>>6]&(1ull<<(l&63)))&&image->data[l]!=background_color){
 						bitmap[l>>6]|=1ull<<(l&63);
 						stack[k]=coord-0x100000000ull;
 						k++;
 					}
-					l+=2ull;
+					l+=2;
 					if (x<image->width-1&&!(bitmap[l>>6]&(1ull<<(l&63)))&&image->data[l]!=background_color){
 						bitmap[l>>6]|=1ull<<(l&63);
 						stack[k]=coord+0x100000000ull;
@@ -1134,7 +1134,7 @@ void wfc_extract_shapes(const wfc_image_t* image,wfc_color_t background_color,wf
 						stack[k]=coord+0x100000001ull;
 						k++;
 					}
-					l-=2ull;
+					l-=2;
 					if (x&&y<image->height-1&&!(bitmap[l>>6]&(1ull<<(l&63)))&&image->data[l]!=background_color){
 						bitmap[l>>6]|=1ull<<(l&63);
 						stack[k]=coord-0xffffffffull;
@@ -1146,7 +1146,7 @@ void wfc_extract_shapes(const wfc_image_t* image,wfc_color_t background_color,wf
 						stack[k]=coord-0x100000001ull;
 						k++;
 					}
-					l+=2ull;
+					l+=2;
 					if (x<image->width-1&&y&&!(bitmap[l>>6]&(1ull<<(l&63)))&&image->data[l]!=background_color){
 						bitmap[l>>6]|=1ull<<(l&63);
 						stack[k]=coord+0xffffffffull;
