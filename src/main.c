@@ -21,8 +21,8 @@
 #define GENERATE_IMAGE 1
 #define GENERATION_LOOP 0
 #define CUT_OUT_SHAPES 1
-#define CUT_OUT_SHAPE_BACKGROUND 0xffffffff
-#define IMAGE_NAME "cat"
+#define CUT_OUT_SHAPE_BACKGROUND 0x000000ff
+#define IMAGE_NAME "duck"
 
 #define PROGRESS_FRAME_INTERVAL 0.05
 
