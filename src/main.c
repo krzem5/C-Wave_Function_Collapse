@@ -234,7 +234,7 @@ _regenerate_image:
 			_format_int(config.box_size)
 		);
 		_Bool first=1;
-		for (unsigned int i=1,j=0;i<=WFC_FLAG_AVERAGE_SCALING;i<<=1,j++){
+		for (unsigned int i=1,j=0;config.flags>>j;i<<=1,j++){
 			if (!(config.flags&i)){
 				continue;
 			}
