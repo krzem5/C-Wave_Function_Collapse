@@ -234,15 +234,15 @@ _regenerate_image:
 			_format_int(config.box_size)
 		);
 		_Bool first=1;
-		for (unsigned int i=1,j=0;config.flags>>j;i<<=1,j++){
-			if (!(config.flags&i)){
+		for (unsigned int i=0;config.flags>>i;i++){
+			if (!((config.flags>>i)&1)){
 				continue;
 			}
 			if (!first){
 				putchar(',');
 			}
 			first=0;
-			printf(" %s",_flag_strings[j]);
+			printf(" %s",_flag_strings[i]);
 		}
 		printf("\n  Palette size: %s\n  Similarity score: %s\n  Downscale factor: %s\n  Propagation distance: %s\n  Delete size: %s\n  Max delete count: %s\n  Fast mask counter initial value: %s\n  Fast mask counter cache initial value: %s\n  Fast mask counter maximal value: %s\nTable:\n  Tile count: %s\n  Tile element size: %s B\n  Tile data: %s kB\n  Neighbours: %s kB\n  Upscaled data: %s kB\nTable creation time: %.3lfs\nState:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\n  Precalculated masks: %s kB\nState creation time: %.3lfs\nSimulation:\n  Updates:\n    Collapse: %s\n    Propagation: %s\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n",
 			_format_int(config.palette_max_size),
