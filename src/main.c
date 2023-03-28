@@ -21,8 +21,8 @@
 #define GENERATE_IMAGE 1
 #define GENERATION_LOOP 0
 #define CUT_OUT_SHAPES 1
-#define CUT_OUT_SHAPE_BACKGROUND 0x000000ff
-#define IMAGE_NAME "duck"
+#define CUT_OUT_SHAPE_BACKGROUND 0xffffffff
+#define IMAGE_NAME "cat"
 
 #define PROGRESS_FRAME_INTERVAL 0.05
 
@@ -184,7 +184,7 @@ _regenerate_image:
 			output_image.height*=table.downscale_factor;
 			wfc_generate_full_scale_image(&table,&state,&output_image);
 			wfc_shapes_t shapes;
-			wfc_extract_shapes(&output_image,CUT_OUT_SHAPE_BACKGROUND,config.flags,&shapes);
+			wfc_extract_shapes(&output_image,CUT_OUT_SHAPE_BACKGROUND,&shapes);
 			for (wfc_shape_count_t i=0;i<shapes.length;i++){
 				putchar('\n');
 				wfc_print_image(&((shapes.data+i)->image));
