@@ -1063,6 +1063,107 @@ _skip_tile:;
 
 
 
+void wfc_extract_shapes(const wfc_image_t* image,wfc_color_t background_color,wfc_shapes_t* out){
+	out->length=0;
+	out->data=NULL;
+	uint64_t image_area=image->width*image->height;
+	uint64_t* bitmap=calloc((image_area+63)>>6,sizeof(uint64_t));
+	uint64_t* stack=malloc(image_area*sizeof(uint64_t));
+	uint64_t i=0;
+	for (wfc_size_t y=0;y<image->height;y++){
+		for (wfc_size_t x=0;x<image->width;x++){
+			if (bitmap[i>>6]&(1ull<<(i&63))){
+				goto _next_pixel;
+			}
+			bitmap[i>>6]|=1ull<<(i&63);
+			if (image->data[i]!=background_color){
+				out->length++;
+				out->data=realloc(out->data,out->length*sizeof(wfc_shape_t));
+				wfc_shape_t* shape=out->data+out->length-1;
+				shape->bbox[0]=x;
+				shape->bbox[1]=y;
+				shape->bbox[2]=x;
+				shape->bbox[3]=y;
+				stack[0]=(((uint64_t)x)<<32)|y;
+				uint64_t j=0;
+				uint64_t k=1;
+				do{
+					uint64_t coord=stack[j];
+					j++;
+					wfc_size_t x=coord>>32;
+					wfc_size_t y=coord&0xffffffff;
+					if (x<shape->bbox[0]){
+						shape->bbox[0]=x;
+					}
+					if (y<shape->bbox[1]){
+						shape->bbox[1]=y;
+					}
+					if (x>shape->bbox[2]){
+						shape->bbox[2]=x;
+					}
+					if (y>shape->bbox[3]){
+						shape->bbox[3]=y;
+					}
+					uint64_t l=y*image->width+x-1;
+					if (x&&!(bitmap[l>>6]&(1ull<<(l&63)))&&image->data[l]!=background_color){
+						bitmap[l>>6]|=1ull<<(l&63);
+						stack[k]=coord-0x100000000ull;
+						k++;
+					}
+					l+=2;
+					if (x<image->width-1&&!(bitmap[l>>6]&(1ull<<(l&63)))&&image->data[l]!=background_color){
+						bitmap[l>>6]|=1ull<<(l&63);
+						stack[k]=coord+0x100000000ull;
+						k++;
+					}
+					l-=image->width+1;
+					if (y&&!(bitmap[l>>6]&(1ull<<(l&63)))&&image->data[l]!=background_color){
+						bitmap[l>>6]|=1ull<<(l&63);
+						stack[k]=coord-1;
+						k++;
+					}
+					l+=image->width<<1;
+					if (y<image->height-1&&!(bitmap[l>>6]&(1ull<<(l&63)))&&image->data[l]!=background_color){
+						bitmap[l>>6]|=1ull<<(l&63);
+						stack[k]=coord+1;
+						k++;
+					}
+				} while (j<k);
+				shape->image.width=shape->bbox[2]-shape->bbox[0]+1;
+				shape->image.height=shape->bbox[3]-shape->bbox[1]+1;
+				image_area=((uint64_t)(shape->image.width))*shape->image.height;
+				shape->image.data=malloc(image_area*sizeof(wfc_color_t));
+				for (uint64_t l=0;l<image_area;l++){
+					shape->image.data[l]=background_color;
+				}
+				do{
+					k--;
+					uint64_t coord=stack[k];
+					wfc_size_t x=coord>>32;
+					wfc_size_t y=coord&0xffffffff;
+					shape->image.data[(y-shape->bbox[1])*((uint64_t)(shape->image.width))+x-shape->bbox[0]]=image->data[y*image->width+x];
+				} while (k);
+			}
+_next_pixel:
+			i++;
+		}
+	}
+	free(stack);
+	free(bitmap);
+}
+
+
+
+void wfc_free_shapes(wfc_shapes_t* shapes){
+	while (shapes->length){
+		shapes->length--;
+		free((shapes->data+shapes->length)->image.data);
+	}
+	free(shapes->data);
+}
+
+
+
 void wfc_free_state(const wfc_table_t* table,wfc_state_t* state){
 	free(state->data);
 	state->data=NULL;

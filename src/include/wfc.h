@@ -81,6 +81,10 @@ typedef uint8_t wfc_state_data_access_strategy_t;
 
 
 
+typedef uint32_t wfc_shape_count_t;
+
+
+
 typedef struct _WFC_IMAGE{
 	wfc_size_t width;
 	wfc_size_t height;
@@ -226,6 +230,20 @@ typedef struct _WFC_STATS{
 
 
 
+typedef struct _WFC_SHAPE{
+	wfc_size_t bbox[4];
+	wfc_image_t image;
+} wfc_shape_t;
+
+
+
+typedef struct _WFC_SHAPES{
+	wfc_shape_count_t length;
+	wfc_shape_t* data;
+} wfc_shapes_t;
+
+
+
 typedef void (*wfc_callback_t)(const wfc_table_t*,const wfc_state_t*,void*);
 
 
@@ -239,6 +257,14 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config,wfc_termi
 
 
 void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_table_t* out);
+
+
+
+void wfc_extract_shapes(const wfc_image_t* image,wfc_color_t background_color,wfc_shapes_t* out);
+
+
+
+void wfc_free_shapes(wfc_shapes_t* shapes);
 
 
 

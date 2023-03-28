@@ -19,14 +19,16 @@
 
 #define PICK_PARAMETERS 0
 #define GENERATE_IMAGE 1
-#define GENERATION_LOOP 1
+#define GENERATION_LOOP 0
+#define CUT_OUT_SHAPES 1
+#define CUT_OUT_SHAPE_BACKGROUND 0x000000ff
 #define IMAGE_NAME "duck"
 
 #define PROGRESS_FRAME_INTERVAL 0.05
 
 
 
-static const char* _flag_strings[]={"Flip","Rotate","Wrap X","Wrap Y","Wrap output X","Wrap output Y","Blend (corner)","Blend (pixel)","Average scaling"};
+static const char* _flag_strings[9]={"Flip","Rotate","Wrap X","Wrap Y","Wrap output X","Wrap output Y","Blend (corner)","Blend (pixel)","Average scaling"};
 
 
 
@@ -175,16 +177,36 @@ _regenerate_image:
 		wfc_stats_t stats;
 		fflush(stdout);
 		wfc_solve(&table,&state,&config,_progress_callback,&output_image,&stats);
-		printf("\x1b[0m\x1b[?25h\x1b[%uA",output_image.height);
 		unsigned long int generation_time=_current_time()-time_start;
-		wfc_generate_image(&table,&state,&output_image);
-		putchar('\n');
-		wfc_print_image(&output_image);
-		output_image.width*=table.downscale_factor;
-		output_image.height*=table.downscale_factor;
-		wfc_generate_full_scale_image(&table,&state,&output_image);
-		putchar('\n');
-		wfc_print_image(&output_image);
+		if (CUT_OUT_SHAPES){
+			printf("\x1b[0m\x1b[?25h\x1b[%uA\x1b[0J",output_image.height);
+			output_image.width*=table.downscale_factor;
+			output_image.height*=table.downscale_factor;
+			wfc_generate_full_scale_image(&table,&state,&output_image);
+			wfc_shapes_t shapes;
+			wfc_extract_shapes(&output_image,CUT_OUT_SHAPE_BACKGROUND,config.flags,&shapes);
+			for (wfc_shape_count_t i=0;i<shapes.length;i++){
+				putchar('\n');
+				wfc_print_image(&((shapes.data+i)->image));
+				if (!GENERATION_LOOP){
+					char path[256];
+					snprintf(path,256,"build/export-%.4u.bmp",i);
+					wfc_save_image(&((shapes.data+i)->image),path);
+				}
+			}
+			wfc_free_shapes(&shapes);
+		}
+		else{
+			printf("\x1b[0m\x1b[?25h\x1b[%uA",output_image.height);
+			wfc_generate_image(&table,&state,&output_image);
+			putchar('\n');
+			wfc_print_image(&output_image);
+			output_image.width*=table.downscale_factor;
+			output_image.height*=table.downscale_factor;
+			wfc_generate_full_scale_image(&table,&state,&output_image);
+			putchar('\n');
+			wfc_print_image(&output_image);
+		}
 		if (GENERATION_LOOP){
 			wfc_free_state(&table,&state);
 			while (getchar()!='\n');
