@@ -105,6 +105,14 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 
 
 
+typedef struct _EDITABLE_FIELD{
+	unsigned int* value;
+	unsigned int width;
+	const char* name;
+} editable_field_t;
+
+
+
 static const unsigned int powers_of_ten[6]={100000,10000,1000,100,10,1};
 static const char* flag_abbreviations[9]={"F","R","WX","WY","WOX","WOY","BC","BP","AS"};
 
@@ -453,6 +461,33 @@ static void _print_integer(unsigned int value,unsigned int width,unsigned int ed
 
 
 void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config,wfc_terminal_size_inquiry_t terminal_size_inquiry){
+	editable_field_t fields[]={
+		{
+			&(config->downscale_factor),
+			3,
+			"Ds"
+		},
+		{
+			&(config->box_size),
+			2,
+			"B"
+		},
+		{
+			&(config->palette_max_size),
+			4,
+			"P"
+		},
+		{
+			&(config->max_color_diff),
+			6,
+			"Ss"
+		},
+		{
+			NULL,
+			0,
+			NULL
+		}
+	};
 	unsigned int width;
 	unsigned int height;
 	terminal_size_inquiry(&width,&height);
@@ -493,17 +528,20 @@ void wfc_pick_parameters(const wfc_image_t* image,wfc_config_t* config,wfc_termi
 			tile_rows=(table.tile_count+tile_columns-1)/tile_columns;
 			max_scroll_height=(table_box_size+1)*(tile_rows-1);
 		}
-		printf("\x1b[%uA\x1b[0G\x1b[48;2;66;67;63m\x1b[38;2;245;245;245mDs: ",height);
-		_print_integer(config->downscale_factor,3,edit_index);
-		printf("\x1b[38;2;245;245;245m, B: ");
-		_print_integer(config->box_size,2,edit_index-3);
-		printf("\x1b[38;2;245;245;245m, P: ");
-		_print_integer(config->palette_max_size,4,edit_index-5);
-		printf("\x1b[38;2;245;245;245m, Ss: ");
-		_print_integer(config->max_color_diff,6,edit_index-9);
+		printf("\x1b[%uA\x1b[0G\x1b[48;2;66;67;63m",height);
+		unsigned int field_offset=0;
+		for (unsigned int i=0;fields[i].width;i++){
+			printf("\x1b[38;2;245;245;245m");
+			if (i){
+				printf(", ");
+			}
+			printf("%s: ",fields[i].name);
+			_print_integer(*(fields[i].value),fields[i].width,edit_index-field_offset);
+			field_offset+=fields[i].width;
+		}
 		printf("\x1b[38;2;245;245;245m, F:");
 		for (unsigned int i=0;i<9;i++){
-			if (edit_index==i+15){
+			if (edit_index==i+field_offset){
 				printf(" \x1b[38;2;63;153;255m");
 			}
 			else if (config->flags&(1<<i)){
@@ -631,41 +669,39 @@ _next_index:
 				edit_index=(edit_index?edit_index-1:MAX_EDIT_INDEX);
 				break;
 			case COMMAND(27,65):
-				if (edit_index<3){
-					ADJUST_VALUE_AT_EDIT_INDEX(config->downscale_factor,0,3,(digit<9?digit+1:0));
+				{
+					unsigned int i=0;
+					field_offset=0;
+					for (;fields[i].width;i++){
+						if (edit_index<field_offset+fields[i].width){
+							ADJUST_VALUE_AT_EDIT_INDEX(*(fields[i].value),fields[i].width,field_offset,(digit<9?digit+1:0));
+							break;
+						}
+						field_offset+=fields[i].width;
+					}
+					if (!fields[i].width){
+						config->flags^=1<<(edit_index-field_offset);
+					}
+					changes=1;
+					break;
 				}
-				else if (edit_index<5){
-					ADJUST_VALUE_AT_EDIT_INDEX(config->box_size,3,2,(digit<9?digit+1:0));
-				}
-				else if (edit_index<9){
-					ADJUST_VALUE_AT_EDIT_INDEX(config->palette_max_size,5,4,(digit<9?digit+1:0));
-				}
-				else if (edit_index<15){
-					ADJUST_VALUE_AT_EDIT_INDEX(config->max_color_diff,9,6,(digit<9?digit+1:0));
-				}
-				else{
-					config->flags^=1<<(edit_index-15);
-				}
-				changes=1;
-				break;
 			case COMMAND(27,66):
-				if (edit_index<3){
-					ADJUST_VALUE_AT_EDIT_INDEX(config->downscale_factor,0,3,(digit?digit-1:9));
+				{
+					unsigned int i=0;
+					field_offset=0;
+					for (;fields[i].width;i++){
+						if (edit_index<field_offset+fields[i].width){
+							ADJUST_VALUE_AT_EDIT_INDEX(*(fields[i].value),fields[i].width,field_offset,(digit?digit-1:9));
+							break;
+						}
+						field_offset+=fields[i].width;
+					}
+					if (!fields[i].width){
+						config->flags^=1<<(edit_index-field_offset);
+					}
+					changes=1;
+					break;
 				}
-				else if (edit_index<5){
-					ADJUST_VALUE_AT_EDIT_INDEX(config->box_size,3,2,(digit?digit-1:9));
-				}
-				else if (edit_index<9){
-					ADJUST_VALUE_AT_EDIT_INDEX(config->palette_max_size,5,4,(digit?digit-1:9));
-				}
-				else if (edit_index<15){
-					ADJUST_VALUE_AT_EDIT_INDEX(config->max_color_diff,9,6,(digit?digit-1:9));
-				}
-				else{
-					config->flags^=1<<(edit_index-15);
-				}
-				changes=1;
-				break;
 			case COMMAND(48,0):
 			case COMMAND(49,0):
 			case COMMAND(50,0):
@@ -676,29 +712,28 @@ _next_index:
 			case COMMAND(55,0):
 			case COMMAND(56,0):
 			case COMMAND(57,0):
-				if (edit_index<3){
-					ADJUST_VALUE_AT_EDIT_INDEX(config->downscale_factor,0,3,command[0]-48);
-				}
-				else if (edit_index<5){
-					ADJUST_VALUE_AT_EDIT_INDEX(config->box_size,3,2,command[0]-48);
-				}
-				else if (edit_index<9){
-					ADJUST_VALUE_AT_EDIT_INDEX(config->palette_max_size,5,4,command[0]-48);
-				}
-				else if (edit_index<15){
-					ADJUST_VALUE_AT_EDIT_INDEX(config->max_color_diff,9,6,command[0]-48);
-				}
-				else{
-					config->flags&=~(1<<(edit_index-15));
-					if (command[0]!=48){
-						config->flags|=1<<(edit_index-15);
+				{
+					unsigned int i=0;
+					field_offset=0;
+					for (;fields[i].width;i++){
+						if (edit_index<field_offset+fields[i].width){
+							ADJUST_VALUE_AT_EDIT_INDEX(*(fields[i].value),fields[i].width,field_offset,command[0]-48);
+							break;
+						}
+						field_offset+=fields[i].width;
 					}
+					if (!fields[i].width){
+						config->flags&=~(1<<(edit_index-field_offset));
+						if (command[0]!=48){
+							config->flags|=1<<(edit_index-field_offset);
+						}
+					}
+					changes=1;
+					if (edit_index!=2&&edit_index!=4&&edit_index!=8&&edit_index<field_offset){
+						goto _next_index;
+					}
+					break;
 				}
-				changes=1;
-				if (edit_index!=2&&edit_index!=4&&edit_index!=8&&edit_index<15){
-					goto _next_index;
-				}
-				break;
 			case COMMAND(10,0):
 				if (changes){
 					wfc_free_table(&table);
@@ -748,7 +783,28 @@ _next_index:
 	}
 _return:
 	wfc_free_table(&table);
-	printf("\x1b[0m\x1b[?25h\x1b[%uA\x1b[0G\x1b[0JBox size: %u\nFlags:%s%s%s%s%s%s%s%s%s\nPalette size: %u\nSimilarity score: %u\nDownscale factor: %u\nPropagation distance: %u\nDelete size: %u\nMax delete count: %u\nFast mask counter initial value: %u\nFast mask counter maximal value: %u\n",height,config->box_size,((config->flags&WFC_FLAG_FLIP)?" WFC_FLAG_FLIP":""),((config->flags&WFC_FLAG_ROTATE)?" WFC_FLAG_ROTATE":""),((config->flags&WFC_FLAG_WRAP_X)?" WFC_FLAG_WRAP_X":""),((config->flags&WFC_FLAG_WRAP_Y)?" WFC_FLAG_WRAP_Y":""),((config->flags&WFC_FLAG_WRAP_OUTPUT_X)?" WFC_FLAG_WRAP_OUTPUT_X":""),((config->flags&WFC_FLAG_WRAP_OUTPUT_Y)?" WFC_FLAG_WRAP_OUTPUT_Y":""),((config->flags&WFC_FLAG_BLEND_CORNER)?" WFC_FLAG_BLEND_CORNER":""),((config->flags&WFC_FLAG_BLEND_PIXEL)?" WFC_FLAG_BLEND_PIXEL":""),((config->flags&WFC_FLAG_AVERAGE_SCALING)?" WFC_FLAG_AVERAGE_SCALING":""),config->palette_max_size,config->max_color_diff,config->downscale_factor,config->propagation_distance,config->delete_size,config->max_delete_count,config->fast_mask_counter_init,config->fast_mask_counter_max);
+	printf("\x1b[0m\x1b[?25h\x1b[%uA\x1b[0G\x1b[0JBox size: %u\nFlags:%s%s%s%s%s%s%s%s%s\nPalette size: %u\nSimilarity score: %u\nDownscale factor: %u\nPropagation distance: %u\nDelete size: %u\nMax delete count: %u\nFast mask initial counter value: %u\nFast mask cache initial counter value: %u\nFast mask maximal counter value: %u\n",
+		height,
+		config->box_size,
+		((config->flags&WFC_FLAG_FLIP)?" WFC_FLAG_FLIP":""),
+		((config->flags&WFC_FLAG_ROTATE)?" WFC_FLAG_ROTATE":""),
+		((config->flags&WFC_FLAG_WRAP_X)?" WFC_FLAG_WRAP_X":""),
+		((config->flags&WFC_FLAG_WRAP_Y)?" WFC_FLAG_WRAP_Y":""),
+		((config->flags&WFC_FLAG_WRAP_OUTPUT_X)?" WFC_FLAG_WRAP_OUTPUT_X":""),
+		((config->flags&WFC_FLAG_WRAP_OUTPUT_Y)?" WFC_FLAG_WRAP_OUTPUT_Y":""),
+		((config->flags&WFC_FLAG_BLEND_CORNER)?" WFC_FLAG_BLEND_CORNER":""),
+		((config->flags&WFC_FLAG_BLEND_PIXEL)?" WFC_FLAG_BLEND_PIXEL":""),
+		((config->flags&WFC_FLAG_AVERAGE_SCALING)?" WFC_FLAG_AVERAGE_SCALING":""),
+		config->palette_max_size,
+		config->max_color_diff,
+		config->downscale_factor,
+		config->propagation_distance,
+		config->delete_size,
+		config->max_delete_count,
+		config->fast_mask_counter_init,
+		config->fast_mask_cache_counter_init,
+		config->fast_mask_counter_max
+	);
 }
 
 
@@ -780,7 +836,7 @@ void wfc_build_table(const wfc_image_t* image,const wfc_config_t* config,wfc_tab
 		for (wfc_size_t x=0;x<image->width;x+=downscale_factor){
 			const wfc_color_t* src_data=image->data+y*image->width+x;
 			wfc_color_t color;
-			if (config->flags&WFC_FLAG_AVERAGE_SCALING){
+			if ((config->flags&WFC_FLAG_AVERAGE_SCALING)&&downscale_factor>1){
 				unsigned int r=0;
 				unsigned int g=0;
 				unsigned int b=0;
@@ -1163,12 +1219,13 @@ void wfc_extract_shapes(const wfc_image_t* image,wfc_color_t background_color,wf
 				for (uint64_t l=0;l<image_area;l++){
 					shape->image.data[l]=background_color;
 				}
+				uint64_t offset=shape->bbox[0]+shape->bbox[1]*((uint64_t)(shape->image.width));
 				do{
 					k--;
 					uint64_t coord=stack[k];
 					wfc_size_t x=coord>>32;
 					wfc_size_t y=coord&0xffffffff;
-					shape->image.data[(y-shape->bbox[1])*((uint64_t)(shape->image.width))+x-shape->bbox[0]]=image->data[y*image->width+x];
+					shape->image.data[y*((uint64_t)(shape->image.width))+x-offset]=image->data[y*((uint64_t)(image->width))+x];
 				} while (k);
 			}
 _next_pixel:

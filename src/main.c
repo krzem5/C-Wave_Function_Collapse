@@ -17,9 +17,9 @@
 
 #define STRATEGY WFC_STATE_DATA_ACCESS_STRATEGY_RAW
 
-#define PICK_PARAMETERS 0
+#define PICK_PARAMETERS 1
 #define GENERATE_IMAGE 1
-#define GENERATION_LOOP 1
+#define GENERATION_LOOP 0
 #define CUT_OUT_SHAPES 0
 #define CUT_OUT_SHAPE_BACKGROUND 0x000000ff
 #define IMAGE_NAME "duck"
@@ -243,7 +243,7 @@ _regenerate_image:
 			first=0;
 			printf(" %s",_flag_strings[i]);
 		}
-		printf("\n  Palette size: %s\n  Similarity score: %s\n  Downscale factor: %s\n  Propagation distance: %s\n  Delete size: %s\n  Max delete count: %s\n  Fast mask counter initial value: %s\n  Fast mask counter cache initial value: %s\n  Fast mask counter maximal value: %s\nTable:\n  Tile count: %s\n  Tile element size: %s B\n  Tile data: %s kB\n  Neighbours: %s kB\n  Upscaled data: %s kB\nTable creation time: %.3lfs\nState:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\n  Precalculated masks: %s kB\nState creation time: %.3lfs\nSimulation:\n  Updates:\n    Collapse: %s\n    Propagation: %s\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n",
+		printf("\n  Palette size: %s\n  Similarity score: %s\n  Downscale factor: %s\n  Propagation distance: %s\n  Delete size: %s\n  Max delete count: %s\n  Fast mask counter initial value: %s\n  Fast mask counter cache initial value: %s\n  Fast mask counter maximal value: %s\nTable:\n  Tile count: %s\n  Tile element size: %s B\n  Tile data: %s kB\n  Neighbours: %s kB\n  Upscaled data: %s kB\nTable creation time: %.3lfs\nState:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Queue indicies: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\n  Precalculated masks: %s kB\nState creation time: %.3lfs\nSimulation:\n  Updates:\n    Collapse: %s\n    Propagation: %s\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n",
 			_format_int(config.palette_max_size),
 			_format_int(config.max_color_diff),
 			_format_int(config.downscale_factor),
@@ -262,6 +262,7 @@ _regenerate_image:
 			_format_int((state.bitmap_size+31)>>5),
 			_format_int((state.length*sizeof(uint64_t)+1023)>>10),
 			_format_int((table.tile_count*(sizeof(wfc_queue_t)+state.queue_size*32)+1023)>>10),
+			_format_int((state.pixel_count*sizeof(wfc_queue_location_t)+1023)>>10),
 			_format_int((table.tile_count*sizeof(wfc_weight_t)+1023)>>10),
 			_format_int((2*state.pixel_count*sizeof(wfc_size_t)+1023)>>10),
 			(state.data_access_strategy==WFC_STATE_DATA_ACCESS_STRATEGY_FAST_MASK?_format_int((262208*sizeof(wfc_fast_mask_t)+1023)>>10):"0"),
