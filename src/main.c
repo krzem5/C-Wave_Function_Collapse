@@ -19,7 +19,7 @@
 
 #define PICK_PARAMETERS 0
 #define GENERATE_IMAGE 1
-#define GENERATION_LOOP 0
+#define GENERATION_LOOP 1
 #define CUT_OUT_SHAPES 0
 #define CUT_OUT_SHAPE_BACKGROUND 0x000000ff
 #define IMAGE_NAME "duck"
@@ -186,7 +186,7 @@ _regenerate_image:
 			wfc_shapes_t shapes;
 			wfc_extract_shapes(&output_image,CUT_OUT_SHAPE_BACKGROUND,&shapes);
 			for (wfc_shape_count_t i=0;i<shapes.length;i++){
-				putchar('\n');
+				printf("\n[%u]:\n",i);
 				wfc_print_image(&((shapes.data+i)->image));
 				if (!GENERATION_LOOP){
 					char path[256];

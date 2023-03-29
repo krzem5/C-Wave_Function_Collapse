@@ -86,22 +86,22 @@ static FORCE_INLINE unsigned long FIND_LAST_SET_BIT(unsigned long m){
 #define COMMAND(a,b) ((((unsigned int)(a))<<8)|(b))
 #define MAX_EDIT_INDEX 23
 #define ADJUST_VALUE_AT_EDIT_INDEX(var,offset,width,new_digit) \
-	unsigned int pow=powers_of_ten[edit_index-offset+6-width]; \
-	unsigned int digit=(var/pow)%10; \
-	var+=((new_digit)-digit)*pow;
-#define ADJUST_FLAG_AT_INDEX(state,flag) \
-	config->flags&=~flag; \
-	if (state){ \
-		config->flags|=flag; \
-	}
+	do{ \
+		unsigned int pow=powers_of_ten[edit_index-offset+6-width]; \
+		unsigned int digit=(var/pow)%10; \
+		var+=((new_digit)-digit)*pow; \
+	} while (0)
 
 #define EXTRACT_UPSCALED_DATA(x,y) \
-	for (wfc_size_t i=0;i<downscale_factor;i++){ \
-		for (wfc_size_t j=0;j<downscale_factor;j++){ \
-			upscaled_data[k]=image->data[((y)%image->height)*image->width+((x)%image->width)]; \
-			k++; \
+	do{ \
+		wfc_size_t k=0; \
+		for (wfc_size_t i=0;i<downscale_factor;i++){ \
+			for (wfc_size_t j=0;j<downscale_factor;j++){ \
+				upscaled_data[k]=image->data[((y)%image->height)*image->width+((x)%image->width)]; \
+				k++; \
+			} \
 		} \
-	}
+	} while (0)
 
 
 
@@ -192,14 +192,12 @@ static _Bool _add_tile(wfc_table_t* table,const wfc_config_t* config,wfc_color_t
 
 
 static void _calculate_raw_upscaled_data(const wfc_image_t* image,wfc_size_t x,wfc_size_t y,wfc_size_t downscale_factor,wfc_color_t* upscaled_data){
-	wfc_size_t k=0;
 	EXTRACT_UPSCALED_DATA(x*downscale_factor+j,y*downscale_factor+i);
 }
 
 
 
 static void _calculate_rotated_upscaled_data(const wfc_image_t* image,wfc_size_t ox,wfc_size_t oy,wfc_size_t downscale_factor,wfc_size_t adjusted_upscaled_data_size,wfc_size_t rotation,wfc_color_t* upscaled_data){
-	wfc_size_t k=0;
 	switch (rotation){
 		case 0:
 			EXTRACT_UPSCALED_DATA(ox+i,oy+adjusted_upscaled_data_size-j);
@@ -216,7 +214,6 @@ static void _calculate_rotated_upscaled_data(const wfc_image_t* image,wfc_size_t
 
 
 static void _calculate_rotated_flipped_upscaled_data(const wfc_image_t* image,wfc_size_t ox,wfc_size_t oy,wfc_size_t downscale_factor,wfc_size_t adjusted_upscaled_data_size,wfc_size_t rotation,wfc_color_t* upscaled_data){
-	wfc_size_t k=0;
 	switch (rotation){
 		case 0:
 			EXTRACT_UPSCALED_DATA(ox+adjusted_upscaled_data_size-j,oy+i);
@@ -235,36 +232,42 @@ static void _calculate_rotated_flipped_upscaled_data(const wfc_image_t* image,wf
 
 
 
+static void _regenerate_random_bits(wfc_state_t* state){
+	__m256i* ptr=(__m256i*)(state->prng.data);
+	__m256i permute_a=_mm256_set_epi32(4,3,2,1,0,7,6,5);
+	__m256i permute_b=_mm256_set_epi32(2,1,0,7,6,5,4,3);
+	__m256i s0=_mm256_lddqu_si256(ptr+0);
+	__m256i s1=_mm256_lddqu_si256(ptr+1);
+	__m256i s2=_mm256_lddqu_si256(ptr+2);
+	__m256i s3=_mm256_lddqu_si256(ptr+3);
+	__m256i u0=_mm256_srli_epi64(s0,1);
+	__m256i u1=_mm256_srli_epi64(s1,3);
+	__m256i u2=_mm256_srli_epi64(s2,1);
+	__m256i u3=_mm256_srli_epi64(s3,3);
+	__m256i t0=_mm256_permutevar8x32_epi32(s0,permute_a);
+	__m256i t1=_mm256_permutevar8x32_epi32(s1,permute_b);
+	__m256i t2=_mm256_permutevar8x32_epi32(s2,permute_a);
+	__m256i t3=_mm256_permutevar8x32_epi32(s3,permute_b);
+	s0=_mm256_add_epi64(t0,u0);
+	s1=_mm256_add_epi64(t1,u1);
+	s2=_mm256_add_epi64(t2,u2);
+	s3=_mm256_add_epi64(t3,u3);
+	_mm256_storeu_si256(ptr+0,s0);
+	_mm256_storeu_si256(ptr+1,s1);
+	_mm256_storeu_si256(ptr+2,s2);
+	_mm256_storeu_si256(ptr+3,s3);
+	_mm256_storeu_si256(ptr+4,_mm256_xor_si256(u0,t1));
+	_mm256_storeu_si256(ptr+5,_mm256_xor_si256(u2,t3));
+	_mm256_storeu_si256(ptr+6,_mm256_xor_si256(s0,s3));
+	_mm256_storeu_si256(ptr+7,_mm256_xor_si256(s2,s1));
+	state->prng.count=64;
+}
+
+
+
 static FORCE_INLINE uint32_t _get_random(wfc_state_t* state,uint32_t n){
 	if (!state->prng.count){
-		__m256i* ptr=(__m256i*)(state->prng.data);
-		__m256i permute_a=_mm256_set_epi32(4,3,2,1,0,7,6,5);
-		__m256i permute_b=_mm256_set_epi32(2,1,0,7,6,5,4,3);
-		__m256i s0=_mm256_lddqu_si256(ptr+0);
-		__m256i s1=_mm256_lddqu_si256(ptr+1);
-		__m256i s2=_mm256_lddqu_si256(ptr+2);
-		__m256i s3=_mm256_lddqu_si256(ptr+3);
-		__m256i u0=_mm256_srli_epi64(s0,1);
-		__m256i u1=_mm256_srli_epi64(s1,3);
-		__m256i u2=_mm256_srli_epi64(s2,1);
-		__m256i u3=_mm256_srli_epi64(s3,3);
-		__m256i t0=_mm256_permutevar8x32_epi32(s0,permute_a);
-		__m256i t1=_mm256_permutevar8x32_epi32(s1,permute_b);
-		__m256i t2=_mm256_permutevar8x32_epi32(s2,permute_a);
-		__m256i t3=_mm256_permutevar8x32_epi32(s3,permute_b);
-		s0=_mm256_add_epi64(t0,u0);
-		s1=_mm256_add_epi64(t1,u1);
-		s2=_mm256_add_epi64(t2,u2);
-		s3=_mm256_add_epi64(t3,u3);
-		_mm256_storeu_si256(ptr+0,s0);
-		_mm256_storeu_si256(ptr+1,s1);
-		_mm256_storeu_si256(ptr+2,s2);
-		_mm256_storeu_si256(ptr+3,s3);
-		_mm256_storeu_si256(ptr+4,_mm256_xor_si256(u0,t1));
-		_mm256_storeu_si256(ptr+5,_mm256_xor_si256(u2,t3));
-		_mm256_storeu_si256(ptr+6,_mm256_xor_si256(s0,s3));
-		_mm256_storeu_si256(ptr+7,_mm256_xor_si256(s2,s1));
-		state->prng.count=64;
+		_regenerate_random_bits(state);
 	}
 	state->prng.count--;
 	return state->prng.data[state->prng.count]%n;
@@ -1469,7 +1472,7 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state,const wfc_config_t* c
 		mult+=mult+1;
 		uint32_t rem2=rem<<1;
 		if (rem2>=state->width||rem2<rem){
-			mult+=1;
+			mult++;
 		}
 		mult&=0xffffffff;
 	}
@@ -1479,7 +1482,6 @@ void wfc_solve(const wfc_table_t* table,wfc_state_t* state,const wfc_config_t* c
 	__m256i ones=_mm256_set1_epi8(0xff);
 	__m256i data_mask=_mm256_srlv_epi32(ones,_mm256_subs_epu16(_mm256_set_epi32(256,224,192,160,128,96,64,32),_mm256_set1_epi32(table->tile_count&255)));
 	__m256i zero=_mm256_setzero_si256();
-	__m256i increment=_mm256_set1_epi32(8);
 	wfc_stats_t stats={
 		0,
 		0,
@@ -1509,6 +1511,7 @@ _retry_from_start:;
 	(state->queues+table->tile_count-1)->length=state->pixel_count;
 	state->weights[table->tile_count-1]=state->pixel_count;
 	__m256i counter=_mm256_set_epi32(7,6,5,4,3,2,1,0);
+	__m256i increment=_mm256_set1_epi32(8);
 	ptr=(__m256i*)((state->queues+table->tile_count-1)->data);
 	for (wfc_queue_size_t i=0;i<state->queue_size;i++){
 		_mm256_storeu_si256(ptr,counter);
