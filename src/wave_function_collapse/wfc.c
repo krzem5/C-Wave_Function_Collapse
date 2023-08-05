@@ -408,7 +408,6 @@ _sub_mask_calculated:
 }
 
 
-
 static FORCE_INLINE __m256i _data_access_precalculated_mask(const wfc_state_t* state,const wfc_table_t* table,const uint64_t* state_data_base,unsigned int i,__m256i* target,wfc_stats_t* stats){
 	stats->access_count+=2ul*table->data_elem_size*table->data_elem_size;
 	__m256i out=_mm256_setzero_si256();
