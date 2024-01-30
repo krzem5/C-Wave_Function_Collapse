@@ -17,12 +17,13 @@
 
 #define STRATEGY WFC_STATE_DATA_ACCESS_STRATEGY_RAW
 
-#define PICK_PARAMETERS 0
+#define PICK_PARAMETERS 1
 #define GENERATE_IMAGE 1
 #define GENERATION_LOOP 0
 #define CUT_OUT_SHAPES 0
 #define CUT_OUT_SHAPE_BACKGROUND 0x000000ff
-#define IMAGE_NAME "duck"
+#define IMAGE_NAME "duck_fast"
+
 
 #define PROGRESS_FRAME_INTERVAL 0.05
 
@@ -89,7 +90,7 @@ static void _progress_callback(const wfc_table_t* table,const wfc_state_t* state
 static const char* _format_int(unsigned long int x){
 	char* out=_format_int_data_buffer+_format_int_data_buffer_offset;
 	_format_int_data_buffer_offset+=27;
-	if (_format_int_data_buffer_offset>=4096){
+	if (_format_int_data_buffer_offset>=sizeof(_format_int_data_buffer)){
 		return "<out of memory>";
 	}
 	unsigned int i=26;
@@ -243,7 +244,7 @@ _regenerate_image:
 			first=0;
 			printf(" %s",_flag_strings[i]);
 		}
-		printf("\n  Palette size: %s\n  Similarity score: %s\n  Downscale factor: %s\n  Propagation distance: %s\n  Delete size: %s\n  Max delete count: %s\n  Fast mask counter initial value: %s\n  Fast mask counter cache initial value: %s\n  Fast mask counter maximal value: %s\nTable:\n  Tile count: %s\n  Tile element size: %s B\n  Tile data: %s kB\n  Neighbours: %s kB\n  Upscaled data: %s kB\nTable creation time: %.3lfs\nState:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Queue indicies: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\n  Precalculated masks: %s kB\nState creation time: %.3lfs\nSimulation:\n  Updates:\n    Collapse: %s\n    Propagation: %s\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n",
+		printf("\n  Palette size: %s\n  Similarity score: %s\n  Downscale factor: %s\n  Propagation distance: %s\n  Delete size: %s\n  Max delete count: %s\n  Fast mask counter initial value: %s\n  Fast mask counter cache initial value: %s\n  Fast mask counter maximal value: %s\nTable:\n  Tile count: %s\n  Tile element size: %s B\n  Tile data: %s kB\n  Neighbours: %s kB\n  Upscaled data: %s kB\nTable creation time: %.3lfs\nState:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Queue indicies: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\n  Precalculated masks: %s kB\nState creation time: %.3lfs\nSimulation:\n  Updates:\n    Collapse: %s (%s per pixel)\n    Propagation: %s (%s per pixel)\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n",
 			_format_int(config.palette_max_size),
 			_format_int(config.max_color_diff),
 			_format_int(config.downscale_factor),
@@ -269,31 +270,36 @@ _regenerate_image:
 			(state.data_access_strategy==WFC_STATE_DATA_ACCESS_STRATEGY_PRECALCULATED_MASK?_format_int((((table.data_elem_size-1)*(table.data_elem_size-1)*8192ul+(table.data_elem_size-1)*1024+3*256+256)*4*sizeof(uint64_t)+1023)>>10):"0"),
 			state_creation_time*1e-9,
 			_format_int(stats.step_count),
+			_format_int(stats.step_count/state.pixel_count),
 			_format_int(stats.propagation_step_count),
+			_format_int(stats.propagation_step_count/state.pixel_count),
 			_format_int(stats.delete_count),
 			_format_int(stats.restart_count)
 		);
 		if (state.data_access_strategy==WFC_STATE_DATA_ACCESS_STRATEGY_FAST_MASK){
-			printf("    Precalculated masks: 0\n    Fast cache: %.3f%% (%s)\n    Cache: %.3f%% (%s)\n    Raw: %.3f%% (%s)\n    Total: %s\n",
+			printf("    Precalculated masks: 0\n    Fast cache: %.3f%% (%s)\n    Cache: %.3f%% (%s)\n    Raw: %.3f%% (%s)\n    Total: %s (%s per pixel)\n",
 				((float)stats.cache_hit_fast_count)/stats.access_count*100,
 				_format_int(stats.cache_hit_fast_count),
 				((float)stats.cache_hit_count)/stats.access_count*100,
 				_format_int(stats.cache_hit_count),
 				((float)(stats.access_count-stats.cache_hit_count-stats.cache_hit_fast_count))/stats.access_count*100,
 				_format_int(stats.access_count-stats.cache_hit_count-stats.cache_hit_fast_count),
-				_format_int(stats.access_count)
+				_format_int(stats.access_count),
+				_format_int(stats.access_count/state.pixel_count)
 			);
 		}
 		else if (state.data_access_strategy==WFC_STATE_DATA_ACCESS_STRATEGY_PRECALCULATED_MASK){
-			printf("    Precalculated masks: %s\n    Fast cache: 0\n    Cache: 0\n    Raw: 0\n    Total: %s\n",
+			printf("    Precalculated masks: %s\n    Fast cache: 0\n    Cache: 0\n    Raw: 0\n    Total: %s (%s per pixel)\n",
 				_format_int(stats.access_count),
-				_format_int(stats.access_count)
+				_format_int(stats.access_count),
+				_format_int(stats.access_count/state.pixel_count)
 			);
 		}
 		else{
-			printf("    Precalculated masks: 0\n    Fast cache: 0\n    Cache: 0\n    Raw: %s\n    Total: %s\n",
+			printf("    Precalculated masks: 0\n    Fast cache: 0\n    Cache: 0\n    Raw: %s\n    Total: %s (%s per pixel)\n",
 				_format_int(stats.access_count),
-				_format_int(stats.access_count)
+				_format_int(stats.access_count),
+				_format_int(stats.access_count/state.pixel_count)
 			);
 		}
 		printf("Simulation time: %.3lfs\n",
