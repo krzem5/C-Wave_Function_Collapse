@@ -213,7 +213,7 @@ _regenerate_image:
 			printf("\x1b[0H\x1b[0J");
 			goto _regenerate_image;
 		}
-		const unsigned long long int* seed64=(unsigned long long int*)seed;
+		const unsigned long long int* seed64=(const unsigned long long int*)seed;
 		printf("Seed:\n  %.16llx%.16llx%.16llx%.16llx\n  %.16llx%.16llx%.16llx%.16llx\n  %.16llx%.16llx%.16llx%.16llx\n  %.16llx%.16llx%.16llx%.16llx\nConfig:\n  Box size: %s\n  Flags:",
 			seed64[0],
 			seed64[1],
@@ -244,7 +244,7 @@ _regenerate_image:
 			first=0;
 			printf(" %s",_flag_strings[i]);
 		}
-		printf("\n  Palette size: %s\n  Similarity score: %s\n  Downscale factor: %s\n  Propagation distance: %s\n  Delete size: %s\n  Max delete count: %s\n  Fast mask counter initial value: %s\n  Fast mask counter cache initial value: %s\n  Fast mask counter maximal value: %s\nTable:\n  Tile count: %s\n  Tile element size: %s B\n  Tile data: %s kB\n  Neighbours: %s kB\n  Upscaled data: %s kB\nTable creation time: %.3lfs\nState:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Queue indicies: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\n  Precalculated masks: %s kB\nState creation time: %.3lfs\nSimulation:\n  Updates:\n    Collapse: %s (%s per pixel)\n    Propagation: %s (%s per pixel)\n  Removals:\n    Pixels: %s\n    Restarts: %s\n  Data access:\n",
+		printf("\n  Palette size: %s\n  Similarity score: %s\n  Downscale factor: %s\n  Propagation distance: %s\n  Delete size: %s\n  Max delete count: %s\n  Fast mask counter initial value: %s\n  Fast mask counter cache initial value: %s\n  Fast mask counter maximal value: %s\nTable:\n  Tile count: %s\n  Tile element size: %s B\n  Tile data: %s kB\n  Neighbours: %s kB\n  Upscaled data: %s kB\nTable creation time: %.3lfs\nState:\n  Bitmap: %s kB\n  Pixel tile data: %s kB\n  Queues: %s kB\n  Queue indicies: %s kB\n  Weights: %s kB\n  Stacks: %s kB\n  Cache: %s kB\n  Precalculated masks: %s kB\nState creation time: %.3lfs\nSimulation:\n  Updates:\n    Collapse: %s (%s per pixel)\n    Propagation: %s (%s per pixel)\n  Removals:\n    Pixels: %s (%s per pixel)\n    Restarts: %s\n  Data access:\n",
 			_format_int(config.palette_max_size),
 			_format_int(config.max_color_diff),
 			_format_int(config.downscale_factor),
@@ -274,6 +274,7 @@ _regenerate_image:
 			_format_int(stats.propagation_step_count),
 			_format_int(stats.propagation_step_count/state.pixel_count),
 			_format_int(stats.delete_count),
+			(stats.delete_count&&stats.delete_count<state.pixel_count?"<1":_format_int(stats.delete_count/state.pixel_count)),
 			_format_int(stats.restart_count)
 		);
 		if (state.data_access_strategy==WFC_STATE_DATA_ACCESS_STRATEGY_FAST_MASK){
